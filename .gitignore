@@ -1,0 +1,7 @@
+build*
+release*
+data*
+.DS_Store
+3rdparty*
+settings.json
+.vscode*
