@@ -16,6 +16,7 @@
 
 #include <geogram/mesh/mesh.h>
 
+
 namespace tetshell {
 
 class Parameters {
@@ -28,6 +29,7 @@ public:
     bool is_quiet  = false;
     int  log_level = 0;//2;
 
-    unsigned int num_threads = std::numeric_limits<unsigned int>::max();
+    unsigned int num_threads = std::numeric_limits<unsigned int>::max()-1;
 };
+
 }  // namespace tetshell
