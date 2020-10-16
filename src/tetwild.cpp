@@ -33,7 +33,7 @@ void printFinalQuality(double time, const std::vector<TetVertex>& tet_vertices,
                        const std::vector<bool> &t_is_removed,
                        const std::vector<TetQuality>& tet_qualities,
                        const std::vector<int>& v_ids,
-                       const Args &args, const State &state)
+                       const parameters &args, const State &state)
 {
     logger().debug("final quality:");
     double min = 10, max = 0;
@@ -104,7 +104,7 @@ void extractSurfaceMesh(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T,
 
 void extractFinalTetmesh(MeshRefinement& MR,
     Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXd &A_out,
-    const Args &args, const State &state)
+    const parameters &args, const State &state)
 {
     std::vector<TetVertex> &tet_vertices = MR.tet_vertices;
     std::vector<std::array<int, 4>> &tets = MR.tets;
@@ -172,7 +172,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
 double tetwild_stage_one_preprocess(
     const Eigen::MatrixXd &VI,
     const Eigen::MatrixXi &FI,
-    const Args &args,
+    const parameters &args,
     State &state,
     GEO::Mesh &geo_sf_mesh,
     GEO::Mesh &geo_b_mesh,
@@ -208,7 +208,7 @@ double tetwild_stage_one_preprocess(
 
 // Compute an initial Delaunay triangulation of the input triangle soup
 double tetwild_stage_one_delaunay(
-    const Args &args,
+    const parameters &args,
     const State &state,
     GEO::Mesh &geo_sf_mesh,
     const std::vector<Point_3> &m_vertices,
@@ -249,7 +249,7 @@ double tetwild_stage_one_delaunay(
 
 // Match faces of the Delaunay tetrahedralization with faces from the input mesh
 double tetwild_stage_one_mc(
-    const Args &args,
+    const parameters &args,
     const State &state,
     MeshConformer &MC)
 {
@@ -268,7 +268,7 @@ double tetwild_stage_one_mc(
 
 // Compute BSP partition of the domain
 double tetwild_stage_one_bsp(
-    const Args &args,
+    const parameters &args,
     const State &state,
     MeshConformer &MC)
 {
@@ -294,7 +294,7 @@ double tetwild_stage_one_bsp(
 
 // Compute an initial tetrahedral mesh from the BSP partition
 double tetwild_stage_one_tetra(
-    const Args &args,
+    const parameters &args,
     const State &state,
     MeshConformer &MC,
     const std::vector<int> &m_f_tags,
@@ -330,7 +330,7 @@ double tetwild_stage_one_tetra(
 void tetwild_stage_one(
     const Eigen::MatrixXd &VI,
     const Eigen::MatrixXi &FI,
-    const Args &args,
+    const parameters &args,
     State &state,
     GEO::Mesh &geo_sf_mesh,
     GEO::Mesh &geo_b_mesh,
@@ -342,12 +342,12 @@ void tetwild_stage_one(
     double tmp_time = 0;
     double sum_time = 0;
 
-    //preprocess
+    // preprocess
     std::vector<Point_3> m_vertices;
     std::vector<std::array<int, 3>> m_faces;
     sum_time += tetwild_stage_one_preprocess(VI, FI, args, state, geo_sf_mesh, geo_b_mesh, m_vertices, m_faces);
 
-    //delaunay tetrahedralization
+    // delaunay tetrahedralization
     std::vector<Point_3> bsp_vertices;
     std::vector<BSPEdge> bsp_edges;
     std::vector<BSPFace> bsp_faces;
@@ -358,14 +358,14 @@ void tetwild_stage_one(
     sum_time += tetwild_stage_one_delaunay(args, state, geo_sf_mesh, m_vertices, m_faces,
         bsp_vertices, bsp_edges, bsp_faces, bsp_nodes, m_f_tags, raw_e_tags, raw_conn_e4v);
 
-    //mesh conforming
+    // mesh conforming
     MeshConformer MC(m_vertices, m_faces, bsp_vertices, bsp_edges, bsp_faces, bsp_nodes);
     sum_time += tetwild_stage_one_mc(args, state, MC);
 
-    //bsp subdivision
+    // bsp subdivision
     sum_time += tetwild_stage_one_bsp(args, state, MC);
 
-    //simple tetrahedralization
+    // simple tetrahedralization
     sum_time += tetwild_stage_one_tetra(args, state, MC, m_f_tags, raw_e_tags, raw_conn_e4v,
         tet_vertices, tet_indices, is_surface_facet);
 
@@ -374,7 +374,7 @@ void tetwild_stage_one(
 
 // -----------------------------------------------------------------------------
 
-void tetwild_stage_two(const Args &args, State &state,
+void tetwild_stage_two(const parameters &args, State &state,
     GEO::Mesh &geo_sf_mesh,
     GEO::Mesh &geo_b_mesh,
     std::vector<TetVertex> &tet_vertices,
@@ -403,9 +403,7 @@ void tetwild_stage_two(const Args &args, State &state,
 
 void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
                         Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO,
-                        const Args &args)
-{
-    GEO::initialize();
+                        const Parameters &args) {
 
     igl::Timer igl_timer;
     igl_timer.start();

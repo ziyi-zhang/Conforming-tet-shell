@@ -5,8 +5,14 @@ set(SOURCES
 	auto_table.hpp
 	auto_table.cpp
 
+	BSPSubdivision.h
+	BSPSubdivision.cpp
+
 	Logger.hpp
 	Logger.cpp
+
+	Tetwild.h
+	Tetwild.cpp
 )
 
 prepend_current_path(SOURCES)
