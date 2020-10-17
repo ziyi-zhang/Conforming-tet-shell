@@ -55,6 +55,7 @@ public:
     Preprocess(State &st) : state(st) { }
 
     bool init(const Eigen::MatrixXd& V_tmp, const Eigen::MatrixXi& F_tmp, GEO::Mesh& geo_b_mesh, GEO::Mesh& geo_sf_mesh, const Args &args);
+    // Remove duplicate vertices & Create boundary mesh
 
     void getBoundaryMesh(GEO::Mesh& b_mesh);
     void process(GEO::Mesh& geo_sf_mesh, std::vector<Point_3>& m_vertices, std::vector<std::array<int, 3>>& m_faces, const Args &args);

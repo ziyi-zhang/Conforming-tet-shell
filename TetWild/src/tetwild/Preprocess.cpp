@@ -94,6 +94,7 @@ void checkBoundary(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, const Sta
 
 } // anonymous namespace
 
+
 bool Preprocess::init(const Eigen::MatrixXd& V_tmp, const Eigen::MatrixXi& F_tmp,
                       GEO::Mesh& geo_b_mesh, GEO::Mesh& geo_sf_mesh, const Args &args) {
 

@@ -138,6 +138,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
     for (int i = 0; i < v_ids.size(); i++)
         map_ids[v_ids[i]] = i;
 
+    // actually filling V and T
     V_out.resize(v_ids.size(), 3);
     T_out.resize(t_cnt, 4);
     A_out.resize(t_cnt);
@@ -174,8 +175,6 @@ double tetwild_stage_one_preprocess(
     const Eigen::MatrixXi &FI,
     const Args &args,
     State &state,
-    GEO::Mesh &geo_sf_mesh,
-    GEO::Mesh &geo_b_mesh,
     std::vector<Point_3> &m_vertices,
     std::vector<std::array<int, 3>> &m_faces)
 {
