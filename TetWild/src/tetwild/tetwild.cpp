@@ -175,6 +175,8 @@ double tetwild_stage_one_preprocess(
     const Eigen::MatrixXi &FI,
     const Args &args,
     State &state,
+    GEO::Mesh &geo_sf_mesh,
+    GEO::Mesh &geo_b_mesh,
     std::vector<Point_3> &m_vertices,
     std::vector<std::array<int, 3>> &m_faces)
 {
