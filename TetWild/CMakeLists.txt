@@ -125,6 +125,9 @@ add_library(libTetWild
 		src/tetwild/VertexSmoother.h
 		src/tetwild/geogram/mesh_AABB.cpp
 		src/tetwild/geogram/mesh_AABB.h
+
+		src/shell/Label.cpp
+		src/shell/Label.h
 )
 target_include_directories(libTetWild
 	PRIVATE

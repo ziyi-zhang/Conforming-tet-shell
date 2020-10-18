@@ -10,6 +10,7 @@
 #include <tetwild/Common.h>
 #include <tetwild/Logger.h>
 #include <tetwild/MeshRefinement.h>
+#include <shell/Label.h>
 #include <igl/read_triangle_mesh.h>
 #include <igl/write_triangle_mesh.h>
 #include <igl/writeOBJ.h>
@@ -172,6 +173,10 @@ int main(int argc, char *argv[]) {
     } else {
         tetwild::tetrahedralization(VI, FI, VO, TO, AO, args);
     }
+
+    // label tets
+    Eigen::VectorXi labels;
+    tetshell::LabelTet(VI, FI, VO, TO, labels);
     saveFinalTetmesh(output_volume, output_surface, VO, TO, AO);
 
     spdlog::shutdown();
