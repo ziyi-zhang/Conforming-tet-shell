@@ -128,6 +128,7 @@ add_library(libTetWild
 
 		src/shell/Label.cpp
 		src/shell/Label.h
+		src/shell/common.hpp
 )
 target_include_directories(libTetWild
 	PRIVATE

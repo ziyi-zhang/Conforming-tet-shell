@@ -26,7 +26,7 @@ namespace tetwild {
 } // namespace tetwild
 
 void saveFinalTetmesh(const std::string &output_volume, const std::string &output_surface,
-    const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::VectorXd &A)
+    const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::VectorXd &A, const Eigen::VectorXi &labels)
 {
     logger().debug("Writing mesh to {}...", output_volume);
     std::string output_format = output_volume.substr(output_volume.size() - 4, 4);
@@ -61,6 +61,7 @@ void saveFinalTetmesh(const std::string &output_volume, const std::string &outpu
         std::copy_n(TT.data(), T.size(), T_flat.data());
         mSaver.save_mesh(V_flat, T_flat, 3, mSaver.TET);
         mSaver.save_elem_scalar_field("min_dihedral_angle", A);
+        mSaver.save_elem_scalar_field("label", labels.cast<double>());
     }
 
 
@@ -177,7 +178,7 @@ int main(int argc, char *argv[]) {
     // label tets
     Eigen::VectorXi labels;
     tetshell::LabelTet(VI, FI, VO, TO, labels);
-    saveFinalTetmesh(output_volume, output_surface, VO, TO, AO);
+    saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, labels);
 
     spdlog::shutdown();
 
