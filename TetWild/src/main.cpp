@@ -178,6 +178,8 @@ int main(int argc, char *argv[]) {
     // label tets
     Eigen::VectorXi labels;
     tetshell::LabelTet(VI, FI, VO, TO, labels);
+    logger().info("label done");
+    tetshell::ReplaceWithPrismTet(VI, FI, VO, TO, AO, labels);
     saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, labels);
 
     spdlog::shutdown();
