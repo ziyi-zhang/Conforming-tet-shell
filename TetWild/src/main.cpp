@@ -97,6 +97,7 @@ int main(int argc, char *argv[]) {
     std::string output_surface;
     std::string slz_file;
     Args args;
+    bool skip_prism = false;
 
     CLI::App app{"RobustTetMeshing"};
     app.add_option("input,--input", input_surface, "Input surface mesh INPUT in .off/.obj/.stl/.ply format. (string, required)")->required();
@@ -118,6 +119,7 @@ int main(int argc, char *argv[]) {
     app.add_flag("--no-voxel", args.not_use_voxel_stuffing, "Use voxel stuffing before BSP subdivision.");
     app.add_flag("--is-laplacian", args.smooth_open_boundary, "Do Laplacian smoothing for the surface of output on the holes of input (optional)");
     app.add_flag("-q,--is-quiet", args.is_quiet, "Mute console output. (optional)");
+    app.add_flag("-s,--skip-prism", skip_prism, "Skip prism removal and insertion");
 
     try {
         app.parse(argc, argv);
@@ -177,9 +179,13 @@ int main(int argc, char *argv[]) {
 
     // label tets
     Eigen::VectorXi labels;
+    VI = VI.block(0, 0, VI.rows()-8, 3);  // do not need the bounding box
+    FI = FI.block(0, 0, FI.rows()-12, 3);  // do not need the bounding box
+    std::cerr << "FI rows " << FI.rows() << std::endl;
     tetshell::LabelTet(VI, FI, VO, TO, labels);
     logger().info("label done");
-    tetshell::ReplaceWithPrismTet(VI, FI, VO, TO, AO, labels);
+    if (!skip_prism)
+        tetshell::ReplaceWithPrismTet(VI, FI, VO, TO, AO, labels);
     saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, labels);
 
     spdlog::shutdown();
