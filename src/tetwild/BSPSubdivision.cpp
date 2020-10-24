@@ -33,6 +33,7 @@ void BSPSubdivision::init() {
 	logger().debug("# nodes need subdivision = {}/{}/{}", nf, processing_n_ids.size(), MC.bsp_nodes.size());
 }
 
+
 void BSPSubdivision::subdivideBSPNodes() {
     std::vector<BSPtreeNode> &nodes = MC.bsp_nodes;
     std::vector<BSPFace> &faces = MC.bsp_faces;
@@ -68,10 +69,10 @@ void BSPSubdivision::subdivideBSPNodes() {
             calVertexSides(pln, v_ids, vertices, v_sides);
             cnt_pos=0;
             cnt_neg=0;
-            for (auto it = v_sides.begin(); it != v_sides.end(); it++) {
-                if (it->second == V_POS)
+            for (auto it2 = v_sides.begin(); it2 != v_sides.end(); it2++) {
+                if (it2->second == V_POS)
                     cnt_pos++;
-                if (it->second == V_NEG)
+                if (it2->second == V_NEG)
                     cnt_neg++;
             }
             if (cnt_pos == 0 || cnt_neg == 0) { //fixed//but how could it happen??
@@ -153,13 +154,13 @@ void BSPSubdivision::subdivideBSPNodes() {
 
                 ///check if need splitting
                 std::vector<int> pos_vs, neg_vs, on_vs;
-                for (int j = 0; j < edges[old_e_id].vertices.size(); j++) {
-                    if (v_sides[edges[old_e_id].vertices[j]] == V_POS)
-                        pos_vs.push_back(edges[old_e_id].vertices[j]);
-                    else if (v_sides[edges[old_e_id].vertices[j]] == V_NEG)
-                        neg_vs.push_back(edges[old_e_id].vertices[j]);
+                for (int k = 0; k < edges[old_e_id].vertices.size(); k++) {
+                    if (v_sides[edges[old_e_id].vertices[k]] == V_POS)
+                        pos_vs.push_back(edges[old_e_id].vertices[k]);
+                    else if (v_sides[edges[old_e_id].vertices[k]] == V_NEG)
+                        neg_vs.push_back(edges[old_e_id].vertices[k]);
                     else
-                        on_vs.push_back(edges[old_e_id].vertices[j]);
+                        on_vs.push_back(edges[old_e_id].vertices[k]);
                 }
                 if (on_vs.size() == 2) {
                     if (std::find(on_face.edges.begin(), on_face.edges.end(), old_e_id) == on_face.edges.end())
@@ -323,8 +324,8 @@ void BSPSubdivision::subdivideBSPNodes() {
                 processing_n_ids.push(new_n_ids[i]);
         }
     }
-
 }
+
 
 void BSPSubdivision::calVertexSides(const Plane_3& pln, const std::unordered_set<int>& v_ids, const std::vector<Point_3>& vs,
                                     std::unordered_map<int, int>& v_sides){
@@ -342,6 +343,7 @@ void BSPSubdivision::calVertexSides(const Plane_3& pln, const std::unordered_set
         }
     }
 }
+
 
 int BSPSubdivision::divfaceSide(const Plane_3& pln, const std::array<int, 3>& p_ids,
                                     const std::vector<Point_3>& ps) {
@@ -370,6 +372,7 @@ int BSPSubdivision::divfaceSide(const Plane_3& pln, const std::array<int, 3>& p_
 
     return -1;
 }
+
 
 void BSPSubdivision::getVertices(BSPFace& face){
     std::unordered_set<int> vs;

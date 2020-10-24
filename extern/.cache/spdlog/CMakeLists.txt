@@ -9,7 +9,7 @@ include(ExternalProject)
 ExternalProject_Add(spdlog-download
                     GIT_REPOSITORY;https://github.com/gabime/spdlog.git;GIT_TAG;v1.1.0
                     SOURCE_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/spdlog"
-                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/release/spdlog-build"
+                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/Release/spdlog-build"
                     CONFIGURE_COMMAND   ""
                     BUILD_COMMAND       ""
                     INSTALL_COMMAND     ""

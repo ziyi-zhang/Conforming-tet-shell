@@ -83,7 +83,9 @@ inline std::tuple<bool, Vec3i, int> tetra_split_AorB(const Vec3i& abc) {
   // and bool indicates whether it is well sorted. type B if sorted, A (default)
   // if not.
   bool typeA = false;
-  auto [a, b, c] = abc;
+  int a = abc[0];
+  int b = abc[1];
+  int c = abc[2];
 
   // argmin
   int argmin = 0;

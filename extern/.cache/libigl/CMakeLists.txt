@@ -9,7 +9,7 @@ include(ExternalProject)
 ExternalProject_Add(libigl-download
                     GIT_REPOSITORY;https://github.com/libigl/libigl.git;GIT_TAG;v2.2.0
                     SOURCE_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/libigl"
-                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/release/libigl-build"
+                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/Release/libigl-build"
                     CONFIGURE_COMMAND   ""
                     BUILD_COMMAND       ""
                     INSTALL_COMMAND     ""

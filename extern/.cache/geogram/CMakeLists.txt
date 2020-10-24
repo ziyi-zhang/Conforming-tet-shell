@@ -9,7 +9,7 @@ include(ExternalProject)
 ExternalProject_Add(geogram-download
                     GIT_REPOSITORY;https://github.com/alicevision/geogram.git;GIT_TAG;v1.6.7
                     SOURCE_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/geogram"
-                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/release/geogram-build"
+                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/Release/geogram-build"
                     CONFIGURE_COMMAND   ""
                     BUILD_COMMAND       ""
                     INSTALL_COMMAND     ""

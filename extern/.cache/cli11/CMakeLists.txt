@@ -9,7 +9,7 @@ include(ExternalProject)
 ExternalProject_Add(cli11-download
                     URL;https://github.com/CLIUtils/CLI11/archive/v1.6.1.tar.gz;URL_MD5;48ef97262adb0b47a2f0a7edbda6e2aa
                     SOURCE_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/cli11"
-                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/release/cli11-build"
+                    BINARY_DIR          "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/Release/cli11-build"
                     CONFIGURE_COMMAND   ""
                     BUILD_COMMAND       ""
                     INSTALL_COMMAND     ""
