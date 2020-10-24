@@ -391,6 +391,7 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
     const std::vector<Point_3> &m_vertices = MC.m_vertices;
     const std::vector<std::array<int, 3>> &m_faces = MC.m_faces;
 
+    // prepare m_triangles
     std::vector<Triangle_3> m_triangles;
     m_triangles.reserve(m_faces.size());
     for (unsigned int i = 0; i < m_faces.size(); i++)
@@ -399,9 +400,9 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
 
     std::vector<std::vector<int>> track_on_faces;
     track_on_faces.resize(bsp_vertices.size());
+    // update tet_vertices.on_face
     for (unsigned int i = 0; i < m_faces.size(); i++) {
         for (int j = 0; j < 3; j++) {
-//            tet_vertices[centroid_size+m_faces[i][j]].on_face.insert(i);
             tet_vertices[m_faces[i][j]].on_face.insert(i);
         }
     }
@@ -411,7 +412,6 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
     for (unsigned int i = 0; i < m_vertices.size(); i++) {
         for (int j = 0; j < track_on_edges[i].size(); j++) {
             if (m_e_tags[track_on_edges[i][j]] >= 0) {
-//                tet_vertices[centroid_size+i].on_edge.insert(m_e_tags[track_on_edges[i][j]]);
                 tet_vertices[i].on_edge.insert(m_e_tags[track_on_edges[i][j]]);
             }
         }
@@ -479,18 +479,20 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
         }
     }
 
-    for(unsigned int i=0;i<tet_vertices.size();i++){
-        if(tet_vertices[i].on_face.size()>0)
-            tet_vertices[i].is_on_surface=true;
+    // assign "tet_vertices.is_on_surface"
+    for (unsigned int i=0; i<tet_vertices.size(); i++) {
+        if (tet_vertices[i].on_face.size() > 0)
+            tet_vertices[i].is_on_surface = true;
     }
 
     // is face on surface
-    is_surface_fs=std::vector<std::array<int, 4>>(tets.size(),
+    is_surface_fs = std::vector<std::array<int, 4>>(tets.size(),
                                                   std::array<int, 4>({{state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE}}));
 
     for (unsigned int i=0; i<tets.size(); i++) {
         for (int j=0; j<4; j++) {
 
+            // if any of +1 +2 +3 not on surface
             if (!tet_vertices[tets[i][(j + 1) % 4]].is_on_surface || !tet_vertices[tets[i][(j + 2) % 4]].is_on_surface
                 || !tet_vertices[tets[i][(j + 3) % 4]].is_on_surface) {
                 
@@ -498,6 +500,7 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
                 continue;
             }
 
+            // get the common faces +1 +2 +3 are on to "sf_faces"
             std::unordered_set<int> sf_faces_tmp;
             setIntersection(tet_vertices[tets[i][(j + 1) % 4]].on_face, tet_vertices[tets[i][(j + 2) % 4]].on_face,
                             sf_faces_tmp);
@@ -523,19 +526,15 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
             if (side == CGAL::ON_ORIENTED_BOUNDARY) {
                 log_and_throw("ERROR: side == CGAL::ON_ORIENTED_BOUNDARY!!");
             }
-            if (side == CGAL::ON_POSITIVE_SIDE)//outside
+            if (side == CGAL::ON_POSITIVE_SIDE)  // outside
                 is_surface_fs[i][j]++;
-            else//inside
+            else  // inside
                 is_surface_fs[i][j]--;
 
             // if there are more than one sf_faces
             int delta = is_surface_fs[i][j];
             if (sf_faces.size() > 1) {
-                //cal normal vec for [0]
-//                Vector_3 nv = CGAL::cross_product(
-//                        m_vertices[m_faces[sf_faces[0]][0]] - m_vertices[m_faces[sf_faces[0]][1]],
-//                        m_vertices[m_faces[sf_faces[0]][1]] - m_vertices[m_faces[sf_faces[0]][2]]);
-//                Direction_3 dir = nv.direction();
+                // cal normal vec for [0]
                 Direction_3 dir = pln.orthogonal_direction();
 
                 for (int f_id = 1; f_id < sf_faces.size(); f_id++) {
@@ -553,11 +552,12 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
     }
 
     // tag the surface
-    for(unsigned int i=0;i<tet_vertices.size();i++){
+    for (unsigned int i=0; i<tet_vertices.size(); i++) {
+
         std::unordered_set<int> tmp;
-        for(auto it=tet_vertices[i].on_face.begin();it!=tet_vertices[i].on_face.end();it++)
+        for (auto it=tet_vertices[i].on_face.begin(); it!=tet_vertices[i].on_face.end(); it++)
             tmp.insert(m_f_tags[*it]);
-        tet_vertices[i].on_face=tmp;
+        tet_vertices[i].on_face = tmp;
     }
 }
 

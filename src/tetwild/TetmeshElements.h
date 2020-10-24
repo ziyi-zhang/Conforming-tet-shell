@@ -27,7 +27,7 @@ public:
 
     ///for surface conforming
     int on_fixed_vertex = -1;
-    std::unordered_set<int> on_edge;//fixed points can be on more than one edges
+    std::unordered_set<int> on_edge;  // fixed points can be on more than one edges
     std::unordered_set<int> on_face;
     bool is_on_surface = false;
 

@@ -182,8 +182,8 @@ int main(int argc, char *argv[]) {
 
     // label tets
     Eigen::VectorXi labels;
-    VI = VI.block(0, 0, VI.rows()-8, 3);  // do not need the bounding box
-    FI = FI.block(0, 0, FI.rows()-12, 3);  // do not need the bounding box
+    // VI = VI.block(0, 0, VI.rows()-8, 3);  // do not need the bounding box
+    // FI = FI.block(0, 0, FI.rows()-12, 3);  // do not need the bounding box
     std::cerr << "FI rows " << FI.rows() << std::endl;
     tetshell::LabelTet(VI, FI, VO, TO, labels);
     logger().info("label done");

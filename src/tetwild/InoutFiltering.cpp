@@ -32,7 +32,7 @@ void InoutFiltering::filter() {
 
         if (t_is_removed[i])
             continue;
-        
+
         // find the centroid for this tet
         std::vector<Point_3f> vs;
         vs.reserve(4);
@@ -70,7 +70,6 @@ void InoutFiltering::filter() {
             F(i, 1) = F(i, 2);
             F(i, 2) = tmp;
         }
-//        igl::writeSTL(state.working_dir+state.postfix_str+"_debug.stl", V, F);
         igl::winding_number(V, F, C, W);
 
         tmp_t_is_removed = t_is_removed;

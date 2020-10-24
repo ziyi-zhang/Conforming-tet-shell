@@ -116,6 +116,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
     int t_cnt = std::count(t_is_removed.begin(), t_is_removed.end(), false);
     double tmp_time = 0;
 
+/*
     if (!args.smooth_open_boundary) {
 
         InoutFiltering IOF(tet_vertices, tets, MR.is_surface_fs, v_is_removed, t_is_removed, tet_qualities, state);
@@ -128,6 +129,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
         logger().info("time = {}s", tmp_time);
         logger().debug("{} tets inside!", t_cnt);
     }
+*/
 
     //output result
     std::vector<int> v_ids;

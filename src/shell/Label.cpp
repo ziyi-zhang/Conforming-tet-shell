@@ -3,7 +3,6 @@
 
 #include <igl/copyleft/cgal/orient3D.h>
 #include <Eigen/Dense>
-
 #include <array>
 
 

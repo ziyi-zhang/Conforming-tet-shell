@@ -50,6 +50,6 @@ public:
     Point_3 to3d(const Point_2 &p, const Plane_3 &pln);
 };
 
-} // namespace tetwild
+}  // namespace tetwild
 
-#endif //GTET_MESHCONFORMER_H
+#endif  //GTET_MESHCONFORMER_H
