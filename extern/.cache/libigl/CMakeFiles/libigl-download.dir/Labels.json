@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/libigl-download"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/libigl-download.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/libigl-download-complete.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-install.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-mkdir.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-download.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-update.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-patch.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-configure.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-build.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-test.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"libigl-download"
+		],
+		"name" : "libigl-download"
+	}
+}

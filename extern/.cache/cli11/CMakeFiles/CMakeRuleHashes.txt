@@ -1,0 +1,11 @@
+# Hashes of file build rules.
+04dfb1566ecf3427e03d13bb3912bf64 CMakeFiles/cli11-download
+8d761f08ddbcc4359bff6a5cf7a69069 CMakeFiles/cli11-download-complete
+c8c247876f362e01d9e2fb462dd4ef77 cli11-download-prefix/src/cli11-download-stamp/cli11-download-build
+f3c1edf9b0b4ef399e7f907cb9609fe8 cli11-download-prefix/src/cli11-download-stamp/cli11-download-configure
+2f56e9953ddc18c95dc27c0bc46d529d cli11-download-prefix/src/cli11-download-stamp/cli11-download-download
+497202c2a9888bde63f8bd84837a8473 cli11-download-prefix/src/cli11-download-stamp/cli11-download-install
+70cdaf567e10d0f58f679cccae567dba cli11-download-prefix/src/cli11-download-stamp/cli11-download-mkdir
+3015c776de4d91158a2bcc239cee9d3c cli11-download-prefix/src/cli11-download-stamp/cli11-download-patch
+ef8f906eda067ce35a3738fb9e1f1652 cli11-download-prefix/src/cli11-download-stamp/cli11-download-test
+d995174252ae4b4b29ad508d97b0eab3 cli11-download-prefix/src/cli11-download-stamp/cli11-download-update

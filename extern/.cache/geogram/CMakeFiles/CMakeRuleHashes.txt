@@ -1,0 +1,11 @@
+# Hashes of file build rules.
+641b2fc6d7c17d3abd94e49b4b49f881 CMakeFiles/geogram-download
+a157f99ae93a7b64b736fdc30757525e CMakeFiles/geogram-download-complete
+50bf8cfb14223769b762f2d8bc096ff1 geogram-download-prefix/src/geogram-download-stamp/geogram-download-build
+ec8bbddf8ff864e1016cdcc8d20e6809 geogram-download-prefix/src/geogram-download-stamp/geogram-download-configure
+ea8a04a921b393412c19323509e1baeb geogram-download-prefix/src/geogram-download-stamp/geogram-download-download
+cd4c655fdb141326effbf0bf574f08cc geogram-download-prefix/src/geogram-download-stamp/geogram-download-install
+98102153cc5311853011b580a3be9600 geogram-download-prefix/src/geogram-download-stamp/geogram-download-mkdir
+b8617461c7e2c1f53cc8682609ae83ed geogram-download-prefix/src/geogram-download-stamp/geogram-download-patch
+00ce2b063fac2e9ba366ebf3082f693c geogram-download-prefix/src/geogram-download-stamp/geogram-download-test
+bbec8b36d135cf66cf52a75e07ed2632 geogram-download-prefix/src/geogram-download-stamp/geogram-download-update

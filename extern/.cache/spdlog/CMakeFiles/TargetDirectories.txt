@@ -1,0 +1,3 @@
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/CMakeFiles/rebuild_cache.dir
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/CMakeFiles/edit_cache.dir
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/CMakeFiles/spdlog-download.dir

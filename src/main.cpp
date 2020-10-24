@@ -1,132 +1,193 @@
-#include <CLI/CLI.hpp>
+// This file is part of TetWild, a software for generating tetrahedral meshes.
+//
+// Copyright (C) 2018 Yixin Hu <yixin.hu@nyu.edu>
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
+// obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifdef TET_SHELL_USE_TBB
-#include <tbb/task_scheduler_init.h>
-#include <thread>
-#endif
-
-#include <tetshell/Logger.hpp>
-#include <tetshell/Parameters.hpp>
-#include <Eigen/Dense>
-
-#include <igl/Timer.h>
+#include <tetwild/tetwild.h>
+#include <tetwild/Common.h>
+#include <tetwild/Logger.h>
+#include <tetwild/MeshRefinement.h>
+#include <shell/Label.h>
+#include <igl/read_triangle_mesh.h>
 #include <igl/write_triangle_mesh.h>
+#include <igl/writeOBJ.h>
+#include <pymesh/MshSaver.h>
+#include <tetwild/DisableWarnings.h>
+#include <CLI/CLI.hpp>
+#include <tetwild/EnableWarnings.h>
 
-#include <geogram/basic/logger.h>
-#include <geogram/basic/command_line.h>
-#include <geogram/basic/command_line_args.h>
-#include <geogram/basic/common.h>
-#include <geogram/basic/numeric.h>
-#include <geogram/basic/geometry.h>
+using namespace tetwild;
+
+namespace tetwild {
+    void extractFinalTetmesh(MeshRefinement& MR, Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXd &A_out, const Args &args, const State &state);
+} // namespace tetwild
+
+void saveFinalTetmesh(const std::string &output_volume, const std::string &output_surface,
+    const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::VectorXd &A, const Eigen::VectorXi &labels)
+{
+    logger().debug("Writing mesh to {}...", output_volume);
+    std::string output_format = output_volume.substr(output_volume.size() - 4, 4);
+    if (output_format == "mesh") {
+        std::ofstream f(output_volume);
+        f.precision(std::numeric_limits<double>::digits10 + 1);
+        f << "MeshVersionFormatted 1" << std::endl;
+        f << "Dimension 3" << std::endl;
+
+        f << "Vertices" << std::endl << V.rows() << std::endl;
+        for (int i = 0; i < V.rows(); i++)
+            f << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << " " << 0 << std::endl;
+        f << "Triangles" << std::endl << 0 <<std::endl;
+        f << "Tetrahedra" << std::endl;
+        f << T.rows() << std::endl;
+        for (int i = 0; i < T.rows(); i++) {
+            for (int j = 0; j < 4; j++) {
+                f << T(i, j) + 1 << " ";
+            }
+            f << 0 << std::endl;
+        }
+
+        f << "End";
+        f.close();
+    } else {
+        PyMesh::MshSaver mSaver(output_volume, true);
+        PyMesh::VectorF V_flat(V.size());
+        PyMesh::VectorI T_flat(T.size());
+        Eigen::MatrixXd VV = V.transpose();
+        Eigen::MatrixXi TT = T.transpose();
+        std::copy_n(VV.data(), V.size(), V_flat.data());
+        std::copy_n(TT.data(), T.size(), T_flat.data());
+        mSaver.save_mesh(V_flat, T_flat, 3, mSaver.TET);
+        mSaver.save_elem_scalar_field("min_dihedral_angle", A);
+        mSaver.save_elem_scalar_field("label", labels.cast<double>());
+    }
+
+
+    Eigen::MatrixXd V_sf;
+    Eigen::MatrixXi F_sf;
+    extractSurfaceMesh(V, T, V_sf, F_sf);
+    igl::writeOBJ(output_surface, V_sf, F_sf);
+}
+
+void gtet_new_slz(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const std::string& slz_file,
+                  const std::array<bool, 4>& ops,
+                  Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO,
+                  const Args &args = Args())
+{
+    State state(args, VI);
+    GEO::Mesh sf, b;
+    MeshRefinement MR(sf, b, args, state);
+    MR.deserialization(VI, FI, slz_file);
+
+//    MR.is_dealing_unrounded = true;
+    MR.refine(state.ENERGY_AMIPS, ops, false, true);
+
+    extractFinalTetmesh(MR, VO, TO, AO, args, state); //do winding number and output the tetmesh
+}
+
+#include <geogram/mesh/mesh_io.h>
 #include <geogram/mesh/mesh.h>
+int main(int argc, char *argv[]) {
+    int log_level = 1; // debug
+    std::string log_filename;
+    std::string input_surface;
+    std::string output_volume;
+    std::string output_surface;
+    std::string slz_file;
+    Args args;
+    bool skip_prism = false;
 
-#include<bitset>
+    CLI::App app{"RobustTetMeshing"};
+    app.add_option("input,--input", input_surface, "Input surface mesh INPUT in .off/.obj/.stl/.ply format. (string, required)")->required();
+    app.add_option("output,--output", output_volume, "Output tetmesh OUTPUT in .msh format. (string, optional, default: input_file+postfix+'.msh')");
+    app.add_option("--postfix", args.postfix, "Postfix P for output files. (string, optional, default: '_')");
+    auto absolute = app.add_option("-a,--ideal-absolute-edge-length", args.initial_edge_len_abs, "Absolute edge length (not scaled by bbox). -a and -l cannot both be given as arguments.");
+    auto relative = app.add_option("-l,--ideal-edge-length", args.initial_edge_len_rel, "ideal_edge_length = diag_of_bbox * L. (double, optional, default: 0.05)");
+    relative->excludes(absolute);
+    app.add_option("-e,--epsilon", args.eps_rel, "epsilon = diag_of_bbox * EPS. (double, optional, default: 1e-3)");
+    app.add_option("--stage", args.stage, "Run pipeline in stage STAGE. (integer, optional, default: 1)");
+    app.add_option("--filter-energy", args.filter_energy_thres, "Stop mesh improvement when the maximum energy is smaller than ENERGY. (double, optional, default: 10)");
+    app.add_option("--max-pass", args.max_num_passes, "Do PASS mesh improvement passes in maximum. (integer, optional, default: 80)");
+    app.add_option("--targeted-num-v", args.target_num_vertices, "Output tetmesh that contains TV vertices. (integer, optional, tolerance: 5%)");
+    app.add_option("--bg-mesh", args.background_mesh, "Background tetmesh BGMESH in .msh format for applying sizing field. (string, optional)");
+    app.add_option("--log", log_filename, "Log info to given file.");
+    app.add_option("--level", log_level, "Log level (0 = most verbose, 6 = off).");
+    app.add_option("--save-mid-result", args.save_mid_result, "Get result without winding number: --save-mid-result 2");
 
-using namespace tetshell;
-using namespace Eigen;
-
-class GeoLoggerForward: public GEO::LoggerClient {
-    std::shared_ptr<spdlog::logger> logger_;
-
-public:
-    template<typename T>
-    GeoLoggerForward(T logger) : logger_(logger) {}
-
-private:
-    std::string truncate(const std::string &msg) {
-        static size_t prefix_len = GEO::CmdLine::ui_feature(" ", false).size();
-        return msg.substr(prefix_len, msg.size() - 1 - prefix_len);
-    }
-
-protected:
-    void div(const std::string &title) override {
-        logger_->trace(title.substr(0, title.size() - 1));
-    }
-
-    void out(const std::string &str) override {
-        logger_->info(truncate(str));
-    }
-
-    void warn(const std::string &str) override {
-        logger_->warn(truncate(str));
-    }
-
-    void err(const std::string &str) override {
-        logger_->error(truncate(str));
-    }
-
-    void status(const std::string &str) override {
-        // Errors and warnings are also dispatched as status by geogram, but without
-        // the "feature" header. We thus forward them as trace, to avoid duplicated
-        // logger info...
-        logger_->trace(str.substr(0, str.size() - 1));
-    }
-};
-
-
-//extern "C" void exactinit();
-int main(int argc, char **argv) {
-
-#ifndef WIN32
-    setenv("GEO_NO_SIGNAL_HANDLER", "1", 1);
-#endif
-
-    GEO::initialize();
-
-    Parameters params;
-
-    // Import standard command line arguments, and custom ones
-    GEO::CmdLine::import_arg_group("standard");
-    GEO::CmdLine::import_arg_group("pre");
-    GEO::CmdLine::import_arg_group("algo");
-
-    CLI::App command_line{"tet-shell"};
-    command_line.add_option("-i,--input", params.input_path,
-                            "Input surface mesh INPUT in .off/.obj/.stl/.ply format. (string, required)")->check(
-            CLI::ExistingFile);
-
-    unsigned int max_threads = std::numeric_limits<unsigned int>::max();
-#ifdef TET_SHELL_USE_TBB
-    command_line.add_option("--max-threads", max_threads, "maximum number of threads used");
-#endif
+    app.add_flag("--no-voxel", args.not_use_voxel_stuffing, "Use voxel stuffing before BSP subdivision.");
+    app.add_flag("--is-laplacian", args.smooth_open_boundary, "Do Laplacian smoothing for the surface of output on the holes of input (optional)");
+    app.add_flag("-q,--is-quiet", args.is_quiet, "Mute console output. (optional)");
+    app.add_flag("-s,--skip-prism", skip_prism, "Skip prism removal and insertion");
 
     try {
-        command_line.parse(argc, argv);
+        app.parse(argc, argv);
     } catch (const CLI::ParseError &e) {
-        return command_line.exit(e);
+        return app.exit(e);
     }
 
-
-#ifdef TET_SHELL_USE_TBB
-    const size_t MB = 1024 * 1024;
-    const size_t stack_size = 64 * MB;
-    unsigned int num_threads = std::max(1u, std::thread::hardware_concurrency());
-    num_threads = std::min(max_threads, num_threads);
-    params.num_threads = num_threads;
-    std::cout << "TBB threads " << num_threads << std::endl;
-    tbb::task_scheduler_init scheduler(num_threads, stack_size);
-#endif
-
-    Logger::init(!params.is_quiet, params.log_path);
-    params.log_level = std::max(0, std::min(6, params.log_level));
-    spdlog::set_level(static_cast<spdlog::level::level_enum>(params.log_level));
+    Logger::init(!args.is_quiet, log_filename);
+    log_level = std::max(0, std::min(6, log_level));
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
     spdlog::flush_every(std::chrono::seconds(3));
 
-    GEO::Logger *geo_logger = GEO::Logger::instance();
-    geo_logger->unregister_all_clients();
-    geo_logger->register_client(new GeoLoggerForward(logger().clone("geogram")));
-    geo_logger->set_pretty(false);
+    //initialization
+    GEO::initialize();
+    if(slz_file != "") {
+        args.working_dir = input_surface.substr(0, slz_file.size() - 4);
+    } else {
+        if(output_volume.empty())
+            args.working_dir = input_surface.substr(0, input_surface.size() - 4);
+        else
+            args.working_dir = output_volume;
+    }
 
+    if(args.csv_file.empty()) {
+        args.csv_file = args.working_dir + args.postfix + ".csv";
+    }
 
-    if (params.output_path.empty())
-        params.output_path = params.input_path;
-    if (params.log_path.empty())
-        params.log_path = params.output_path;
+    if(output_volume.empty()) {
+        output_volume = args.working_dir + args.postfix + ".msh";
+    }
+    output_surface = args.working_dir + args.postfix+"_sf.obj";
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    if(args.is_quiet) {
+        args.write_csv_file = false;
+    }
 
-    logger().info("EOP");
-    std::cerr << "test";
+    //do tetrahedralization
+    Eigen::MatrixXd VI, VO;
+    Eigen::MatrixXi FI, TO;
+    Eigen::VectorXd AO;
+    GEO::Mesh input;
+    GEO::mesh_load(input_surface, input);
+    VI.resize(input.vertices.nb(), 3);
+    for(int i=0;i<VI.rows();i++)
+        VI.row(i)<<(input.vertices.point(i))[0], (input.vertices.point(i))[1], (input.vertices.point(i))[2];
+    FI.resize(input.facets.nb(), 3);
+    for(int i=0;i<FI.rows();i++)
+        FI.row(i)<<input.facets.vertex(i, 0), input.facets.vertex(i, 1), input.facets.vertex(i, 2);
 
-    return EXIT_SUCCESS;
+    if(slz_file != "") {
+        gtet_new_slz(VI, FI, slz_file,
+            {{true, false, true, true}}, VO, TO, AO, args);
+    } else {
+        tetwild::tetrahedralization(VI, FI, VO, TO, AO, args);
+    }
+
+    // label tets
+    Eigen::VectorXi labels;
+    VI = VI.block(0, 0, VI.rows()-8, 3);  // do not need the bounding box
+    FI = FI.block(0, 0, FI.rows()-12, 3);  // do not need the bounding box
+    std::cerr << "FI rows " << FI.rows() << std::endl;
+    tetshell::LabelTet(VI, FI, VO, TO, labels);
+    logger().info("label done");
+    if (!skip_prism)
+        tetshell::ReplaceWithPrismTet(VI, FI, VO, TO, AO, labels);
+    saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, labels);
+
+    spdlog::shutdown();
+
+    return 0;
 }

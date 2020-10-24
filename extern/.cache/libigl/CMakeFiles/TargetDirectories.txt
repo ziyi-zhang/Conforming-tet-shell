@@ -1,0 +1,3 @@
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/rebuild_cache.dir
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/edit_cache.dir
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/libigl-download.dir

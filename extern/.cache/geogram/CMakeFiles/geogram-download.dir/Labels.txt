@@ -1,0 +1,14 @@
+# Target labels
+ geogram-download
+# Source files and their labels
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/CMakeFiles/geogram-download
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/CMakeFiles/geogram-download.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/CMakeFiles/geogram-download-complete.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-install.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-mkdir.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-download.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-update.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-patch.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-configure.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-build.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-test.rule

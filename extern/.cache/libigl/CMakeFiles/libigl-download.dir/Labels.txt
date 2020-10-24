@@ -1,0 +1,14 @@
+# Target labels
+ libigl-download
+# Source files and their labels
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/libigl-download
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/libigl-download.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/CMakeFiles/libigl-download-complete.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-install.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-mkdir.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-download.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-update.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-patch.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-configure.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-build.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/libigl/libigl-download-prefix/src/libigl-download-stamp/libigl-download-test.rule

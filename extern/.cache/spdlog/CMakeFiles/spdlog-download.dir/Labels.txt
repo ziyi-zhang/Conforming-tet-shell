@@ -1,0 +1,14 @@
+# Target labels
+ spdlog-download
+# Source files and their labels
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/CMakeFiles/spdlog-download
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/CMakeFiles/spdlog-download.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/CMakeFiles/spdlog-download-complete.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-install.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-mkdir.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-download.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-update.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-patch.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-configure.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-build.rule
+/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/spdlog/spdlog-download-prefix/src/spdlog-download-stamp/spdlog-download-test.rule

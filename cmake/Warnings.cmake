@@ -1,5 +1,5 @@
 ################################################################################
-cmake_minimum_required(VERSION 2.6.3)
+cmake_minimum_required(VERSION 3.1)
 ################################################################################
 # See comments and discussions here:
 # http://stackoverflow.com/questions/5088460/flags-to-enable-thorough-and-verbose-g-warnings
@@ -41,13 +41,13 @@ set(MY_FLAGS
 		-Werror=int-to-pointer-cast
 		-Werror=pointer-to-int-cast
 
-		-Wno-unused-variable
+		-Wunused-variable
 		-Wunused-but-set-variable
-		-Wno-unused-parameter
+		-Wunused-parameter
 
 		#-Weffc++
 		-Wno-old-style-cast
-		# -Wno-sign-conversion
+		#-Wno-sign-conversion
 		#-Wsign-conversion
 
 		-Wshadow
@@ -66,7 +66,7 @@ set(MY_FLAGS
 		-Wdisabled-optimization
 		#-Winline # produces warning on default implicit destructor
 		-Winvalid-pch
-		# -Wmissing-include-dirs
+		#-Wmissing-include-dirs
 		-Wpacked
 		-Wno-padded
 		-Wstrict-overflow

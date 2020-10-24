@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/CMakeFiles/geogram-download"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/CMakeFiles/geogram-download.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/CMakeFiles/geogram-download-complete.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-install.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-mkdir.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-download.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-update.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-patch.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-configure.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-build.rule"
+		},
+		{
+			"file" : "/Users/ziyizhang/Projects/ShellMesh/Conforming-tet-shell/extern/.cache/geogram/geogram-download-prefix/src/geogram-download-stamp/geogram-download-test.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"geogram-download"
+		],
+		"name" : "geogram-download"
+	}
+}
