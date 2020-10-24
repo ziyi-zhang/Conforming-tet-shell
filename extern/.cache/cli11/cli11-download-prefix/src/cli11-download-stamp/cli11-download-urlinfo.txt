@@ -1,3 +1,0 @@
-repository='external project URL'
-module='https://github.com/CLIUtils/CLI11/archive/v1.6.1.tar.gz'
-tag='MD5=48ef97262adb0b47a2f0a7edbda6e2aa'

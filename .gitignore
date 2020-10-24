@@ -6,3 +6,4 @@ data*
 3rdparty*
 settings.json
 .vscode*
+extern/.cache/*

@@ -131,9 +131,8 @@ add_library(libTetWild
 		src/shell/common.hpp
 )
 target_include_directories(libTetWild
-	PRIVATE
-		src
 	PUBLIC
+		src
 		include
 )
 target_link_libraries(libTetWild
