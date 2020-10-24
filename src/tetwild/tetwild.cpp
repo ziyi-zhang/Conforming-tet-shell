@@ -117,10 +117,12 @@ void extractFinalTetmesh(MeshRefinement& MR,
     double tmp_time = 0;
 
     if (!args.smooth_open_boundary) {
+
         InoutFiltering IOF(tet_vertices, tets, MR.is_surface_fs, v_is_removed, t_is_removed, tet_qualities, state);
+
         igl::Timer igl_timer;
         igl_timer.start();
-        IOF.filter();
+        IOF.filter();  // do in-out filter
         t_cnt = std::count(t_is_removed.begin(), t_is_removed.end(), false);
         tmp_time = igl_timer.getElapsedTime();
         logger().info("time = {}s", tmp_time);
@@ -308,26 +310,30 @@ double tetwild_stage_one_tetra(
     const std::vector<std::vector<int>> &raw_conn_e4v,
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
-    std::vector<std::array<int, 4>> &is_surface_facet)
-{
+    std::vector<std::array<int, 4>> &is_surface_facet) {
+
     igl::Timer igl_timer;
     igl_timer.start();
     logger().info("Tetrehedralizing ...");
+
     SimpleTetrahedralization ST(state, MC);
     tet_vertices.clear();
     tet_indices.clear();
     is_surface_facet.clear();
+
     ST.tetra(tet_vertices, tet_indices);
     ST.labelSurface(m_f_tags, raw_e_tags, raw_conn_e4v, tet_vertices, tet_indices, is_surface_facet);
     ST.labelBbox(tet_vertices, tet_indices);
     if (!state.is_mesh_closed)//if input is an open mesh
         ST.labelBoundary(tet_vertices, tet_indices, is_surface_facet);
+
     logger().debug("# tet_vertices = {}", tet_vertices.size());
     logger().debug("# tets = {}", tet_indices.size());
     logger().info("Tetrahedralization done!");
     double tmp_time = igl_timer.getElapsedTime();
     addRecord(MeshRecord(MeshRecord::OpType::OP_SIMPLE_TETRA, tmp_time, tet_vertices.size(), tet_indices.size()), args, state);
     logger().info("time = {}s", tmp_time);
+
     return tmp_time;
 }
 
@@ -383,12 +389,7 @@ void tetwild_stage_one(
 ///
 /// Mesh refinement
 ///
-/// @param[in]  VI    { #VI x 3 input mesh vertices }
-/// @param[in]  FI    { #FI x 3 input mesh triangles }
-/// @param[out] VO    { #VO x 3 output mesh vertices }
-/// @param[out] TO    { #TO x 4 output mesh tetrahedra }
-/// @param[out] AO    { #TO x 1 array of min dihedral angle over each tet }
-/// @param[in]  args  { Extra arguments controlling the behavior of TetWild }
+/// TODO
 ///
 void tetwild_stage_two(const Args &args, State &state,
     GEO::Mesh &geo_sf_mesh,

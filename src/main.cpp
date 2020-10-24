@@ -25,6 +25,7 @@ namespace tetwild {
     void extractFinalTetmesh(MeshRefinement& MR, Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXd &A_out, const Args &args, const State &state);
 } // namespace tetwild
 
+
 void saveFinalTetmesh(const std::string &output_volume, const std::string &output_surface,
     const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::VectorXd &A, const Eigen::VectorXi &labels)
 {
@@ -71,6 +72,7 @@ void saveFinalTetmesh(const std::string &output_volume, const std::string &outpu
     igl::writeOBJ(output_surface, V_sf, F_sf);
 }
 
+
 void gtet_new_slz(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const std::string& slz_file,
                   const std::array<bool, 4>& ops,
                   Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO,
@@ -86,6 +88,8 @@ void gtet_new_slz(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const st
 
     extractFinalTetmesh(MR, VO, TO, AO, args, state); //do winding number and output the tetmesh
 }
+
+
 
 #include <geogram/mesh/mesh_io.h>
 #include <geogram/mesh/mesh.h>

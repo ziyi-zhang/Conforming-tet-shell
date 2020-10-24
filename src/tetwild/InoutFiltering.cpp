@@ -50,12 +50,14 @@ void InoutFiltering::filter() {
     Eigen::VectorXd W;
     igl::winding_number(V, F, C, W);
 
+    // use winding number to update t_is_removed
     std::vector<bool> tmp_t_is_removed = t_is_removed;
     cnt = 0;
     for (int i = 0; i < tets.size(); i++) {
+
         if (tmp_t_is_removed[i])
             continue;
-        tmp_t_is_removed[i] = !(W(cnt) > 0.5);
+        tmp_t_is_removed[i] = !(W(cnt) > 0.5);  // remove the ones outside the area of interest
         cnt++;
     }
 
@@ -89,45 +91,51 @@ void InoutFiltering::filter() {
 
 
 void InoutFiltering::getSurface(Eigen::MatrixXd& V, Eigen::MatrixXi& F){
+
     std::vector<std::array<int, 3>> fs;
     std::vector<int> vs;
-    for(int i=0;i<tets.size();i++) {
+
+    for (int i=0; i<tets.size(); i++) {
         if (t_is_removed[i])
             continue;
         for (int j = 0; j < 4; j++) {
-            if (is_surface_fs[i][j] != state.NOT_SURFACE && is_surface_fs[i][j] > 0) {//outside
+            if (is_surface_fs[i][j] != state.NOT_SURFACE && is_surface_fs[i][j] > 0) {
+                // outside
+
                 std::array<int, 3> v_ids = {{tets[i][(j + 1) % 4], tets[i][(j + 2) % 4], tets[i][(j + 3) % 4]}};
+                // evaluate orientation in forward sequence
                 if (CGAL::orientation(tet_vertices[v_ids[0]].pos, tet_vertices[v_ids[1]].pos,
                                       tet_vertices[v_ids[2]].pos, tet_vertices[tets[i][j]].pos) != CGAL::POSITIVE) {
+                    // not positive, reverse
                     int tmp = v_ids[0];
                     v_ids[0] = v_ids[2];
                     v_ids[2] = tmp;
                 }
                 for (int k = 0; k < is_surface_fs[i][j]; k++)
-                    fs.push_back(v_ids);
+                    fs.push_back(v_ids);  // fs does not record index here
                 for (int k = 0; k < 3; k++)
                     vs.push_back(v_ids[k]);
             }
         }
     }
+    // erase duplicates & sort vs
     std::sort(vs.begin(), vs.end());
     vs.erase(std::unique(vs.begin(), vs.end()), vs.end());
 
+    // prepare V, F for return
     V.resize(vs.size(), 3);
     std::map<int, int> map_ids;
-    for(int i=0;i<vs.size();i++){
-        map_ids[vs[i]]=i;
-        for(int j=0;j<3;j++)
-            V(i, j)=tet_vertices[vs[i]].posf[j];
+    for (int i=0; i<vs.size(); i++) {
+        map_ids[vs[i]] = i;
+        for (int j=0; j<3; j++)
+            V(i, j) = tet_vertices[vs[i]].posf[j];
     }
 
     F.resize(fs.size(), 3);
-    for(int i=0;i<fs.size();i++){
-        for(int j=0;j<3;j++)
-            F(i, j)=map_ids[fs[i][j]];
+    for (int i=0; i<fs.size(); i++) {
+        for (int j=0; j<3; j++)
+            F(i, j) = map_ids[fs[i][j]];
     }
-
-//    igl::writeSTL(state.working_dir+state.postfix+"_debug.stl", V, F);
 }
 
 

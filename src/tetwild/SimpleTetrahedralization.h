@@ -23,7 +23,7 @@ public:
     MeshConformer& MC;
     std::vector<Point_3> centers;
 
-    //useful infos
+    //useful info
 //    int centroid_size;
     int m_vertices_size;
 //    std::vector<bool> is_visited;
@@ -44,6 +44,6 @@ public:
     void constructPlane(int bsp_f_id, Plane_3& pln);
 };
 
-} // namespace tetwild
+}  // namespace tetwild
 
-#endif //NEW_GTET_SIMPLETETRAHEDRALIZATION_H
+#endif  // NEW_GTET_SIMPLETETRAHEDRALIZATION_H

@@ -44,6 +44,7 @@ typedef CGAL::Arrangement_2<Traits_2> Arrangement_2;
 namespace tetwild {
 
 void SimpleTetrahedralization::tetra(std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets) {
+    
     std::vector<BSPFace> &faces = MC.bsp_faces;
     std::vector<Point_3> &vertices = MC.bsp_vertices;
 
@@ -57,6 +58,7 @@ void SimpleTetrahedralization::tetra(std::vector<TetVertex>& tet_vertices, std::
         }
     }
 }
+
 
 void SimpleTetrahedralization::triangulation(std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets) {
     std::vector<BSPtreeNode> &bsp_nodes = MC.bsp_nodes;
@@ -222,7 +224,7 @@ void SimpleTetrahedralization::triangulation(std::vector<TetVertex>& tet_vertice
         tet_vertices.push_back(v);
     }
 
-    ///improvement
+    // improvement
     std::vector<bool> is_tets(bsp_nodes.size(), false);
     std::unordered_map<int, int> centroids_for_nodes;
     tets.reserve(bsp_nodes.size()*6);//approx
@@ -378,10 +380,12 @@ void SimpleTetrahedralization::triangulation(std::vector<TetVertex>& tet_vertice
     logger().debug("CDT {}", tmp_timer.getElapsedTime());
 }
 
+
 void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, const std::vector<int>& m_e_tags,
                                             const std::vector<std::vector<int>>& conn_e4v,
                                             std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets,
                                             std::vector<std::array<int, 4>>& is_surface_fs) {
+
     std::vector<BSPFace> &bsp_faces = MC.bsp_faces;
     std::vector<Point_3> &bsp_vertices = MC.bsp_vertices;
     const std::vector<Point_3> &m_vertices = MC.m_vertices;
@@ -480,68 +484,37 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
             tet_vertices[i].is_on_surface=true;
     }
 
-    ////is face on surface////
-    // state.NOT_SURFACE = m_faces.size()+1;
+    // is face on surface
     is_surface_fs=std::vector<std::array<int, 4>>(tets.size(),
                                                   std::array<int, 4>({{state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE}}));
-//    std::vector<std::array<bool, 4>> is_visited(tets.size(), std::array<bool, 4>({{false, false, false, false}}));
 
-    for(unsigned int i = 0; i < tets.size(); i++) {
-        for (int j = 0; j < 4; j++) {
-//            if (is_visited[i][j])
-//                continue;
-
-            ///mark visited
-//            int opp_i = getFaceOppoTets(tets[i][(j + 1) % 4], tets[i][(j + 2) % 4], tets[i][(j + 3) % 4],
-//                                        i, tet_vertices);
-//            int opp_i = -1;
-//
-//            int opp_j = 0;
-//            if (opp_i >= 0) {
-//                for (int k = 0; k < 4; k++) {
-//                    if (tets[opp_i][k] != tets[i][(j + 1) % 4] && tets[opp_i][k] != tets[i][(j + 2) % 4]
-//                        && tets[opp_i][k] != tets[i][(j + 3) % 4]) {
-//                        opp_j = k;
-//                        break;
-//                    }
-//                }
-//                is_visited[opp_i][opp_j] = true;
-//            }
-//            is_visited[i][j] = true;
+    for (unsigned int i=0; i<tets.size(); i++) {
+        for (int j=0; j<4; j++) {
 
             if (!tet_vertices[tets[i][(j + 1) % 4]].is_on_surface || !tet_vertices[tets[i][(j + 2) % 4]].is_on_surface
                 || !tet_vertices[tets[i][(j + 3) % 4]].is_on_surface) {
+                
                 is_surface_fs[i][j] = state.NOT_SURFACE;
-//                if (opp_i >= 0)
-//                    is_visited[opp_i][opp_j] = state.NOT_SURFACE;
                 continue;
             }
+
             std::unordered_set<int> sf_faces_tmp;
             setIntersection(tet_vertices[tets[i][(j + 1) % 4]].on_face, tet_vertices[tets[i][(j + 2) % 4]].on_face,
                             sf_faces_tmp);
             if (sf_faces_tmp.size() == 0) {
+
                 is_surface_fs[i][j] = state.NOT_SURFACE;
-//                if (opp_i >= 0)
-//                    is_visited[opp_i][opp_j] = state.NOT_SURFACE;
                 continue;
             }
             std::vector<int> sf_faces;
             setIntersection(sf_faces_tmp, tet_vertices[tets[i][(j + 3) % 4]].on_face, sf_faces);
             if (sf_faces.size() == 0) {
+                
                 is_surface_fs[i][j] = state.NOT_SURFACE;
-//                if (opp_i >= 0)
-//                    is_visited[opp_i][opp_j] = state.NOT_SURFACE;
                 continue;
             }
 
-//            if (tmp.size() > 1) {
-//                std::array<int, 3> f = {{tets[i][(j + 1) % 4], tets[i][(j + 2) % 4], tets[i][(j + 3) % 4]}};
-//                std::sort(f.begin(), f.end());
-//                folding_fs.push_back(std::array<int, 4>({{f[0], f[1], f[2], i}}));
-//                continue;
-//            }
-
-            ////get the first ori
+            // get the first ori
             is_surface_fs[i][j] = 0;
             Plane_3 pln(m_vertices[m_faces[sf_faces[0]][0]], m_vertices[m_faces[sf_faces[0]][1]],
                         m_vertices[m_faces[sf_faces[0]][2]]);
@@ -555,7 +528,7 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
             else//inside
                 is_surface_fs[i][j]--;
 
-            ////if there are more than one sf_faces
+            // if there are more than one sf_faces
             int delta = is_surface_fs[i][j];
             if (sf_faces.size() > 1) {
                 //cal normal vec for [0]
@@ -574,33 +547,12 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
                         is_surface_fs[i][j] += delta;
                     else
                         is_surface_fs[i][j] -= delta;
-//                    else {
-//                        logger().debug("wrong direction!!");
-//                        pausee();
-//                    }
                 }
             }
-
-//            for (int tri_id : sf_faces) {
-//                Plane_3 pln(m_vertices[m_faces[tri_id][0]], m_vertices[m_faces[tri_id][1]],
-//                            m_vertices[m_faces[tri_id][2]]);
-//                CGAL::Oriented_side side = pln.oriented_side(tet_vertices[tets[i][j]].pos);
-//
-//                if (side == CGAL::ON_ORIENTED_BOUNDARY) {
-//                    log_and_throw("ERROR: side == CGAL::ON_ORIENTED_BOUNDARY!!");
-//                }
-//                if (side == CGAL::ON_POSITIVE_SIDE)//outside
-//                    is_surface_fs[i][j]++;
-//                else//inside
-//                    is_surface_fs[i][j]--;
-//            }
-
-//            if (opp_i >= 0)
-//                is_surface_fs[opp_i][opp_j] = -is_surface_fs[i][j];
         }
     }
 
-    //tag the surface
+    // tag the surface
     for(unsigned int i=0;i<tet_vertices.size();i++){
         std::unordered_set<int> tmp;
         for(auto it=tet_vertices[i].on_face.begin();it!=tet_vertices[i].on_face.end();it++)
@@ -608,6 +560,7 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
         tet_vertices[i].on_face=tmp;
     }
 }
+
 
 void SimpleTetrahedralization::labelBbox(std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets){
     std::vector<Point_3> &bsp_vertices = MC.bsp_vertices;
@@ -668,6 +621,7 @@ void SimpleTetrahedralization::labelBbox(std::vector<TetVertex>& tet_vertices, s
     logger().debug("#v on bbox = {}", i);
 }
 
+
 void SimpleTetrahedralization::labelBoundary(std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets,
                                              const std::vector<std::array<int, 4>>& is_surface_fs) {
 
@@ -726,6 +680,7 @@ void SimpleTetrahedralization::labelBoundary(std::vector<TetVertex>& tet_vertice
     logger().debug("{} vertices on surface", cnt_surface);
 }
 
+
 void SimpleTetrahedralization::constructPlane(int bsp_f_id, Plane_3& pln) {
     pln = Plane_3(MC.bsp_vertices[MC.bsp_faces[bsp_f_id].vertices[0]],
                   MC.bsp_vertices[MC.bsp_faces[bsp_f_id].vertices[1]],
@@ -739,4 +694,4 @@ void SimpleTetrahedralization::constructPlane(int bsp_f_id, Plane_3& pln) {
     assert(!(pln.is_degenerate()));
 }
 
-} // namespace tetwild
+}  // namespace tetwild
