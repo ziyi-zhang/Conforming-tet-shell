@@ -89,6 +89,7 @@ void printFinalQuality(double time, const std::vector<TetVertex>& tet_vertices,
     addRecord(MeshRecord(MeshRecord::OpType::OP_UNROUNDED, -1, cnt, -1), args, state);
 }
 
+
 void extractSurfaceMesh(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T,
     Eigen::MatrixXd &VS, Eigen::MatrixXi &FS)
 {
@@ -102,6 +103,7 @@ void extractSurfaceMesh(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T,
     }
 }
 
+
 void extractFinalTetmesh(MeshRefinement& MR,
     Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXd &A_out,
     const Args &args, const State &state)
@@ -113,6 +115,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
     std::vector<TetQuality> &tet_qualities = MR.tet_qualities;
     int t_cnt = std::count(t_is_removed.begin(), t_is_removed.end(), false);
     double tmp_time = 0;
+
     if (!args.smooth_open_boundary) {
         InoutFiltering IOF(tet_vertices, tets, MR.is_surface_fs, v_is_removed, t_is_removed, tet_qualities, state);
         igl::Timer igl_timer;
@@ -167,7 +170,9 @@ void extractFinalTetmesh(MeshRefinement& MR,
     printFinalQuality(tmp_time, tet_vertices, tets, t_is_removed, tet_qualities, v_ids, args, state);
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
+
 
 // Simplify the input surface by swapping and removing edges, while staying within the envelope
 double tetwild_stage_one_preprocess(
@@ -375,6 +380,16 @@ void tetwild_stage_one(
 
 // -----------------------------------------------------------------------------
 
+///
+/// Mesh refinement
+///
+/// @param[in]  VI    { #VI x 3 input mesh vertices }
+/// @param[in]  FI    { #FI x 3 input mesh triangles }
+/// @param[out] VO    { #VO x 3 output mesh vertices }
+/// @param[out] TO    { #TO x 4 output mesh tetrahedra }
+/// @param[out] AO    { #TO x 1 array of min dihedral angle over each tet }
+/// @param[in]  args  { Extra arguments controlling the behavior of TetWild }
+///
 void tetwild_stage_two(const Args &args, State &state,
     GEO::Mesh &geo_sf_mesh,
     GEO::Mesh &geo_b_mesh,
@@ -397,7 +412,7 @@ void tetwild_stage_two(const Args &args, State &state,
     //improvement
     MR.refine(state.ENERGY_AMIPS);
 
-    extractFinalTetmesh(MR, VO, TO, AO, args, state); //do winding number and output the tetmesh
+    extractFinalTetmesh(MR, VO, TO, AO, args, state);  // do winding number and output the tetmesh
 }
 
 ////////////////////////////////////////////////////////////////////////////////

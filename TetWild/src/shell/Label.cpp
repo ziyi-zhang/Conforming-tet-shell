@@ -266,6 +266,8 @@ void ReplaceWithPrismTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, E
     label_.resize(label_old.rows() + label_temp.rows(), label_old.cols());
     label_ << label_old, label_temp;
     // 2nd shell
+    // this is user input, do not insert
+    /*
     cerr << "doing 2nd shell" << endl;
     GetTetFromShell(shell_bottom_top, 2, V_temp, T_temp, A_temp, label_temp);
     UnionTetMesh(VO_, TO_, V_temp, T_temp);
@@ -275,6 +277,7 @@ void ReplaceWithPrismTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, E
     label_old = label_;
     label_.resize(label_old.rows() + label_temp.rows(), label_old.cols());
     label_ << label_old, label_temp;
+    */
     // 3rd shell
     cerr << "doing 3rd shell" << endl;
     GetTetFromShell(shell_top_outer, 3, V_temp, T_temp, A_temp, label_temp);

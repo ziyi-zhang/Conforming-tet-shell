@@ -21,13 +21,19 @@
 namespace tetwild {
 
 void InoutFiltering::filter() {
+
     logger().debug("In/out filtering...");
 
+    // centroid matrix C
     Eigen::MatrixXd C(std::count(t_is_removed.begin(), t_is_removed.end(), false), 3);
     int cnt = 0;
+
     for (int i = 0; i < tets.size(); i++) {
+
         if (t_is_removed[i])
             continue;
+        
+        // find the centroid for this tet
         std::vector<Point_3f> vs;
         vs.reserve(4);
         for (int j = 0; j < 4; j++)
@@ -81,6 +87,7 @@ void InoutFiltering::filter() {
     logger().debug("In/out Filtered!");
 }
 
+
 void InoutFiltering::getSurface(Eigen::MatrixXd& V, Eigen::MatrixXi& F){
     std::vector<std::array<int, 3>> fs;
     std::vector<int> vs;
@@ -122,6 +129,7 @@ void InoutFiltering::getSurface(Eigen::MatrixXd& V, Eigen::MatrixXi& F){
 
 //    igl::writeSTL(state.working_dir+state.postfix+"_debug.stl", V, F);
 }
+
 
 void InoutFiltering::outputWindingNumberField(const Eigen::VectorXd& W){
     int t_cnt = W.rows();

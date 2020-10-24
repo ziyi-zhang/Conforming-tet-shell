@@ -160,7 +160,6 @@ int main(int argc, char *argv[]) {
     Eigen::MatrixXd VI, VO;
     Eigen::MatrixXi FI, TO;
     Eigen::VectorXd AO;
-//    igl::read_triangle_mesh(input_surface, VI, FI);
     GEO::Mesh input;
     GEO::mesh_load(input_surface, input);
     VI.resize(input.vertices.nb(), 3);
