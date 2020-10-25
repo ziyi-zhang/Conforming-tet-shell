@@ -10,7 +10,6 @@
 #include <tetwild/Common.h>
 #include <tetwild/Logger.h>
 #include <tetwild/MeshRefinement.h>
-#include <shell/Label.h>
 #include <igl/read_triangle_mesh.h>
 #include <igl/write_triangle_mesh.h>
 #include <igl/writeOBJ.h>
@@ -160,17 +159,20 @@ int main(int argc, char *argv[]) {
         args.write_csv_file = false;
     }
 
-    //do tetrahedralization
+    // do tetrahedralization
     Eigen::MatrixXd VI, VO;
     Eigen::MatrixXi FI, TO;
     Eigen::VectorXd AO;
     GEO::Mesh input;
-    GEO::mesh_load(input_surface, input);
+    if (!GEO::mesh_load(input_surface, input)) {
+        logger().error("Failed to load the input mesh.");
+        return 0;
+    }
     VI.resize(input.vertices.nb(), 3);
-    for(int i=0;i<VI.rows();i++)
+    for(int i=0; i<VI.rows(); i++)
         VI.row(i)<<(input.vertices.point(i))[0], (input.vertices.point(i))[1], (input.vertices.point(i))[2];
     FI.resize(input.facets.nb(), 3);
-    for(int i=0;i<FI.rows();i++)
+    for(int i=0; i<FI.rows(); i++)
         FI.row(i)<<input.facets.vertex(i, 0), input.facets.vertex(i, 1), input.facets.vertex(i, 2);
 
     if(slz_file != "") {
@@ -180,8 +182,7 @@ int main(int argc, char *argv[]) {
         tetwild::tetrahedralization(VI, FI, VO, TO, AO, args);
     }
 
-    // label tets
-    Eigen::VectorXi labels;
+    
     // VI = VI.block(0, 0, VI.rows()-8, 3);  // do not need the bounding box
     // FI = FI.block(0, 0, FI.rows()-12, 3);  // do not need the bounding box
     std::cerr << "FI rows " << FI.rows() << std::endl;

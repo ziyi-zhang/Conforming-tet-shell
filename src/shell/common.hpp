@@ -1,6 +1,7 @@
 #ifndef PRISM_COMMON_HPP
 #define PRISM_COMMON_HPP
 
+#include <tetwild/CGALTypes.h>
 #include <Eigen/Core>
 #include <vector>
 #include <set>
@@ -17,10 +18,14 @@ using RowMat3d = Eigen::Matrix<double, 3, 3, Eigen::RowMajor>;
 using RowMat34i = Eigen::Matrix<size_t, 3, 4, Eigen::RowMajor>;
 using RowMat34d = Eigen::Matrix<double, 3, 4, Eigen::RowMajor>;
 using RowMat43d = Eigen::Matrix<double, 4, 3, Eigen::RowMajor>;
+using RowMatX3d = Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+using RowMatX3i = Eigen::Matrix<int, Eigen::Dynamic, 3, Eigen::RowMajor>;
+using RowMatX4i = Eigen::Matrix<int, Eigen::Dynamic, 4, Eigen::RowMajor>;
 using Vec3d = Eigen::RowVector3d;
 using Vec3i = std::array<int, 3>;
 using Vec4i = std::array<int, 4>;
-using prism_t = std::array<Vec3d, 6>;
+
+using prism_t = std::array<tetwild::Point_3, 6>;
 using shell_t = std::vector<prism_t>;
 
 /////////////////////////////////////////////

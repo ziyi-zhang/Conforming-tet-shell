@@ -126,9 +126,11 @@ add_library(libTetWild
 		src/tetwild/geogram/mesh_AABB.cpp
 		src/tetwild/geogram/mesh_AABB.h
 
+		src/shell/common.hpp
 		src/shell/Label.cpp
 		src/shell/Label.h
-		src/shell/common.hpp
+		src/shell/Shell.cpp
+		src/shell/Shell.h
 )
 target_include_directories(libTetWild
 	PUBLIC

@@ -1,6 +1,9 @@
 #include <shell/common.hpp>
 #include <shell/Label.h>
+#include <tetwild/CGALTypes.h>
 
+#include <CGAL/Tetrahedron_3.h>
+#include <CGAL/Simple_cartesian.h>
 #include <igl/copyleft/cgal/orient3D.h>
 #include <Eigen/Dense>
 #include <array>
@@ -9,20 +12,34 @@
 namespace tetshell {
 
 using namespace std;
+using tetwild::Point_3;
 
 namespace {
 
-bool point_in_tetrahedron(const Vec3d& point, const Vec3d& T0, const Vec3d& T1, const Vec3d& T2, const Vec3d& T3) {
+/// return whether "point" is inside a tetrahedron formed by T0, T1, T2, T3
+/// especially, "on_boundary" does not count as inside
+/// note: this function does not require T0, T1, T2, T3 to form a positive tetrahedron
+bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3& T1, const Point_3& T2, const Point_3& T3) {
 
+    /*
+    // using libigl::orient3d
     using igl::copyleft::cgal::orient3D;
     return  orient3D(T0.data(), T3.data(), T1.data(), point.data()) >= 0 &&
             orient3D(T1.data(), T3.data(), T2.data(), point.data()) >= 0 &&
             orient3D(T0.data(), T1.data(), T2.data(), point.data()) >= 0 &&
             orient3D(T0.data(), T2.data(), T3.data(), point.data()) >= 0;
+    */
+    CGAL::Tetrahedron_3<tetwild::K> tet(T0, T1, T2, T3);
+    CGAL::Oriented_side side = tet.oriented_side(point);
+    CGAL::Orientation ori = CGAL::orientation(T0, T1, T2, T3);
+    if (ori == CGAL::POSITIVE)
+        return side == CGAL::Oriented_side::ON_POSITIVE_SIDE;
+    else
+        return side == CGAL::Oriented_side::ON_NEGATIVE_SIDE;
 }
 
 
-bool point_in_prism(const Vec3d& point, bool tetra_split_AB, const std::array<Vec3d, 6>& verts) {
+bool point_in_prism(const Point_3& point, bool tetra_split_AB, const std::array<Point_3, 6>& verts) {
 
     auto tets = tetra_split_AB ? TETRA_SPLIT_A : TETRA_SPLIT_B;
 
@@ -34,18 +51,16 @@ bool point_in_prism(const Vec3d& point, bool tetra_split_AB, const std::array<Ve
 }
 
 
-Vec3d GetBarycenter(const Eigen::MatrixXd &VO, const Eigen::MatrixXi &TO, int i) {
+Point_3 GetBarycenter(const std::vector<tetwild::TetVertex> &VO, const Eigen::MatrixXi &TO, int i) {
 
-    Vec3d center;
+    Point_3 center;
 
-    center(0) = (VO(TO(i, 0), 0) + VO(TO(i, 1), 0) + VO(TO(i, 2), 0) + VO(TO(i, 3), 0)) / 4.0;
-    center(1) = (VO(TO(i, 0), 1) + VO(TO(i, 1), 1) + VO(TO(i, 2), 1) + VO(TO(i, 3), 1)) / 4.0;
-    center(2) = (VO(TO(i, 0), 2) + VO(TO(i, 1), 2) + VO(TO(i, 2), 2) + VO(TO(i, 3), 2)) / 4.0;
+    center = CGAL::centroid(VO[TO(i, 0)].pos, VO[TO(i, 1)].pos, VO[TO(i, 2)].pos, VO[TO(i, 3)].pos);
     return center;
 }
 
 
-bool PointInShell(const Vec3d &center, const shell_t &shell) {
+bool PointInShell(const Point_3 &center, const shell_t &shell) {
 
     int N = shell.size();
 
@@ -145,7 +160,12 @@ void UnionTetMesh(Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXd &V_tem
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void LabelTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const Eigen::MatrixXd &VO, const Eigen::MatrixXi &TO, Eigen::VectorXi &labels) {
+void LabelTet(
+    const Eigen::MatrixXd &VI, 
+    const Eigen::MatrixXi &FI, 
+    const std::vector<tetwild::TetVertex> &VO, 
+    const RowMatX4i &TO, 
+    Eigen::VectorXi &labels) {
 
     const int M = VI.rows() / 4;
     const int Ntri = FI.rows() / 4;
@@ -170,7 +190,7 @@ void LabelTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const Eigen:
     // dumb way, not optimized
     for (int i=0; i<Ntet; i++) {
         
-        Vec3d center = GetBarycenter(VO, TO, i);
+        Point_3 center = GetBarycenter(VO, TO, i);
         if (PointInShell(center, shell_inner_bottom))
             labels(i) = 1;
         else if (PointInShell(center, shell_bottom_top))

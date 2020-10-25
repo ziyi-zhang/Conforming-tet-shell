@@ -18,6 +18,8 @@
 #include <tetwild/SimpleTetrahedralization.h>
 #include <tetwild/MeshRefinement.h>
 #include <tetwild/InoutFiltering.h>
+#include <shell/common.hpp>
+#include <shell/Label.h>
 #include <igl/boundary_facets.h>
 #include <igl/remove_unreferenced.h>
 #include <pymesh/MshSaver.h>
@@ -341,6 +343,11 @@ double tetwild_stage_one_tetra(
 
 ////////////////////////////////////////////////////////////////////////////////
 
+///
+/// Generate tet mesh from input
+///
+/// TODO
+///
 void tetwild_stage_one(
     const Eigen::MatrixXd &VI,
     const Eigen::MatrixXi &FI,
@@ -350,18 +357,17 @@ void tetwild_stage_one(
     GEO::Mesh &geo_b_mesh,
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
-    std::vector<std::array<int, 4>> &is_surface_facet)
-{
+    std::vector<std::array<int, 4>> &is_surface_facet) {
+
     igl::Timer igl_timer;
-    double tmp_time = 0;
     double sum_time = 0;
 
-    //preprocess
+    // preprocess
     std::vector<Point_3> m_vertices;
     std::vector<std::array<int, 3>> m_faces;
     sum_time += tetwild_stage_one_preprocess(VI, FI, args, state, geo_sf_mesh, geo_b_mesh, m_vertices, m_faces);
 
-    //delaunay tetrahedralization
+    // delaunay tetrahedralization
     std::vector<Point_3> bsp_vertices;
     std::vector<BSPEdge> bsp_edges;
     std::vector<BSPFace> bsp_faces;
@@ -372,14 +378,14 @@ void tetwild_stage_one(
     sum_time += tetwild_stage_one_delaunay(args, state, geo_sf_mesh, m_vertices, m_faces,
         bsp_vertices, bsp_edges, bsp_faces, bsp_nodes, m_f_tags, raw_e_tags, raw_conn_e4v);
 
-    //mesh conforming
+    // mesh conforming
     MeshConformer MC(m_vertices, m_faces, bsp_vertices, bsp_edges, bsp_faces, bsp_nodes);
     sum_time += tetwild_stage_one_mc(args, state, MC);
 
-    //bsp subdivision
+    // bsp subdivision
     sum_time += tetwild_stage_one_bsp(args, state, MC);
 
-    //simple tetrahedralization
+    // simple tetrahedralization
     sum_time += tetwild_stage_one_tetra(args, state, MC, m_f_tags, raw_e_tags, raw_conn_e4v,
         tet_vertices, tet_indices, is_surface_facet);
 
@@ -387,6 +393,32 @@ void tetwild_stage_one(
 }
 
 // -----------------------------------------------------------------------------
+
+///
+/// Shell related operations
+///
+/// TODO
+///
+void tetwild_stage_shell(
+    const Eigen::MatrixXd &VI,
+    const Eigen::MatrixXi &FI,
+    std::vector<TetVertex> &VO,
+    std::vector<std::array<int, 4>> &TO,
+    std::vector<std::array<int, 4>> &is_surface_facet) {
+
+    // convert T0 to eigen matrix
+    RowMatX4i TO_mat(TO.size(), 4);
+    for (int i=0; i<TO.size(); i++)
+        TO_mat.row(i) << TO[i][0], TO[i][1], TO[i][2], TO[i][3];
+
+    // convert VI to CGAL rational
+    //
+
+    // label tets
+    Eigen::VectorXi labels;
+    tetshell::LabelTet(VI, FI, VO, TO_mat, labels);
+}
+
 
 ///
 /// Mesh refinement
@@ -401,8 +433,8 @@ void tetwild_stage_two(const Args &args, State &state,
     std::vector<std::array<int, 4>> &is_surface_facet,
     Eigen::MatrixXd &VO,
     Eigen::MatrixXi &TO,
-    Eigen::VectorXd &AO)
-{
+    Eigen::VectorXd &AO) {
+
     //init
     logger().info("Refinement initializing...");
     MeshRefinement MR(geo_sf_mesh, geo_b_mesh, args, state);
@@ -422,14 +454,13 @@ void tetwild_stage_two(const Args &args, State &state,
 
 void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
                         Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO,
-                        const Args &args)
-{
+                        const Args &args) {
+
     GEO::initialize();
 
     igl::Timer igl_timer;
     igl_timer.start();
 
-    ////pipeline
     State state(args, VI);
     GEO::Mesh geo_sf_mesh;
     GEO::Mesh geo_b_mesh;
@@ -437,11 +468,14 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     std::vector<std::array<int, 4>> tet_indices;
     std::vector<std::array<int, 4>> is_surface_facet;
 
-    /// STAGE 1
+    /// STAGE 1: Generate tet mesh
     tetwild_stage_one(VI, FI, args, state, geo_sf_mesh, geo_b_mesh,
         tet_vertices, tet_indices, is_surface_facet);
 
-    /// STAGE 2
+    /// STAGE 1.5: Shell
+    tetwild_stage_shell(VI, FI, tet_vertices, tet_indices, is_surface_facet);
+
+    /// STAGE 2: Mesh refinement
     tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
         tet_vertices, tet_indices, is_surface_facet, VO, TO, AO);
 
