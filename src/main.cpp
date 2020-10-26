@@ -10,6 +10,7 @@
 #include <tetwild/Common.h>
 #include <tetwild/Logger.h>
 #include <tetwild/MeshRefinement.h>
+#include <shell/Utils.h>
 #include <igl/read_triangle_mesh.h>
 #include <igl/write_triangle_mesh.h>
 #include <igl/writeOBJ.h>
@@ -190,7 +191,9 @@ int main(int argc, char *argv[]) {
     if (!skip_prism)
         tetshell::ReplaceWithPrismTet(VI, FI, VO, TO, AO, labels);
         */
-    saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, LO);
+    // saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, LO);
+    
+    tetshell::SaveToTetMsh(output_volume, VO, TO, LO);
 
     spdlog::shutdown();
 

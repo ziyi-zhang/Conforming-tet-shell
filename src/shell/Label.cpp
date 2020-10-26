@@ -17,11 +17,11 @@ using tetwild::Point_3;
 
 namespace {
 
-Point_3 GetBarycenter(const std::vector<tetwild::TetVertex> &VO, const Eigen::MatrixXi &TO, int i) {
+Point_3 GetBarycenter(const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, int i) {
 
     Point_3 center;
 
-    center = CGAL::centroid(VO[TO(i, 0)].pos, VO[TO(i, 1)].pos, VO[TO(i, 2)].pos, VO[TO(i, 3)].pos);
+    center = CGAL::centroid(VO[TO[i][0]].pos, VO[TO[i][1]].pos, VO[TO[i][2]].pos, VO[TO[i][3]].pos);
     return center;
 }
 
@@ -119,13 +119,11 @@ void LabelTet(
     const std::vector<Point_3> &VI, 
     const Eigen::MatrixXi &FI, 
     const std::vector<tetwild::TetVertex> &VO, 
-    const RowMatX4i &TO,
+    const std::vector<std::array<int, 4>> &TO,
     DualShell_t &dualShell,
     Eigen::VectorXi &labels) {
 
-    const int M = VI.size() / 4;
-    const int Ntri = FI.rows() / 4;
-    const int Ntet = TO.rows() / 4;
+    const int Ntet = TO.size();
     labels.setZero(Ntet, 1);  // default zero, not in any layer of the shell
 
     // Get four surfaces from VI

@@ -21,6 +21,7 @@
 #include <shell/common.hpp>
 #include <shell/Label.h>
 #include <shell/Shell.h>
+#include <shell/Utils.h>
 #include <igl/boundary_facets.h>
 #include <igl/remove_unreferenced.h>
 #include <pymesh/MshSaver.h>
@@ -109,8 +110,8 @@ void extractSurfaceMesh(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T,
 
 void extractFinalTetmesh(MeshRefinement& MR,
     Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXd &A_out,
-    const Args &args, const State &state)
-{
+    const Args &args, const State &state) {
+
     std::vector<TetVertex> &tet_vertices = MR.tet_vertices;
     std::vector<std::array<int, 4>> &tets = MR.tets;
     std::vector<bool> &v_is_removed = MR.v_is_removed;
@@ -134,7 +135,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
     }
 */
 
-    //output result
+    // v_ids is the vector of index of vertices
     std::vector<int> v_ids;
     for (int i = 0; i < tets.size(); i++) {
         if (t_is_removed[i])
@@ -142,34 +143,40 @@ void extractFinalTetmesh(MeshRefinement& MR,
         for (int j = 0; j < 4; j++)
             v_ids.push_back(tets[i][j]);
     }
+    // unique "v_ids"
     std::sort(v_ids.begin(), v_ids.end());
     v_ids.erase(std::unique(v_ids.begin(), v_ids.end()), v_ids.end());
+    // "map_ids" is defined as this for all used vertices:
+    // Key: index in V
+    // Value: new index i
     std::unordered_map<int, int> map_ids;
     for (int i = 0; i < v_ids.size(); i++)
         map_ids[v_ids[i]] = i;
 
-    // actually filling V and T
+    // Prepare V, T, A
     V_out.resize(v_ids.size(), 3);
     T_out.resize(t_cnt, 4);
     A_out.resize(t_cnt);
+    // Fill V
     for (int i = 0; i < v_ids.size(); i++) {
         for (int j = 0; j < 3; j++) {
-            V_out(i, + j) = tet_vertices[v_ids[i]].posf[j];
+            V_out(i, j) = tet_vertices[v_ids[i]].posf[j];
         }
     }
+    // Fill T & A
     int cnt = 0;
     for (int i = 0; i < tets.size(); i++) {
         if (t_is_removed[i]) {
             continue;
         }
         for (int j = 0; j < 4; j++) {
-            T_out(cnt, j) = map_ids[tets[i][j]];
+            T_out(cnt, j) = map_ids[tets[i][j]];  // the index is new as defined in map_ids
         }
         A_out(cnt) = tet_qualities[i].min_d_angle;
         cnt++;
     }
-    logger().debug("#v = {}", V_out.rows());
-    logger().debug("#t = {}", T_out.rows());
+    logger().debug("final output #v = {}", V_out.rows());
+    logger().debug("final output #t = {}", T_out.rows());
 
     if (args.is_quiet) {
         return;
@@ -408,11 +415,6 @@ void tetwild_stage_shell(
     std::vector<std::array<int, 4>> &is_surface_facet, 
     Eigen::VectorXi &labels) {
 
-    // convert T0 to eigen matrix
-    RowMatX4i TO_mat(TO.size(), 4);
-    for (int i=0; i<TO.size(); i++)
-        TO_mat.row(i) << TO[i][0], TO[i][1], TO[i][2], TO[i][3];
-
     // convert VI to CGAL rational
     std::vector<Point_3> VI_cgal;
     for (int i=0; i<VI.rows(); i++) {
@@ -421,11 +423,12 @@ void tetwild_stage_shell(
 
     // construct dualShell & label tets
     tetshell::DualShell_t dualShell;
-    tetshell::LabelTet(VI_cgal, FI, VO, TO_mat, dualShell, labels);
+    tetshell::LabelTet(VI_cgal, FI, VO, TO, dualShell, labels);
 
     // ?
 }
 
+// -----------------------------------------------------------------------------
 
 ///
 /// Mesh refinement
@@ -442,7 +445,7 @@ void tetwild_stage_two(const Args &args, State &state,
     Eigen::MatrixXi &TO,
     Eigen::VectorXd &AO) {
 
-    //init
+    // init
     logger().info("Refinement initializing...");
     MeshRefinement MR(geo_sf_mesh, geo_b_mesh, args, state);
     MR.tet_vertices = std::move(tet_vertices);
@@ -451,10 +454,11 @@ void tetwild_stage_two(const Args &args, State &state,
     MR.prepareData();
     logger().info("Refinement initialization done!");
 
-    //improvement
+    // improvement
     MR.refine(state.ENERGY_AMIPS);
 
-    extractFinalTetmesh(MR, VO, TO, AO, args, state);  // do winding number and output the tetmesh
+    // do winding number and output the tetmesh
+    extractFinalTetmesh(MR, VO, TO, AO, args, state);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -480,11 +484,15 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
         tet_vertices, tet_indices, is_surface_facet);
 
     /// STAGE 1.5: Shell
-    tetwild_stage_shell(VI, FI, tet_vertices, tet_indices, is_surface_facet, LO);
+    Eigen::VectorXi labels;
+    tetwild_stage_shell(VI, FI, tet_vertices, tet_indices, is_surface_facet, labels);
 
     /// STAGE 2: Mesh refinement
     // tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
     //    tet_vertices, tet_indices, is_surface_facet, VO, TO, AO);
+    std::cerr << tet_indices.size() << std::endl;
+    std::vector<bool> t_is_removed(tet_indices.size(), false);  // DEBUG PURPOSE
+    tetshell::ExtractMesh(tet_vertices, tet_indices, labels, t_is_removed, VO, TO, LO);
 
     double total_time = igl_timer.getElapsedTime();
     logger().info("Total time for all stages = {}s", total_time);

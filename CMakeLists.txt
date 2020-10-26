@@ -131,6 +131,8 @@ add_library(libTetWild
 		src/shell/Label.h
 		src/shell/Shell.cpp
 		src/shell/Shell.h
+		src/shell/Utils.cpp
+		src/shell/Utils.h
 )
 target_include_directories(libTetWild
 	PUBLIC

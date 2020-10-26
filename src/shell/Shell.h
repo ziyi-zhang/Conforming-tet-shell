@@ -38,5 +38,7 @@ bool point_in_prism(const tetwild::Point_3& point, bool tetra_split_AB, const st
 bool PointInShell(const tetwild::Point_3 &center, const shell_t &shell);
 /// TODO
 
+void SaveMsh();
+
 
 }  // namespace tetshell
