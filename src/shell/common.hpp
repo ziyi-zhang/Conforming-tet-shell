@@ -25,9 +25,6 @@ using Vec3d = Eigen::RowVector3d;
 using Vec3i = std::array<int, 3>;
 using Vec4i = std::array<int, 4>;
 
-using prism_t = std::array<tetwild::Point_3, 6>;
-using shell_t = std::vector<prism_t>;
-
 /////////////////////////////////////////////
 // Prism Split A/B
 /////////////////////////////////////////////

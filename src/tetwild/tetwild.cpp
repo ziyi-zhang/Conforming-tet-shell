@@ -20,6 +20,7 @@
 #include <tetwild/InoutFiltering.h>
 #include <shell/common.hpp>
 #include <shell/Label.h>
+#include <shell/Shell.h>
 #include <igl/boundary_facets.h>
 #include <igl/remove_unreferenced.h>
 #include <pymesh/MshSaver.h>
@@ -404,7 +405,8 @@ void tetwild_stage_shell(
     const Eigen::MatrixXi &FI,
     std::vector<TetVertex> &VO,
     std::vector<std::array<int, 4>> &TO,
-    std::vector<std::array<int, 4>> &is_surface_facet) {
+    std::vector<std::array<int, 4>> &is_surface_facet, 
+    Eigen::VectorXi &labels) {
 
     // convert T0 to eigen matrix
     RowMatX4i TO_mat(TO.size(), 4);
@@ -412,11 +414,16 @@ void tetwild_stage_shell(
         TO_mat.row(i) << TO[i][0], TO[i][1], TO[i][2], TO[i][3];
 
     // convert VI to CGAL rational
-    //
+    std::vector<Point_3> VI_cgal;
+    for (int i=0; i<VI.rows(); i++) {
+        VI_cgal.push_back(Point_3(VI(i, 0), VI(i, 1), VI(i, 2)));
+    }
 
-    // label tets
-    Eigen::VectorXi labels;
-    tetshell::LabelTet(VI, FI, VO, TO_mat, labels);
+    // construct dualShell & label tets
+    tetshell::DualShell_t dualShell;
+    tetshell::LabelTet(VI_cgal, FI, VO, TO_mat, dualShell, labels);
+
+    // ?
 }
 
 
@@ -453,7 +460,7 @@ void tetwild_stage_two(const Args &args, State &state,
 ////////////////////////////////////////////////////////////////////////////////
 
 void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
-                        Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO,
+                        Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO, Eigen::VectorXi &LO,
                         const Args &args) {
 
     GEO::initialize();
@@ -473,14 +480,14 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
         tet_vertices, tet_indices, is_surface_facet);
 
     /// STAGE 1.5: Shell
-    tetwild_stage_shell(VI, FI, tet_vertices, tet_indices, is_surface_facet);
+    tetwild_stage_shell(VI, FI, tet_vertices, tet_indices, is_surface_facet, LO);
 
     /// STAGE 2: Mesh refinement
-    tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
-        tet_vertices, tet_indices, is_surface_facet, VO, TO, AO);
+    // tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
+    //    tet_vertices, tet_indices, is_surface_facet, VO, TO, AO);
 
     double total_time = igl_timer.getElapsedTime();
     logger().info("Total time for all stages = {}s", total_time);
 }
 
-} // namespace tetwild
+}  // namespace tetwild

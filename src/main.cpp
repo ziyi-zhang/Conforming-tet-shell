@@ -162,7 +162,8 @@ int main(int argc, char *argv[]) {
     // do tetrahedralization
     Eigen::MatrixXd VI, VO;
     Eigen::MatrixXi FI, TO;
-    Eigen::VectorXd AO;
+    Eigen::VectorXd AO;  // tet quality
+    Eigen::VectorXi LO;  // tet label
     GEO::Mesh input;
     if (!GEO::mesh_load(input_surface, input)) {
         logger().error("Failed to load the input mesh.");
@@ -179,18 +180,17 @@ int main(int argc, char *argv[]) {
         gtet_new_slz(VI, FI, slz_file,
             {{true, false, true, true}}, VO, TO, AO, args);
     } else {
-        tetwild::tetrahedralization(VI, FI, VO, TO, AO, args);
+        tetwild::tetrahedralization(VI, FI, VO, TO, AO, LO, args);
     }
 
-    
-    // VI = VI.block(0, 0, VI.rows()-8, 3);  // do not need the bounding box
-    // FI = FI.block(0, 0, FI.rows()-12, 3);  // do not need the bounding box
+    /*
     std::cerr << "FI rows " << FI.rows() << std::endl;
     tetshell::LabelTet(VI, FI, VO, TO, labels);
     logger().info("label done");
     if (!skip_prism)
         tetshell::ReplaceWithPrismTet(VI, FI, VO, TO, AO, labels);
-    saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, labels);
+        */
+    saveFinalTetmesh(output_volume, output_surface, VO, TO, AO, LO);
 
     spdlog::shutdown();
 

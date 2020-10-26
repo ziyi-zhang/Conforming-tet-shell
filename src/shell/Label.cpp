@@ -1,5 +1,6 @@
 #include <shell/common.hpp>
 #include <shell/Label.h>
+#include <shell/Shell.h>
 #include <tetwild/CGALTypes.h>
 
 #include <CGAL/Tetrahedron_3.h>
@@ -16,41 +17,6 @@ using tetwild::Point_3;
 
 namespace {
 
-/// return whether "point" is inside a tetrahedron formed by T0, T1, T2, T3
-/// especially, "on_boundary" does not count as inside
-/// note: this function does not require T0, T1, T2, T3 to form a positive tetrahedron
-bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3& T1, const Point_3& T2, const Point_3& T3) {
-
-    /*
-    // using libigl::orient3d
-    using igl::copyleft::cgal::orient3D;
-    return  orient3D(T0.data(), T3.data(), T1.data(), point.data()) >= 0 &&
-            orient3D(T1.data(), T3.data(), T2.data(), point.data()) >= 0 &&
-            orient3D(T0.data(), T1.data(), T2.data(), point.data()) >= 0 &&
-            orient3D(T0.data(), T2.data(), T3.data(), point.data()) >= 0;
-    */
-    CGAL::Tetrahedron_3<tetwild::K> tet(T0, T1, T2, T3);
-    CGAL::Oriented_side side = tet.oriented_side(point);
-    CGAL::Orientation ori = CGAL::orientation(T0, T1, T2, T3);
-    if (ori == CGAL::POSITIVE)
-        return side == CGAL::Oriented_side::ON_POSITIVE_SIDE;
-    else
-        return side == CGAL::Oriented_side::ON_NEGATIVE_SIDE;
-}
-
-
-bool point_in_prism(const Point_3& point, bool tetra_split_AB, const std::array<Point_3, 6>& verts) {
-
-    auto tets = tetra_split_AB ? TETRA_SPLIT_A : TETRA_SPLIT_B;
-
-    for (int i = 0; i < 3; i++)
-        if (point_in_tetrahedron(point, verts[tets[i][0]], verts[tets[i][1]],
-                                verts[tets[i][2]], verts[tets[i][3]]))
-        return true;
-    return false;
-}
-
-
 Point_3 GetBarycenter(const std::vector<tetwild::TetVertex> &VO, const Eigen::MatrixXi &TO, int i) {
 
     Point_3 center;
@@ -59,19 +25,7 @@ Point_3 GetBarycenter(const std::vector<tetwild::TetVertex> &VO, const Eigen::Ma
     return center;
 }
 
-
-bool PointInShell(const Point_3 &center, const shell_t &shell) {
-
-    int N = shell.size();
-
-    for (int i=0; i<N; i++) {
-        if (point_in_prism(center, true, shell[i]))
-            return true;
-    }
-    return false;
-}
-
-
+/*
 void GetTetFromPrism(const prism_t &prism, Eigen::MatrixXd &V, Eigen::MatrixXi &T) {
 
     V.resize(6, 3);
@@ -155,71 +109,43 @@ void UnionTetMesh(Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXd &V_tem
     T.resize(T_old.rows() + T_temp.rows(), T_old.cols());
     T << T_old, T_temp;
 }
+*/
 
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void LabelTet(
-    const Eigen::MatrixXd &VI, 
+    const std::vector<Point_3> &VI, 
     const Eigen::MatrixXi &FI, 
     const std::vector<tetwild::TetVertex> &VO, 
-    const RowMatX4i &TO, 
+    const RowMatX4i &TO,
+    DualShell_t &dualShell,
     Eigen::VectorXi &labels) {
 
-    const int M = VI.rows() / 4;
+    const int M = VI.size() / 4;
     const int Ntri = FI.rows() / 4;
-    const int Ntet = TO.rows();
-    labels.setZero(Ntet, 1);
+    const int Ntet = TO.rows() / 4;
+    labels.setZero(Ntet, 1);  // default zero, not in any layer of the shell
 
-    // Get four surfaces from VI (temp)
-    Eigen::MatrixXd V_inner, V_bottom, V_top, V_outer;
-    Eigen::MatrixXi F;
-    V_inner = VI.block(0, 0, M, 3);
-    V_bottom = VI.block(M, 0, M, 3);
-    V_top = VI.block(M*2, 0, M, 3);
-    V_outer = VI.block(M*3, 0, M, 3);
-    F = FI.block(0, 0, Ntri, 3);
-    // Retrieve prisms from dual-shell
-    shell_t shell_inner_bottom, shell_bottom_top, shell_top_outer;
-    ConstructShellFromTri(V_inner, V_bottom, F, shell_inner_bottom);
-    ConstructShellFromTri(V_bottom, V_top, F, shell_bottom_top);
-    ConstructShellFromTri(V_top, V_outer, F, shell_top_outer);
+    // Get four surfaces from VI
+    GenDualShell(VI, FI, dualShell);
 
     // now loop over all tets and label them
     // dumb way, not optimized
     for (int i=0; i<Ntet; i++) {
-        
+
         Point_3 center = GetBarycenter(VO, TO, i);
-        if (PointInShell(center, shell_inner_bottom))
+        if (PointInShell(center, dualShell.shell_inner_bottom))
             labels(i) = 1;
-        else if (PointInShell(center, shell_bottom_top))
+        else if (PointInShell(center, dualShell.shell_bottom_top))
             labels(i) = 2;
-        else if (PointInShell(center, shell_top_outer))
+        else if (PointInShell(center, dualShell.shell_top_outer))
             labels(i) = 3;
     }
 }
 
-
-void ConstructShellFromTri(const Eigen::MatrixXd &V_bottom, const Eigen::MatrixXd &V_top, const Eigen::MatrixXi &F, shell_t &shell) {
-
-    const int N = F.rows();
-
-    shell.clear();
-    for (int i=0; i<N; i++) {
-
-        prism_t prism;
-        prism[0] = Vec3d(V_bottom(F(i, 0), 0), V_bottom(F(i, 0), 1), V_bottom(F(i, 0), 2));
-        prism[1] = Vec3d(V_bottom(F(i, 1), 0), V_bottom(F(i, 1), 1), V_bottom(F(i, 1), 2));
-        prism[2] = Vec3d(V_bottom(F(i, 2), 0), V_bottom(F(i, 2), 1), V_bottom(F(i, 2), 2));
-        prism[3] = Vec3d(V_top(F(i, 0), 0), V_top(F(i, 0), 1), V_top(F(i, 0), 2));
-        prism[4] = Vec3d(V_top(F(i, 1), 0), V_top(F(i, 1), 1), V_top(F(i, 1), 2));
-        prism[5] = Vec3d(V_top(F(i, 2), 0), V_top(F(i, 2), 1), V_top(F(i, 2), 2));
-        shell.push_back(prism);
-    }
-}
-
-
+/*
 void ReplaceWithPrismTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO, Eigen::VectorXi &labels) {
 
     const int M = VI.rows() / 4;
@@ -286,17 +212,7 @@ void ReplaceWithPrismTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, E
     label_ << label_old, label_temp;
     // 2nd shell
     // this is user input, do not insert
-    /*
-    cerr << "doing 2nd shell" << endl;
-    GetTetFromShell(shell_bottom_top, 2, V_temp, T_temp, A_temp, label_temp);
-    UnionTetMesh(VO_, TO_, V_temp, T_temp);
-    A_old = AO_;
-    AO_.resize(A_old.rows() + A_temp.rows(), A_old.cols());
-    AO_ << A_old, A_temp;
-    label_old = label_;
-    label_.resize(label_old.rows() + label_temp.rows(), label_old.cols());
-    label_ << label_old, label_temp;
-    */
+
     // 3rd shell
     cerr << "doing 3rd shell" << endl;
     GetTetFromShell(shell_top_outer, 3, V_temp, T_temp, A_temp, label_temp);
@@ -315,5 +231,6 @@ void ReplaceWithPrismTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, E
     AO = AO_;
     labels = label_;
 }
+*/
 
 }  // namespace tetshell

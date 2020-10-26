@@ -24,10 +24,11 @@ namespace tetwild {
 /// @param[out] VO    { #VO x 3 output mesh vertices }
 /// @param[out] TO    { #TO x 4 output mesh tetrahedra }
 /// @param[out] AO    { #TO x 1 array of min dihedral angle over each tet }
+/// @param[out] LO    { #TO x 1 array of label indicating the region if each tet }
 /// @param[in]  args  { Extra arguments controlling the behavior of TetWild }
 ///
 void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
-    Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO, const Args &args = Args());
+    Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO, Eigen::VectorXi &LO, const Args &args = Args());
 
 ///
 /// Extract the boundary facets of a triangle mesh, removing unreferenced vertices
