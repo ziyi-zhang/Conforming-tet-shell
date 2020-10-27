@@ -79,12 +79,15 @@ void MapIndex(
             int VI_index = prism[j];
             if (idxMap.find(VI_index) == idxMap.end()) {
                 // no mapping exist yet
+                bool found = false;
                 for (auto it=VO.begin(); it!=VO.end(); it++) {
                     if (it->pos == VI[VI_index]) {
                         idxMap.insert(std::make_pair(VI_index, it-VO.begin()));
+                        found = true;
                         break;
                     }
                 }
+                if (found) continue;
                 // Should not reach here
                 tetwild::log_and_throw("MapIndex: A vertex in VI not found in VO");
             }
@@ -155,14 +158,14 @@ void CleanTetMesh(
         map_ids[v_ids[i]] = i;
 
     // Prepare 
-    V_out.reserve(v_ids.size());
-    T_out.reserve(tetNum);
+    V_out.clear();
+    T_out.clear();
     labels_out.resize(tetNum, 1);
-    is_surface_facet_out.reserve(tetNum);
-    face_on_shell_out.reserve(tetNum);
+    is_surface_facet_out.clear();
+    face_on_shell_out.clear();
     // Fill V
     for (int i = 0; i < v_ids.size(); i++) {
-        V_out[i] = V[v_ids[i]];
+        V_out.push_back(V[v_ids[i]]);
     }
     // Fill T & others
     int cnt = 0;
@@ -170,10 +173,10 @@ void CleanTetMesh(
         if (t_is_removed[i]) {
             continue;
         }
-        T_out[cnt] = std::array<int, 4>({{map_ids[T[i][0]], map_ids[T[i][1]], map_ids[T[i][2]], map_ids[T[i][3]]}});
+        T_out.push_back(std::array<int, 4>({{map_ids[T[i][0]], map_ids[T[i][1]], map_ids[T[i][2]], map_ids[T[i][3]]}}));
         labels_out(cnt) = labels(i);
-        is_surface_facet_out[cnt] = is_surface_facet.at(i);
-        face_on_shell_out[cnt] = face_on_shell.at(i);
+        is_surface_facet_out.push_back(is_surface_facet.at(i));
+        face_on_shell_out.push_back(face_on_shell.at(i));
 
         cnt++;
     }
@@ -314,14 +317,14 @@ void GenTetMeshFromShell(
 
     // we also want to enlarge "t_is_removed" accordingly
     // and of course no tet should be discarded
-    std::vector<bool> falseVector(false, T_temp.size());
+    std::vector<bool> falseVector(T_temp.size(), false);
     t_is_removed.insert( t_is_removed.end(), falseVector.begin(), falseVector.end() );
 
     // Update labels
     if (surfaceNum == 1)
-        labels_temp = Eigen::VectorXi::Zero(T_temp.size(), 1);
+        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1);
     else if (surfaceNum == 4)
-        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * 2;
+        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * 3;
 }
 
 }  // anonymous namespace
@@ -395,6 +398,7 @@ void ReplaceWithPrismTet(
       Eigen::VectorXi temp = labels;
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
+    logger().debug("SHELL_INNER_BOTTOM done");
     ////// FOR shell_top_outer
     GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, "shell_top_outer", T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
@@ -404,9 +408,12 @@ void ReplaceWithPrismTet(
       temp = labels;
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
+    logger().debug("SHELL_TOP_OUTER done");
 
     // remove inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
+    std::cout << labels << std::endl;
+    logger().info("Replace with prism tet done");
 }
 
 }  // namespace tetshell
