@@ -25,16 +25,16 @@ class TetVertex {
 public:
     Point_3 pos;//todo: how to remove it?
 
-    ///for surface conforming
+    // for surface conforming
     int on_fixed_vertex = -1;
     std::unordered_set<int> on_edge;  // fixed points can be on more than one edges
-    std::unordered_set<int> on_face;
+    std::unordered_set<int> on_face;  // on input mesh triangle
     bool is_on_surface = false;
 
-    ///for local operations
+    // for local operations
     std::unordered_set<int> conn_tets;
 
-    ///for hybrid rationals
+    // for hybrid rationals
     Point_3f posf;
     bool is_rounded = false;
 
@@ -42,13 +42,13 @@ public:
         posf = Point_3f(CGAL::to_double(pos[0]), CGAL::to_double(pos[1]), CGAL::to_double(pos[2]));
     }
 
-    ///for bbox
+    // for bbox
     bool is_on_bbox = false;
 
-    ///for boundary
+    // for boundary
     bool is_on_boundary = false;
 
-    //for adaptive refinement
+    // for adaptive refinement
     double adaptive_scale = 1.0;
 
     TetVertex() = default;
@@ -62,6 +62,7 @@ public:
     bool is_locked = false;
     bool is_inside = false;
 };
+
 
 class TetQuality {
 public:

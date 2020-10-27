@@ -29,7 +29,6 @@ void ExtractMesh(
     Eigen::VectorXi &L_out) {
 
     const int tetNum = std::count(t_is_removed.begin(), t_is_removed.end(), false);
-    std::cerr << tetNum << std::endl;
 
     // v_ids is the vector of index of vertices
     std::vector<int> v_ids;

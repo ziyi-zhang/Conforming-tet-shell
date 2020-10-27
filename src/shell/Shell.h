@@ -6,6 +6,7 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <set>
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace tetshell {
@@ -16,7 +17,7 @@ typedef std::vector<prism_t> shell_t;
 typedef struct DualShell_t {
 
     std::vector<tetwild::Point_3> V_inner, V_bottom, V_top, V_outer;
-    RowMatX3i F;
+    RowMatX3i F;  // for each of the four V, not all their concatenation
 
     shell_t shell_inner_bottom, shell_bottom_top, shell_top_outer;
 } DualShell_t;

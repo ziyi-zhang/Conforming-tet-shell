@@ -322,7 +322,8 @@ double tetwild_stage_one_tetra(
     const std::vector<std::vector<int>> &raw_conn_e4v,
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
-    std::vector<std::array<int, 4>> &is_surface_facet) {
+    std::vector<std::array<int, 4>> &is_surface_facet, 
+    std::vector<std::array<int, 4>>& face_on_shell) {
 
     igl::Timer igl_timer;
     igl_timer.start();
@@ -332,9 +333,10 @@ double tetwild_stage_one_tetra(
     tet_vertices.clear();
     tet_indices.clear();
     is_surface_facet.clear();
+    face_on_shell.clear();
 
     ST.tetra(tet_vertices, tet_indices);
-    ST.labelSurface(m_f_tags, raw_e_tags, raw_conn_e4v, tet_vertices, tet_indices, is_surface_facet);
+    ST.labelSurface(m_f_tags, raw_e_tags, raw_conn_e4v, tet_vertices, tet_indices, is_surface_facet, face_on_shell);
     ST.labelBbox(tet_vertices, tet_indices);
     if (!state.is_mesh_closed)//if input is an open mesh
         ST.labelBoundary(tet_vertices, tet_indices, is_surface_facet);
@@ -365,14 +367,15 @@ void tetwild_stage_one(
     GEO::Mesh &geo_b_mesh,
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
-    std::vector<std::array<int, 4>> &is_surface_facet) {
+    std::vector<std::array<int, 4>> &is_surface_facet, 
+    std::vector<std::array<int, 4>>& face_on_shell) {
 
     igl::Timer igl_timer;
     double sum_time = 0;
 
     // preprocess
     std::vector<Point_3> m_vertices;
-    std::vector<std::array<int, 3>> m_faces;
+    std::vector<std::array<int, 3>> m_faces;  // m_faces is F_in after deleting all degenerate triangles
     sum_time += tetwild_stage_one_preprocess(VI, FI, args, state, geo_sf_mesh, geo_b_mesh, m_vertices, m_faces);
 
     // delaunay tetrahedralization
@@ -395,7 +398,7 @@ void tetwild_stage_one(
 
     // simple tetrahedralization
     sum_time += tetwild_stage_one_tetra(args, state, MC, m_f_tags, raw_e_tags, raw_conn_e4v,
-        tet_vertices, tet_indices, is_surface_facet);
+        tet_vertices, tet_indices, is_surface_facet, face_on_shell);
 
     logger().info("Total time for the first stage = {}s", sum_time);
 }
@@ -408,11 +411,13 @@ void tetwild_stage_one(
 /// TODO
 ///
 void tetwild_stage_shell(
+    const Args &args,
     const Eigen::MatrixXd &VI,
     const Eigen::MatrixXi &FI,
     std::vector<TetVertex> &VO,
     std::vector<std::array<int, 4>> &TO,
     std::vector<std::array<int, 4>> &is_surface_facet, 
+    std::vector<std::array<int, 4>> &face_on_shell,
     Eigen::VectorXi &labels) {
 
     // convert VI to CGAL rational
@@ -423,9 +428,15 @@ void tetwild_stage_shell(
 
     // construct dualShell & label tets
     tetshell::DualShell_t dualShell;
-    tetshell::LabelTet(VI_cgal, FI, VO, TO, dualShell, labels);
+    tetshell::LabelTet(VI_cgal, FI, VO, TO, face_on_shell, dualShell, labels);
 
-    // ?
+    // Replace some tets with prism tets
+    if (!args.skip_prism) {
+
+        std::vector<bool> t_is_removed(TO.size(), false);
+        tetshell::ReplaceWithPrismTet(dualShell, VO, TO, labels, t_is_removed);
+        // tetshell::CleanTetMesh(VO, TO, t_is_removed);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -478,19 +489,23 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     std::vector<TetVertex> tet_vertices;
     std::vector<std::array<int, 4>> tet_indices;
     std::vector<std::array<int, 4>> is_surface_facet;
+    std::vector<std::array<int, 4>> face_on_shell;  // 0 for not on shell
 
-    /// STAGE 1: Generate tet mesh
+    /// STAGE 1: Preprocess & Generate tet mesh
     tetwild_stage_one(VI, FI, args, state, geo_sf_mesh, geo_b_mesh,
-        tet_vertices, tet_indices, is_surface_facet);
+        tet_vertices, tet_indices, is_surface_facet, face_on_shell);
 
     /// STAGE 1.5: Shell
     Eigen::VectorXi labels;
-    tetwild_stage_shell(VI, FI, tet_vertices, tet_indices, is_surface_facet, labels);
+    tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels);
+
+    // DEBUG PURPOSE
+    for (int i=0; i<face_on_shell.size(); i++)
+        std::cout << face_on_shell[i][0] << " " << face_on_shell[i][1] << " " << face_on_shell[i][2] << " " << face_on_shell[i][3] << std::endl;
 
     /// STAGE 2: Mesh refinement
     // tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
     //    tet_vertices, tet_indices, is_surface_facet, VO, TO, AO);
-    std::cerr << tet_indices.size() << std::endl;
     std::vector<bool> t_is_removed(tet_indices.size(), false);  // DEBUG PURPOSE
     tetshell::ExtractMesh(tet_vertices, tet_indices, labels, t_is_removed, VO, TO, LO);
 

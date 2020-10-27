@@ -322,7 +322,6 @@ void DelaunayTetrahedralization::tetra(const std::vector<Point_3>& m_vertices, G
 
     //////get nodes, faces, edges info
     //get bsp nodes
-    int cnt = 0;
     std::vector<std::array<int, 4>> cells;
     cells.reserve(T.number_of_finite_cells());
     std::vector<std::vector<int>> conn_n_ids(points.size(), std::vector<int>());

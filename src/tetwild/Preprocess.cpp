@@ -198,11 +198,13 @@ void Preprocess::getBoundaryMesh(GEO::Mesh& b_mesh) {
     }
 }
 
+
 void Preprocess::process(GEO::Mesh& geo_sf_mesh, std::vector<Point_3>& m_vertices, std::vector<std::array<int, 3>>& m_faces, const Args &args) {
+
     double eps_scalar = 0.8;
     double eps_scalar_2 = eps_scalar*eps_scalar;
 
-   state.eps *= eps_scalar;
+    state.eps *= eps_scalar;
     state.eps_2 *= eps_scalar_2;
 //    state.sampling_dist *= eps_scalar*2;
 
@@ -290,7 +292,7 @@ void Preprocess::process(GEO::Mesh& geo_sf_mesh, std::vector<Point_3>& m_vertice
     for (int i = 0; i < F_in.rows(); i++) {
         std::array<int, 3> f = {{F_in(i, 0), F_in(i, 1), F_in(i, 2)}};
         Triangle_3 tr(m_vertices[f[0]], m_vertices[f[1]], m_vertices[f[2]]);
-        if (!tr.is_degenerate())//delete all degenerate triangles
+        if (!tr.is_degenerate())  // delete all degenerate triangles
             m_faces.push_back(f);
     }
     logger().debug("#v = {}", m_vertices.size());

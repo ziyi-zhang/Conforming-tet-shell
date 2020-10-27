@@ -2,18 +2,22 @@
 #include <shell/Label.h>
 #include <shell/Shell.h>
 #include <tetwild/CGALTypes.h>
+#include <tetwild/Logger.h>
+#include <tetwild/TetmeshElements.h>
 
 #include <CGAL/Tetrahedron_3.h>
 #include <CGAL/Simple_cartesian.h>
 #include <igl/copyleft/cgal/orient3D.h>
 #include <Eigen/Dense>
 #include <array>
+#include <vector>
 
 
 namespace tetshell {
 
 using namespace std;
 using tetwild::Point_3;
+using tetwild::logger;
 
 namespace {
 
@@ -39,7 +43,7 @@ void GetTetFromPrism(const prism_t &prism, Eigen::MatrixXd &V, Eigen::MatrixXi &
 }
 
 
-void GetTetFromShell(const shell_t &shell, int l, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::VectorXd &A, Eigen::VectorXi &label) {
+void GenTetMeshFromShell(const shell_t &shell, int l, Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::VectorXd &A, Eigen::VectorXi &label) {
 
     const int N = shell.size();
     V.resize(0, 3);
@@ -80,36 +84,33 @@ int FindIdx(const Eigen::MatrixXd &V, const Eigen::VectorXd &row) {
     cerr << "prism vertex not found" << row << endl;
     return -1;
 }
-
-
-void UnionTetMesh(Eigen::MatrixXd &V, Eigen::MatrixXi &T, Eigen::MatrixXd &V_temp, Eigen::MatrixXi &T_temp) {
-
-    const int N = V_temp.rows();
-    Eigen::VectorXi lookup(N);
-
-    for (int i=0; i<N; i++) {
-        // where is V_temp(i) in V?
-        lookup(i) = FindIdx(V, V_temp.row(i));
-        if (lookup(i) == -1) {
-            V.conservativeResize(V.rows()+1, V.cols());
-            V.row(V.rows()-1) = V_temp.row(i);  // insert a new vertex
-            lookup(i) = V.rows()-1;
-        }
-    }
-
-    for (int i=0; i<T_temp.rows(); i++) {
-        
-        T_temp(i, 0) = lookup(T_temp(i, 0));
-        T_temp(i, 1) = lookup(T_temp(i, 1));
-        T_temp(i, 2) = lookup(T_temp(i, 2));
-        T_temp(i, 3) = lookup(T_temp(i, 3));
-    }
-
-    Eigen::MatrixXi T_old = T;
-    T.resize(T_old.rows() + T_temp.rows(), T_old.cols());
-    T << T_old, T_temp;
-}
 */
+
+/// Concatenate TetMesh 2 under TetMesh 1
+/// This may create duplicate vertices
+void UnionTetMesh(
+    std::vector<tetwild::TetVertex> &V1, 
+    std::vector<std::array<int, 4>> &T1, 
+    const std::vector<tetwild::TetVertex> &V2, 
+    const std::vector<std::array<int, 4>> &T2) {
+
+    const int N = V1.size();
+
+    // concatenate V1 V2 to V1
+    V1.insert( V1.end(), V2.begin(), V2.end() );
+
+    // T = T2 + N
+    std::vector<std::array<int, 4>> T = T2;
+    for (auto it=T.begin(); it!=T.end(); it++) {
+        it->at(0) += N;
+        it->at(1) += N;
+        it->at(2) += N;
+        it->at(3) += N;
+    }
+
+    // concatenate T1 T to T1
+    T1.insert( T1.end(), T.begin(), T.end() );
+}
 
 }  // anonymous namespace
 
@@ -120,6 +121,7 @@ void LabelTet(
     const Eigen::MatrixXi &FI, 
     const std::vector<tetwild::TetVertex> &VO, 
     const std::vector<std::array<int, 4>> &TO,
+    const std::vector<std::array<int, 4>> &face_on_shell, 
     DualShell_t &dualShell,
     Eigen::VectorXi &labels) {
 
@@ -141,55 +143,32 @@ void LabelTet(
         else if (PointInShell(center, dualShell.shell_top_outer))
             labels(i) = 3;
     }
+
+    logger().info("Tet label done");
 }
 
-/*
-void ReplaceWithPrismTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, Eigen::MatrixXd &VO, Eigen::MatrixXi &TO, Eigen::VectorXd &AO, Eigen::VectorXi &labels) {
 
-    const int M = VI.rows() / 4;
-    const int Ntri = FI.rows() / 4;
-    const int Ntet = TO.rows();
+void ReplaceWithPrismTet(
+    const DualShell_t &dualShell, 
+    std::vector<tetwild::TetVertex> &VO, 
+    std::vector<std::array<int, 4>> &TO, 
+    Eigen::VectorXi &labels,
+    std::vector<bool> &t_is_removed) {
 
-    cerr << "starting to remove" << endl;
-    // Remove all labelled tets
-    std::vector<bool> mask(Ntet, true);
-    int numOldTet = 0, count = 0;
-    for (int i=0; i<Ntet; i++) {
+    const int numTet = TO.size();
+
+    // Remove labelled tets
+    int numOldTet = 0;
+    for (int i=0; i<numTet; i++) {
         if (labels(i) != 0) 
-            mask[i] = false;
+            t_is_removed[i] = true;
         else
             numOldTet++;
     }
-    cerr << "numOldTet " << numOldTet << endl;
-    Eigen::MatrixXd VO_ = VO;
-    Eigen::MatrixXi TO_(numOldTet, 4);
-    Eigen::VectorXd AO_(numOldTet, 1);
-    Eigen::VectorXi label_ = Eigen::VectorXi::Constant(numOldTet, 1, 0);
-    for (int i=0; i<Ntet; i++) {
-        if (mask[i]) {
-            // survived
-            TO_.row(count) = TO.row(i);
-            AO_(count) = AO(i);
-            count++;
-        }
-    }
-    cerr << "remove done" << endl;
+    logger().debug("#tets after removing labeled shell tets = {}", numOldTet);
 
-    ///// TRASH code...
-    // generate new tets
-    // Get four surfaces from VI (temp)
-    Eigen::MatrixXd V_inner, V_bottom, V_top, V_outer;
-    Eigen::MatrixXi F;
-    V_inner = VI.block(0, 0, M, 3);
-    V_bottom = VI.block(M, 0, M, 3);
-    V_top = VI.block(M*2, 0, M, 3);
-    V_outer = VI.block(M*3, 0, M, 3);
-    F = FI.block(0, 0, Ntri, 3);
-    // Retrieve prisms from dual-shell
-    shell_t shell_inner_bottom, shell_bottom_top, shell_top_outer;
-    ConstructShellFromTri(V_inner, V_bottom, F, shell_inner_bottom);
-    ConstructShellFromTri(V_bottom, V_top, F, shell_bottom_top);
-    ConstructShellFromTri(V_top, V_outer, F, shell_top_outer);
+    // Generate new tets
+/*
     // Put the new tets in VO
     Eigen::MatrixXd V_temp;
     Eigen::MatrixXi T_temp;
@@ -221,14 +200,7 @@ void ReplaceWithPrismTet(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, E
     label_old = label_;
     label_.resize(label_old.rows() + label_temp.rows(), label_old.cols());
     label_ << label_old, label_temp;
-
-
-    // replace inplace
-    VO = VO_;
-    TO = TO_;
-    AO = AO_;
-    labels = label_;
-}
 */
+}
 
 }  // namespace tetshell

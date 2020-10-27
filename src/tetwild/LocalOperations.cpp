@@ -1402,7 +1402,7 @@ void LocalOperations::outputSurfaceColormap(const Eigen::MatrixXd& V_in, const E
             ls[i] = GEO::length2(vs[i] - vs[(i + 1) % 3]);
         }
         auto min_max = std::minmax_element(ls.begin(), ls.end());
-        int min_i = min_max.first - ls.begin();
+        // int min_i = min_max.first - ls.begin();
         int max_i = min_max.second - ls.begin();
         double N = sqrt(ls[max_i]) / state.sampling_dist;
         if (N <= 1) {
@@ -1493,7 +1493,6 @@ void LocalOperations::outputSurfaceColormap(const Eigen::MatrixXd& V_in, const E
         GEO::index_t prev_facet = geo_sf_tree.nearest_facet(current_point, nearest_point, sq_dist);
 
         double max_dis = 0;
-        int cnt = 0;
         for (const GEO::vec3 &current_point:ps) {
             sq_dist = current_point.distance2(nearest_point);
             geo_sf_tree.nearest_facet_with_hint(current_point, prev_facet, nearest_point, sq_dist);

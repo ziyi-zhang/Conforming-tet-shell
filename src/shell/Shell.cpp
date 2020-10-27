@@ -1,6 +1,7 @@
 #include <shell/common.hpp>
 #include <shell/Shell.h>
 #include <tetwild/CGALTypes.h>
+#include <tetwild/Logger.h>
 
 #include <Eigen/Dense>
 
@@ -43,7 +44,7 @@ void GenDualShell(const std::vector<Point_3> &VI, const Eigen::MatrixXi &FI, Dua
         (FI.rows() % 4 != 0)) {
         assert(false);
         std::cerr << "Wrong input size" << std::endl;
-        return;
+        tetwild::log_and_throw("GenDualShell: Wrong input size");
     }
     // assert F - check this even in release
     Eigen::MatrixXi F1, F2, F3, F4;
@@ -56,7 +57,7 @@ void GenDualShell(const std::vector<Point_3> &VI, const Eigen::MatrixXi &FI, Dua
         (! F1.isApprox(F4.array() - M*3))) {
         assert(false);
         std::cerr << "Wrong input index matrix" << std::endl;
-        return;
+        tetwild::log_and_throw("GenDualShell: Wrong input index matrix");
     }
 
     // split input

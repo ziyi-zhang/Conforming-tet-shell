@@ -74,6 +74,9 @@ struct Args {
     // Use Laplacian smoothing on the faces/vertices covering an open boundary after the mesh optimization step (post-processing)
     bool smooth_open_boundary = false;
 
+    // Skip prism related steps. This is only for debug purpose.
+    bool skip_prism = false;
+
     // Target number of vertices (minimum), within 5% of tolerance
     int target_num_vertices = -1;
 

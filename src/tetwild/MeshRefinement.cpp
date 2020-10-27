@@ -534,7 +534,7 @@ void MeshRefinement::refine_local(EdgeSplitter& splitter, EdgeCollapser& collaps
 
 bool MeshRefinement::refine_unrounded(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
                                       VertexSmoother& smoother) {
-    EdgeSplitter &localOperation = splitter;
+    // EdgeSplitter &localOperation = splitter;
     int scalar_update = 3;
     double old_min_adaptive_scale = min_adaptive_scale;
     min_adaptive_scale = state.eps / state.initial_edge_len * 0.5;
@@ -565,7 +565,7 @@ bool MeshRefinement::refine_unrounded(EdgeSplitter& splitter, EdgeCollapser& col
 
 void MeshRefinement::refine_revert(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
                                    VertexSmoother& smoother){
-    EdgeSplitter &localOperation = splitter;
+    // EdgeSplitter &localOperation = splitter;
     collapser.is_limit_length = false;
     collapser.is_soft = true;
 

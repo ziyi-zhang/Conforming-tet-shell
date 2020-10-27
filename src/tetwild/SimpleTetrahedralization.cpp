@@ -384,7 +384,8 @@ void SimpleTetrahedralization::triangulation(std::vector<TetVertex>& tet_vertice
 void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, const std::vector<int>& m_e_tags,
                                             const std::vector<std::vector<int>>& conn_e4v,
                                             std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets,
-                                            std::vector<std::array<int, 4>>& is_surface_fs) {
+                                            std::vector<std::array<int, 4>>& is_surface_fs, 
+                                            std::vector<std::array<int, 4>>& face_on_shell) {
 
     std::vector<BSPFace> &bsp_faces = MC.bsp_faces;
     std::vector<Point_3> &bsp_vertices = MC.bsp_vertices;
@@ -487,16 +488,23 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
 
     // is face on surface
     is_surface_fs = std::vector<std::array<int, 4>>(tets.size(),
-                                                  std::array<int, 4>({{state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE}}));
+        std::array<int, 4>({{state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE}}));
+    face_on_shell = std::vector<std::array<int, 4>>(tets.size(),
+        std::array<int, 4>({{state.NOT_SHELL, state.NOT_SHELL, state.NOT_SHELL, state.NOT_SHELL}}));
+
+    const int numFacePerShell = m_faces.size() / 4;  // assuming the input is valid
 
     for (unsigned int i=0; i<tets.size(); i++) {
         for (int j=0; j<4; j++) {
+        // for i-th tet, j-th vertex
+        // check the triangle +1 +2 +3
 
             // if any of +1 +2 +3 not on surface
             if (!tet_vertices[tets[i][(j + 1) % 4]].is_on_surface || !tet_vertices[tets[i][(j + 2) % 4]].is_on_surface
                 || !tet_vertices[tets[i][(j + 3) % 4]].is_on_surface) {
-                
+
                 is_surface_fs[i][j] = state.NOT_SURFACE;
+                face_on_shell[i][j] = state.NOT_SHELL;
                 continue;
             }
 
@@ -505,36 +513,51 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
             setIntersection(tet_vertices[tets[i][(j + 1) % 4]].on_face, tet_vertices[tets[i][(j + 2) % 4]].on_face,
                             sf_faces_tmp);
             if (sf_faces_tmp.size() == 0) {
-
                 is_surface_fs[i][j] = state.NOT_SURFACE;
+                face_on_shell[i][j] = state.NOT_SHELL;
                 continue;
             }
             std::vector<int> sf_faces;
             setIntersection(sf_faces_tmp, tet_vertices[tets[i][(j + 3) % 4]].on_face, sf_faces);
             if (sf_faces.size() == 0) {
-                
                 is_surface_fs[i][j] = state.NOT_SURFACE;
+                face_on_shell[i][j] = state.NOT_SHELL;
                 continue;
             }
 
+            // Now we are certain triangle (+1 +2 +3) is on surface
             // get the first ori
             is_surface_fs[i][j] = 0;
-            Plane_3 pln(m_vertices[m_faces[sf_faces[0]][0]], m_vertices[m_faces[sf_faces[0]][1]],
-                        m_vertices[m_faces[sf_faces[0]][2]]);
+            int face_index = sf_faces[0];
+            Plane_3 pln(m_vertices[m_faces[face_index][0]], m_vertices[m_faces[face_index][1]],
+                        m_vertices[m_faces[face_index][2]]);
             CGAL::Oriented_side side = pln.oriented_side(tet_vertices[tets[i][j]].pos);
 
             if (side == CGAL::ON_ORIENTED_BOUNDARY) {
-                log_and_throw("ERROR: side == CGAL::ON_ORIENTED_BOUNDARY!!");
+                log_and_throw("ERROR: in is_surface_fs side == CGAL::ON_ORIENTED_BOUNDARY!!");
             }
+            // face_on_shell
+            if (face_index < numFacePerShell)
+                face_on_shell[i][j] = state.SHELL_INNER;
+            else if (face_index < numFacePerShell * 2)
+                face_on_shell[i][j] = state.SHELL_BOTTOM;
+            else if (face_index < numFacePerShell * 3)
+                face_on_shell[i][j] = state.SHELL_TOP;
+            else
+                face_on_shell[i][j] = state.SHELL_OUTER;
+            // is_surface_fs
             if (side == CGAL::ON_POSITIVE_SIDE)  // outside
                 is_surface_fs[i][j]++;
             else  // inside
                 is_surface_fs[i][j]--;
 
             // if there are more than one sf_faces
-            int delta = is_surface_fs[i][j];
             if (sf_faces.size() > 1) {
+                // This should never happen in the shell tet case
+                log_and_throw("ERROR: in is_surface_fs duplicate faces");
+                /*
                 // cal normal vec for [0]
+                int delta = is_surface_fs[i][j];
                 Direction_3 dir = pln.orthogonal_direction();
 
                 for (int f_id = 1; f_id < sf_faces.size(); f_id++) {
@@ -547,6 +570,7 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
                     else
                         is_surface_fs[i][j] -= delta;
                 }
+                */
             }
         }
     }

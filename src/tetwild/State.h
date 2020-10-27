@@ -27,7 +27,13 @@ struct State {
     const int ENERGY_AMIPS=2;
     const int ENERGY_DIRICHLET=3;
     const double MAX_ENERGY = 1e50;
-    const int NOT_SURFACE = std::numeric_limits<int>::max();
+    const int NOT_SURFACE = 1024;  // std::numeric_limits<int>::max();
+
+    const int NOT_SHELL = 0;
+    const int SHELL_INNER = 1;
+    const int SHELL_BOTTOM = 2;
+    const int SHELL_TOP = 3;
+    const int SHELL_OUTER = 4;
 
     // paths used for i/o
     const std::string working_dir;
