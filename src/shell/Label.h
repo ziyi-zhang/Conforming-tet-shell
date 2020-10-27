@@ -20,7 +20,7 @@ void LabelTet(const std::vector<tetwild::Point_3> &VI, const Eigen::MatrixXi &FI
 void ConstructShellFromTri(const Eigen::MatrixXd &V_bottom, const Eigen::MatrixXd &V_top, const Eigen::MatrixXi &F, shell_t &shell);
 /// TODO
 
-void ReplaceWithPrismTet(const DualShell_t &dualShell, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &TO, Eigen::VectorXi &labels, std::vector<bool> &t_is_removed);
+void ReplaceWithPrismTet(const DualShell_t &dualShell, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &TO, Eigen::VectorXi &labels, std::vector<std::array<int, 4>> &is_surface_facet, std::vector<std::array<int, 4>> &face_on_shell);
 /// TODO
 
 }  // namespace tetshell

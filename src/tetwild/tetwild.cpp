@@ -33,7 +33,7 @@ namespace tetwild {
 ////////////////////////////////////////////////////////////////////////////////
 
 void printFinalQuality(double time, const std::vector<TetVertex>& tet_vertices,
-                       const std::vector<std::array<int, 4>>& tets,
+                       // const std::vector<std::array<int, 4>>& tets,
                        const std::vector<bool> &t_is_removed,
                        const std::vector<TetQuality>& tet_qualities,
                        const std::vector<int>& v_ids,
@@ -181,7 +181,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
     if (args.is_quiet) {
         return;
     }
-    printFinalQuality(tmp_time, tet_vertices, tets, t_is_removed, tet_qualities, v_ids, args, state);
+    printFinalQuality(tmp_time, tet_vertices, t_is_removed, tet_qualities, v_ids, args, state);
 }
 
 
@@ -433,9 +433,7 @@ void tetwild_stage_shell(
     // Replace some tets with prism tets
     if (!args.skip_prism) {
 
-        std::vector<bool> t_is_removed(TO.size(), false);
-        tetshell::ReplaceWithPrismTet(dualShell, VO, TO, labels, t_is_removed);
-        // tetshell::CleanTetMesh(VO, TO, t_is_removed);
+        tetshell::ReplaceWithPrismTet(dualShell, VO, TO, labels, is_surface_facet, face_on_shell);
     }
 }
 
@@ -500,8 +498,11 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels);
 
     // DEBUG PURPOSE
-    for (int i=0; i<face_on_shell.size(); i++)
+    /*
+    for (int i=0; i<face_on_shell.size(); i++) {
         std::cout << face_on_shell[i][0] << " " << face_on_shell[i][1] << " " << face_on_shell[i][2] << " " << face_on_shell[i][3] << std::endl;
+    }
+    */
 
     /// STAGE 2: Mesh refinement
     // tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,

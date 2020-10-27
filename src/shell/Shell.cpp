@@ -12,20 +12,26 @@ using tetwild::Point_3;
 
 namespace {
 
-void ConstructShellFromTri(const std::vector<Point_3> &V_bottom, const std::vector<Point_3> &V_top, const RowMatX3i &F, shell_t &shell) {
+void ConstructShellFromTri(const RowMatX3i &F, int M, int a, int b, shell_t &shell) {
 
     const int N = F.rows();
+    if (a<0 || b<0 || a>3 || b>3 || a==b)
+        tetwild::log_and_throw("ConstructShellFromTri invalid input");
 
     shell.clear();
     for (int i=0; i<N; i++) {
 
-        prism_t prism;
+        prism_t prism{F(i, 0) + a*M, F(i, 1) + a*M, F(i, 2) + a*M, 
+                      F(i, 0) + b*M, F(i, 1) + b*M, F(i, 2) + b*M};
+        /*
+        // we no longer store coordinates here. Only store the index in VI
         prism[0] = V_bottom[F(i, 0)];
         prism[1] = V_bottom[F(i, 1)];
         prism[2] = V_bottom[F(i, 2)];
         prism[3] = V_top   [F(i, 0)];
         prism[4] = V_top   [F(i, 1)];
         prism[5] = V_top   [F(i, 2)];
+        */
         shell.push_back(prism);
     }
 }
@@ -62,15 +68,18 @@ void GenDualShell(const std::vector<Point_3> &VI, const Eigen::MatrixXi &FI, Dua
 
     // split input
     dualShell.F = F1;
+    dualShell.V = VI;
+    /*
     dualShell.V_inner = {VI.begin(), VI.begin()+M};
     dualShell.V_bottom = {VI.begin()+M, VI.begin()+2*M};
     dualShell.V_top = {VI.begin()+2*M, VI.begin()+3*M};
     dualShell.V_outer = {VI.begin()+3*M, VI.begin()+4*M};
+    */
 
     // Retrieve prisms from dual-shell
-    ConstructShellFromTri(dualShell.V_inner, dualShell.V_bottom, F1, dualShell.shell_inner_bottom);
-    ConstructShellFromTri(dualShell.V_bottom, dualShell.V_top, F1, dualShell.shell_bottom_top);
-    ConstructShellFromTri(dualShell.V_top, dualShell.V_outer, F1, dualShell.shell_top_outer);
+    ConstructShellFromTri(F1, M, 0, 1, dualShell.shell_inner_bottom);
+    ConstructShellFromTri(F1, M, 1, 2, dualShell.shell_bottom_top);
+    ConstructShellFromTri(F1, M, 2, 3, dualShell.shell_top_outer);
 }
 
 
@@ -107,12 +116,20 @@ bool point_in_prism(const Point_3& point, bool tetra_split_AB, const std::array<
 } 
 
 
-bool PointInShell(const Point_3 &center, const shell_t &shell) {
+bool PointInShell(const Point_3 &center, const shell_t &shell, const std::vector<Point_3> &VI) {
 
     int N = shell.size();
 
     for (int i=0; i<N; i++) {
-        if (point_in_prism(center, true, shell[i]))  // fine to always use TYPE-A
+
+        std::array<Point_3, 6> prism_vertices;
+        prism_vertices[0] = VI[shell[i][0]];
+        prism_vertices[1] = VI[shell[i][1]];
+        prism_vertices[2] = VI[shell[i][2]];
+        prism_vertices[3] = VI[shell[i][3]];
+        prism_vertices[4] = VI[shell[i][4]];
+        prism_vertices[5] = VI[shell[i][5]];
+        if (point_in_prism(center, true, prism_vertices))  // fine to always use TYPE-A
             return true;
     }
     return false;

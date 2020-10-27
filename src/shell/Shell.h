@@ -11,12 +11,12 @@
 
 namespace tetshell {
 
-typedef std::array<tetwild::Point_3, 6> prism_t;
+typedef std::array<int, 6> prism_t;  // stores the vectex index A1,A2,A3+B1,B2,B3
 typedef std::vector<prism_t> shell_t;
 
 typedef struct DualShell_t {
 
-    std::vector<tetwild::Point_3> V_inner, V_bottom, V_top, V_outer;
+    std::vector<tetwild::Point_3> V;  // V_inner, V_bottom, V_top, V_outer concatenated
     RowMatX3i F;  // for each of the four V, not all their concatenation
 
     shell_t shell_inner_bottom, shell_bottom_top, shell_top_outer;
@@ -36,10 +36,10 @@ bool point_in_tetrahedron(const tetwild::Point_3& point, const tetwild::Point_3&
 bool point_in_prism(const tetwild::Point_3& point, bool tetra_split_AB, const std::array<tetwild::Point_3, 6>& verts);
 /// TODO
 
-bool PointInShell(const tetwild::Point_3 &center, const shell_t &shell);
+bool PointInShell(const tetwild::Point_3 &center, const shell_t &shell, const std::vector<tetwild::Point_3> &VI);
 /// TODO
 
-void SaveMsh();
+// void SaveMsh();
 
 
 }  // namespace tetshell
