@@ -169,7 +169,7 @@ void CleanTetMesh(
     }
     // Fill T & others
     int cnt = 0;
-    for (int i = 0; i < tetNum; i++) {
+    for (int i = 0; i < T.size(); i++) {
         if (t_is_removed[i]) {
             continue;
         }
@@ -412,7 +412,6 @@ void ReplaceWithPrismTet(
 
     // remove inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
-    std::cout << labels << std::endl;
     logger().info("Replace with prism tet done");
 }
 
