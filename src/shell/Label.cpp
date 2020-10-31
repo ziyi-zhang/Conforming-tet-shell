@@ -207,9 +207,19 @@ void GetTetFromPrism(
     std::vector<std::array<int, 4>> &is_surface_facet_temp,
     std::vector<std::array<int, 4>> &face_on_shell_temp) {
 
-    // insert the first two tet (no further split)
+    // This is the prism
+    ///   3 ------- 5
+    ///   | \__4__/ |
+    ///   |    |    |
+    ///   0----|--- 2
+    ///     \__1__/
+    // We split it into three tet {0, 4, 5, 3} {1, 4, 5, 0} and {0, 1, 2, 5}
+    // It is guaranteed that triangle (345) is intact and only face (012) may be subdivided
+
+    // insert the first tet {0, 4, 5, 3} (no further split)
     T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[0]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5]), map_VI2VO.at(prism[3])}}));
     MakeTetPositive(VO, T_temp[T_temp.size()-1]);  // although these two should be OK
+    // insert the second tet {1, 4, 5, 0} (some split due to subdivision on edge (01))
     T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[1]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5]), map_VI2VO.at(prism[0])}}));
     MakeTetPositive(VO, T_temp[T_temp.size()-1]);
     // update their attributes
@@ -410,7 +420,7 @@ void ReplaceWithPrismTet(
       labels << temp, labels_temp;
     logger().debug("SHELL_TOP_OUTER done");
 
-    // remove inplace
+    // remove "t_is_removed" inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
     logger().info("Replace with prism tet done");
 }
