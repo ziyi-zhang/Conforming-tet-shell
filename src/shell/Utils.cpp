@@ -34,22 +34,26 @@ bool IsTetPositive(const std::array<Point_3, 4> verts) {
 }
 
 
-void MakeTetPositive(const std::vector<tetwild::TetVertex> &VO, std::array<int, 4> &T) {
+bool MakeTetPositive(const std::vector<tetwild::TetVertex> &VO, std::array<int, 4> &T) {
 
     if (!IsTetPositive(VO[T[0]].pos, VO[T[1]].pos, VO[T[2]].pos, VO[T[3]].pos)) {
         int t = T[0]; T[0] = T[2]; T[2] = t;
+        return true;
     }
+    return false;
 }
 
 
-void MakeTetPositive(const std::vector<tetwild::TetVertex> &VO, std::array<int, 4> &T, std::array<int, 4> &is_fs, std::array<int, 4> &face) {
+bool MakeTetPositive(const std::vector<tetwild::TetVertex> &VO, std::array<int, 4> &T, std::array<int, 4> &is_fs, std::array<int, 4> &face) {
 
     if (!IsTetPositive(VO[T[0]].pos, VO[T[1]].pos, VO[T[2]].pos, VO[T[3]].pos)) {
         int t;
         t = T[0]; T[0] = T[2]; T[2] = t;
         t = is_fs[0]; is_fs[0] = is_fs[2]; is_fs[2] = t;
         t = face[0]; face[0] = face[2]; face[2] = t;
+        return true;
     }
+    return false;
 }
 
 

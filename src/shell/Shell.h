@@ -11,6 +11,20 @@
 
 namespace tetshell {
 
+// FIXME: move this to State as a local struct
+// Region
+#define SHELL_INNER_BOTTOM 1
+#define SHELL_BOTTOM_TOP 2
+#define SHELL_TOP_OUTER 3
+// FIXME: move this to State as a local struct
+// Surface
+#define NOT_SUR 0
+#define SURFACE_INNER 1
+#define SURFACE_BOTTOM 2
+#define SURFACE_TOP 3
+#define SURFACE_OUTER 4
+
+
 typedef std::array<int, 6> prism_t;  // stores the vectex index A1,A2,A3+B1,B2,B3
 typedef std::vector<prism_t> shell_t;
 

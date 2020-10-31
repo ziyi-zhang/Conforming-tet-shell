@@ -48,8 +48,6 @@ void GenDualShell(const std::vector<Point_3> &VI, const Eigen::MatrixXi &FI, Dua
     // assert size - check this even in release
     if ((VI.size() % 4 != 0) ||
         (FI.rows() % 4 != 0)) {
-        assert(false);
-        std::cerr << "Wrong input size" << std::endl;
         tetwild::log_and_throw("GenDualShell: Wrong input size");
     }
     // assert F - check this even in release
@@ -61,8 +59,6 @@ void GenDualShell(const std::vector<Point_3> &VI, const Eigen::MatrixXi &FI, Dua
     if ((! F1.isApprox(F2.array() - M)) ||
         (! F1.isApprox(F3.array() - M*2)) ||
         (! F1.isApprox(F4.array() - M*3))) {
-        assert(false);
-        std::cerr << "Wrong input index matrix" << std::endl;
         tetwild::log_and_throw("GenDualShell: Wrong input index matrix");
     }
 

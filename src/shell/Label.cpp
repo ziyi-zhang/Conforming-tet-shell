@@ -12,6 +12,7 @@
 #include <Eigen/Dense>
 #include <map>
 #include <set>
+#include <unordered_set>
 #include <array>
 #include <vector>
 
@@ -20,6 +21,7 @@ namespace tetshell {
 
 using namespace std;
 using tetwild::Point_3;
+using tetwild::Segment_3;
 using tetwild::logger;
 
 namespace {
@@ -98,11 +100,11 @@ void MapIndex(
 
 bool IsPointInsideTri(
     const Point_3 &pt1, 
+    const Point_3 &base_pt0, 
     const Point_3 &base_pt1, 
-    const Point_3 &base_pt2, 
-    const Point_3 &base_pt3) {
+    const Point_3 &base_pt2) {
 
-    tetwild::Triangle_3 tri(base_pt1, base_pt2, base_pt3);
+    tetwild::Triangle_3 tri(base_pt0, base_pt1, base_pt2);
     return tri.has_on(pt1);
 }
 
@@ -196,12 +198,12 @@ void CleanTetMesh(
 void GetTetFromPrism(
     const std::vector<tetwild::TetVertex> &VO, 
     const std::vector<std::array<int, 4>> &TO, 
-    const std::vector<std::array<int, 4>> &face_on_shell,
-    const int surfaceNum,
-    const prism_t &prism, 
+    const std::vector<std::array<int, 4>> &face_on_shell,  // The old "face_on_shell", recording which input surface each face of a tet is on
+    const int surfaceIdx,  // either "SURFACE_INNER" or "SURFACE_OUTER", the "bad" subdivided face
+    const prism_t &prism,  // the vertex index in "prism" is w.r.t. VI, so we need "map_VI2VO"
     const std::vector<tetwild::Point_3> &VI, 
     const std::map<int, int> &map_VI2VO, 
-    const std::set<int> tetsOnTargetSurface,
+    const std::vector<bool> &t_is_removed,
     // std::vector<tetwild::TetVertex> &V_temp,  // why? all vertices already exist
     std::vector<std::array<int, 4>> &T_temp, 
     std::vector<std::array<int, 4>> &is_surface_facet_temp,
@@ -216,49 +218,112 @@ void GetTetFromPrism(
     // We split it into three tet {0, 4, 5, 3} {1, 4, 5, 0} and {0, 1, 2, 5}
     // It is guaranteed that triangle (345) is intact and only face (012) may be subdivided
 
+    // Define the bottom triangle (012)
+    Point_3 base_pt0 = VI[prism[0]];
+    Point_3 base_pt1 = VI[prism[1]];
+    Point_3 base_pt2 = VI[prism[2]];  // the annoying triangle
+    Segment_3 edge_01(base_pt0, base_pt1);
+    // Collect vertices in VO that are on edge (01)
+    // sort "vertsOnTargetEdge" in order from "base_pt0" to "base_pt1"
+    std::map<tetwild::CGAL_FT, int> vertsOnTargetEdge;
+    // Collect the row number of TO that touches "surfaceIdx" surface
+    std::unordered_set<int> tetsOnTargetSurface;  // TO index
+    // fill the two unordered_sets
+    for (int i=0; i<face_on_shell.size(); i++) {
+        if (t_is_removed[i])
+            continue;  // do not consider removed tet
+        if (face_on_shell[i][0] == surfaceIdx || face_on_shell[i][1] == surfaceIdx || 
+            face_on_shell[i][2] == surfaceIdx || face_on_shell[i][3] == surfaceIdx) {
+                // This tet is in
+                tetsOnTargetSurface.insert(i);
+                // further check edge (01)
+                for (int j=0; j<4; j++) {
+                    const Point_3 &pt = VO[TO[i][j]].pos;
+                    if (edge_01.has_on(pt)) {
+                        // "pt" is on edge_01, insert to set
+                        Segment_3 edge_temp(base_pt0, pt);
+                        vertsOnTargetEdge.insert(std::make_pair(edge_temp.squared_length(), TO[i][j]));  // will be sorted
+                    }
+                }
+            }   
+    }
+
+    ///////////////
+    //   FIRST   //
+    ///////////////
     // insert the first tet {0, 4, 5, 3} (no further split)
     T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[0]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5]), map_VI2VO.at(prism[3])}}));
-    MakeTetPositive(VO, T_temp[T_temp.size()-1]);  // although these two should be OK
-    // insert the second tet {1, 4, 5, 0} (some split due to subdivision on edge (01))
-    T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[1]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5]), map_VI2VO.at(prism[0])}}));
-    MakeTetPositive(VO, T_temp[T_temp.size()-1]);
-    // update their attributes
+    // update this new tet's attribute
     is_surface_facet_temp.push_back(std::array<int, 4>({{-1, 1024, 1024, 1024}}));  // TODO: is this correct?
-    is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1024}}));
-    if (surfaceNum == 1)
-        face_on_shell_temp.push_back(std::array<int, 4>({{2, 0, 0, 0}}));
+    if (surfaceIdx == SURFACE_INNER)
+        face_on_shell_temp.push_back(std::array<int, 4>({{SURFACE_BOTTOM, NOT_SUR, NOT_SUR, NOT_SUR}}));
+    else if (surfaceIdx == SURFACE_OUTER)
+        face_on_shell_temp.push_back(std::array<int, 4>({{SURFACE_TOP, NOT_SUR, NOT_SUR, NOT_SUR}}));
     else
-        face_on_shell_temp.push_back(std::array<int, 4>({{3, 0, 0, 0}}));
-    face_on_shell_temp.push_back(std::array<int, 4>({{0, 0, 0, 0}}));
+        tetwild::log_and_throw("GetTetFromPrism: surfaceIdx invalid");
+    // positive tet
+    if (MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back())) {
+        std::cerr << "first tet being inverted" << std::endl;
+    }
 
-    // insert the third one (VO might have split one of its face to many triangles)
-    Point_3 base_pt1 = VI[prism[0]];
-    Point_3 base_pt2 = VI[prism[1]];
-    Point_3 base_pt3 = VI[prism[2]];  // the first three vertices are the annoying triangle. 3, 4, 5 have been handled
+    ////////////////
+    //   SECOND   //
+    ////////////////
+    // check the first and last of "vertsOnTargetEdge" is pt0 and pt1
+    if (base_pt0 != VO[vertsOnTargetEdge.begin()->second].pos || base_pt1 != VO[vertsOnTargetEdge.rbegin()->second].pos) {
+        tetwild::log_and_throw("GetTetFromPrism: vertsOnTargetEdge construction error.");
+    }
+    // insert the second tet {1, 4, 5, 0} (some split due to subdivision on edge (01))
+    int ptIdx_1, ptIdx_2;
+    const int ptIdx_3 = map_VI2VO.at(prism[5]);  // the two vertices from the prism
+    const int ptIdx_4 = map_VI2VO.at(prism[4]);  // the two vertices from the prism
+    for (auto it=vertsOnTargetEdge.begin(); it!=vertsOnTargetEdge.end();) {
+
+        ptIdx_1 = it->second;
+        it++;
+        if (it == vertsOnTargetEdge.end()) break;
+        ptIdx_2 = it->second;
+
+        T_temp.push_back(std::array<int, 4>({{ptIdx_1, ptIdx_2, ptIdx_3, ptIdx_4}}));
+        // update this new tet's attribute
+        is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1024}}));
+        face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, NOT_SUR}}));
+        // positive tet
+        MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back());
+    }
+
+    ///////////////
+    //   THIRD   //
+    ///////////////
+    // insert the third one (VO might have split face (012) to many triangles)
     for (auto it=tetsOnTargetSurface.begin(); it!=tetsOnTargetSurface.end(); it++) {
 
         // consider the "TO_row"-th tet in TO
         int TO_row = *it;
+        int ptIdx1, ptIdx2, ptIdx3;
+        const int ptIdx4 = map_VI2VO.at(prism[5]);  // the vertex from the prism
         // "tetsOnTargetSurface" has checked whether the tet has been removed by "t_is_removed"
         for (int i=0; i<4; i++) {
-            if (face_on_shell[TO_row][i] == surfaceNum) {
+            if (face_on_shell[TO_row][i] == surfaceIdx) {
 
-                Point_3 pt1 = VO[TO[TO_row][(i+1)%4]].pos;
-                Point_3 pt2 = VO[TO[TO_row][(i+2)%4]].pos;
-                Point_3 pt3 = VO[TO[TO_row][(i+3)%4]].pos;
+                ptIdx1 = TO[TO_row][(i+1)%4];
+                ptIdx2 = TO[TO_row][(i+2)%4];
+                ptIdx3 = TO[TO_row][(i+3)%4];
+                Point_3 pt1 = VO[ptIdx1].pos;
+                Point_3 pt2 = VO[ptIdx2].pos;
+                Point_3 pt3 = VO[ptIdx3].pos;
 
-                if (IsTriInsideTri(pt1, pt2, pt3, base_pt1, base_pt2, base_pt3)) {
+                if (IsTriInsideTri(pt1, pt2, pt3, base_pt0, base_pt1, base_pt2)) {
                     // ahaha, we found a desired tet in VO. pt1, pt2, pt3 will be used as new base
-                    T_temp.push_back(std::array<int, 4>({{TO[TO_row][(i+1)%4], TO[TO_row][(i+2)%4], TO[TO_row][(i+3)%4], map_VI2VO.at(prism[5])}}));
-
+                    T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
                     // update attributes
                     is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
-                    face_on_shell_temp.push_back(std::array<int, 4>({{0, 0, 0, surfaceNum}}));
-                    // inverted tet?
-                    MakeTetPositive(VO, T_temp[T_temp.size()-1], is_surface_facet_temp[is_surface_facet_temp.size()-1], face_on_shell_temp[face_on_shell_temp.size()-1]);
+                    face_on_shell_temp.push_back(std::array<int, 4>({{0, 0, 0, surfaceIdx}}));
+                    // positive tet
+                    MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back());
                 }
 
-                // there can be at most one face of one tet that belongs to "surfaceNum"
+                // there can be at most one face of any tet that is on "surfaceIdx"
                 // because the faces of one tet cannot be colinear
                 break;
             }
@@ -272,7 +337,7 @@ void GenTetMeshFromShell(
     const std::vector<std::array<int, 4>> &TO, 
     const DualShell_t &dualShell, 
     const std::vector<std::array<int, 4>> &face_on_shell,
-    const std::string shellName,
+    const int shellName,  // either SHELL_INNER_BOTTOM or SHELL_TOP_OUTER
     // std::vector<tetwild::TetVertex> &V_temp,  // why? all vertices already exist
     std::vector<std::array<int, 4>> &T_temp, 
     Eigen::VectorXi &labels_temp,
@@ -281,48 +346,38 @@ void GenTetMeshFromShell(
     std::vector<bool> &t_is_removed) {
 
     const int N = dualShell.shell_inner_bottom.size();
-    int surfaceNum;
+    int surfaceIdx;
     T_temp.clear();
     is_surface_facet_temp.clear();
     face_on_shell_temp.clear();
 
     // Find the index of dualShell vertex in VO now
     std::map<int, int> map_VI2VO;
-    if (shellName == "shell_inner_bottom") {
+    if (shellName == SHELL_INNER_BOTTOM) {
         MapIndex(VO, dualShell, dualShell.shell_inner_bottom, map_VI2VO);
-        surfaceNum = 1;
-    } else if (shellName == "shell_top_outer") {
+        surfaceIdx = SURFACE_INNER;  // the one of the two surfaces that has been subdivided 
+    } else if (shellName == SHELL_TOP_OUTER) {
         MapIndex(VO, dualShell, dualShell.shell_top_outer, map_VI2VO);
-        surfaceNum = 4;
-    }
-
-    // Collect the row number of TO that touches "surfaceNum" surface
-    std::set<int> tetsOnTargetSurface;
-    for (int i=0; i<face_on_shell.size(); i++) {
-        if (t_is_removed[i])
-            continue;  // do not consider removed tet
-        if (face_on_shell[i][0] == surfaceNum || face_on_shell[i][1] == surfaceNum || 
-            face_on_shell[i][2] == surfaceNum || face_on_shell[i][3] == surfaceNum) {
-                tetsOnTargetSurface.insert(i);
-            }
+        surfaceIdx = SURFACE_OUTER;  // the one of the two surfaces that has been subdivided 
     }
 
     // Generate tet mesh for each prism
     for (int i=0; i<N; i++) {
 
         prism_t prism;
-        if (shellName == "shell_inner_bottom") {
+        if (shellName == SHELL_INNER_BOTTOM) {
             const prism_t &pr = dualShell.shell_inner_bottom[i];
             prism = {pr[0], pr[1], pr[2], pr[3], pr[4], pr[5]};
-        } else if (shellName == "shell_top_outer") {
+        } else if (shellName == SHELL_TOP_OUTER) {
             const prism_t &pr = dualShell.shell_top_outer[i];
             prism = {pr[3], pr[4], pr[5], pr[0], pr[1], pr[2]};
             // Why reverse the order?
-            // because i want to make the surface touching fine tets the first one
+            // to make the surface touching fine tets always the first one
         }
 
         // get tet from prism & update is_surface_facet_temp + face_on_shell_temp
-        GetTetFromPrism(VO, TO, face_on_shell, surfaceNum, prism, dualShell.V, map_VI2VO, tetsOnTargetSurface, T_temp, is_surface_facet_temp, face_on_shell_temp);
+        GetTetFromPrism(VO, TO, face_on_shell, surfaceIdx, prism, dualShell.V, map_VI2VO, t_is_removed,  // const input
+                        T_temp, is_surface_facet_temp, face_on_shell_temp);  // output
     }
 
     // we also want to enlarge "t_is_removed" accordingly
@@ -331,10 +386,11 @@ void GenTetMeshFromShell(
     t_is_removed.insert( t_is_removed.end(), falseVector.begin(), falseVector.end() );
 
     // Update labels
-    if (surfaceNum == 1)
-        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1);
-    else if (surfaceNum == 4)
-        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * 3;
+    // All the tets generated here must be in the same region
+    if (surfaceIdx == SURFACE_INNER)
+        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_INNER_BOTTOM;
+    else if (surfaceIdx == SURFACE_OUTER)
+        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_TOP_OUTER;
 }
 
 }  // anonymous namespace
@@ -399,8 +455,9 @@ void ReplaceWithPrismTet(
     std::vector<std::array<int, 4>> is_surface_facet_temp;
     std::vector<std::array<int, 4>> face_on_shell_temp;
     Eigen::VectorXi labels_temp;
-    /////// FOR shell_inner_bottom
-    GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, "shell_inner_bottom", T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
+
+    //// FOR shell_inner_bottom
+    GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_INNER_BOTTOM, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
     is_surface_facet.insert( is_surface_facet.end(), is_surface_facet_temp.begin(), is_surface_facet_temp.end() );
@@ -408,9 +465,10 @@ void ReplaceWithPrismTet(
       Eigen::VectorXi temp = labels;
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
-    logger().debug("SHELL_INNER_BOTTOM done");
-    ////// FOR shell_top_outer
-    GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, "shell_top_outer", T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
+    logger().debug("GenTetMeshFromShell: SHELL_INNER_BOTTOM done");
+
+    /// FOR shell_top_outer
+    GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
     is_surface_facet.insert( is_surface_facet.end(), is_surface_facet_temp.begin(), is_surface_facet_temp.end() );
@@ -418,7 +476,7 @@ void ReplaceWithPrismTet(
       temp = labels;
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
-    logger().debug("SHELL_TOP_OUTER done");
+    logger().debug("GenTetMeshFromShell: SHELL_TOP_OUTER done");
 
     // remove "t_is_removed" inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
