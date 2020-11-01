@@ -254,7 +254,10 @@ void GetTetFromPrism(
     // insert the first tet {0, 4, 5, 3} (no further split)
     T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[0]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5]), map_VI2VO.at(prism[3])}}));
     // update this new tet's attribute
-    is_surface_facet_temp.push_back(std::array<int, 4>({{-1, 1024, 1024, 1024}}));  // TODO: is this correct?
+    if (IsTetPositive(VI[prism[4]], VI[prism[5]], VI[prism[3]], VI[prism[0]]))
+        is_surface_facet_temp.push_back(std::array<int, 4>({{1, 1024, 1024, 1024}}));
+    else
+        is_surface_facet_temp.push_back(std::array<int, 4>({{-1, 1024, 1024, 1024}}));
     if (surfaceIdx == SURFACE_INNER)
         face_on_shell_temp.push_back(std::array<int, 4>({{SURFACE_BOTTOM, NOT_SUR, NOT_SUR, NOT_SUR}}));
     else if (surfaceIdx == SURFACE_OUTER)
@@ -263,7 +266,17 @@ void GetTetFromPrism(
         tetwild::log_and_throw("GetTetFromPrism: surfaceIdx invalid");
     // positive tet
     if (MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back())) {
+        is_surface_facet_temp.back()[2] *= -1;
+        /*
+        // DEBUG PURPOSE
+        std::array<double, 3> pt_1 = {CGAL::to_double(VI[prism[0]][0]), CGAL::to_double(VI[prism[0]][1]), CGAL::to_double(VI[prism[0]][2])};
+        std::array<double, 3> pt_2 = {CGAL::to_double(VI[prism[1]][0]), CGAL::to_double(VI[prism[1]][1]), CGAL::to_double(VI[prism[1]][2])};
+        std::array<double, 3> pt_3 = {CGAL::to_double(VI[prism[2]][0]), CGAL::to_double(VI[prism[2]][1]), CGAL::to_double(VI[prism[2]][2])};
+        std::array<double, 3> pt_4 = {CGAL::to_double(VI[prism[3]][0]), CGAL::to_double(VI[prism[3]][1]), CGAL::to_double(VI[prism[3]][2])};
+        std::array<double, 3> pt_5 = {CGAL::to_double(VI[prism[4]][0]), CGAL::to_double(VI[prism[4]][1]), CGAL::to_double(VI[prism[4]][2])};
+        std::array<double, 3> pt_6 = {CGAL::to_double(VI[prism[5]][0]), CGAL::to_double(VI[prism[5]][1]), CGAL::to_double(VI[prism[5]][2])};
         std::cerr << "first tet being inverted" << std::endl;
+        */
     }
 
     ////////////////
@@ -317,10 +330,15 @@ void GetTetFromPrism(
                     // ahaha, we found a desired tet in VO. pt1, pt2, pt3 will be used as new base
                     T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
                     // update attributes
-                    is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
+                    if (IsTetPositive(pt1, pt2, pt3, VI[prism[5]]))
+                        is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
+                    else
+                        is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, -1}}));
                     face_on_shell_temp.push_back(std::array<int, 4>({{0, 0, 0, surfaceIdx}}));
                     // positive tet
-                    MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back());
+                    if (MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back())) {
+                        is_surface_facet_temp.back()[3] *= -1;
+                    }
                 }
 
                 // there can be at most one face of any tet that is on "surfaceIdx"
