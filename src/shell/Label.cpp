@@ -431,7 +431,7 @@ void LabelTet(
     GenDualShell(VI, FI, dualShell);
 
     // now loop over all tets and label them
-    // dumb way, not optimized
+    // to be changed to flood
     for (int i=0; i<Ntet; i++) {
 
         Point_3 center = GetBarycenter(VO, TO, i);
