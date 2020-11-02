@@ -6,6 +6,7 @@
 #include <pymesh/MshSaver.h>
 #include <Eigen/Dense>
 #include <unordered_map>
+#include <unordered_set>
 
 
 namespace tetshell {
@@ -54,6 +55,23 @@ bool MakeTetPositive(const std::vector<tetwild::TetVertex> &VO, std::array<int, 
         return true;
     }
     return false;
+}
+
+
+void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unordered_set<int>& s2, std::unordered_set<int>& s) {
+
+    if (s2.size() < s1.size()) { 
+        UnorderedsetIntersection(s2, s1, s); 
+        return; 
+    }
+
+    s.clear();
+    s.reserve(std::min(s1.size(), s2.size()));
+    for (int x : s1) {
+        if (s2.count(x)) {
+            s.insert(x);
+        }
+    }
 }
 
 

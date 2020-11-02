@@ -16,6 +16,7 @@
 #include <array>
 #include <vector>
 #include <queue>
+#include <algorithm>
 
 
 namespace tetshell {
@@ -120,6 +121,79 @@ bool PointInShell(const Point_3 &center, const shell_t &shell, const std::vector
 }
 
 
+int TetRegion(
+    const std::vector<tetwild::TetVertex> &VO, 
+    const std::vector<std::array<int, 4>> &TO,
+    const std::vector<Point_3> &VI, 
+    const DualShell_t &dualShell,
+    const int tetIdx) {
+
+    Point_3 center = GetBarycenter(VO, TO, tetIdx);
+    if (PointInShell(center, dualShell.shell_inner_bottom, VI))
+        return SHELL_INNER_BOTTOM;
+    else if (PointInShell(center, dualShell.shell_bottom_top, VI))
+        return SHELL_BOTTOM_TOP;
+    else if (PointInShell(center, dualShell.shell_top_outer, VI))
+        return SHELL_TOP_OUTER;
+    
+    return 0;  // default zero, not in any layer of the shell
+}
+
+
+int GetRegionType(int oldRegionType, int surfaceType) {
+
+    // do not change region type unless met a shell surface
+    // The shell must be closed
+    if (surfaceType == NOT_SUR) return oldRegionType;
+
+    const int NON_SHELL_REGION = 0;
+    if (oldRegionType == NON_SHELL_REGION) {
+        switch (surfaceType) {
+            case SURFACE_INNER:
+                return SHELL_INNER_BOTTOM;
+            case SURFACE_OUTER:
+                return SHELL_TOP_OUTER;
+            default:
+                tetwild::log_and_throw("GetRegionType: exception in NON_SHELL_REGION.");
+                break;
+        }
+    } else if (oldRegionType == SHELL_INNER_BOTTOM) {
+        switch (surfaceType) {
+            case SURFACE_INNER:
+                return NON_SHELL_REGION;
+            case SURFACE_BOTTOM:
+                return SHELL_BOTTOM_TOP;
+            default:
+                tetwild::log_and_throw("GetRegionType: exception in SHELL_INNER_BOTTOM.");
+                break;
+        }
+    } else if (oldRegionType == SHELL_BOTTOM_TOP) {
+        switch (surfaceType) {
+            case SURFACE_BOTTOM:
+                return SHELL_INNER_BOTTOM;
+            case SURFACE_TOP:
+                return SHELL_TOP_OUTER;
+            default:
+                tetwild::log_and_throw("GetRegionType: exception in SHELL_BOTTOM_TOP.");
+                break;
+        }
+    } else if (oldRegionType == SHELL_TOP_OUTER) {
+        switch (surfaceType) {
+            case SURFACE_TOP:
+                return SHELL_BOTTOM_TOP;
+            case SURFACE_OUTER:
+                return NON_SHELL_REGION;
+            default:
+                tetwild::log_and_throw("GetRegionType: exception in SHELL_TOP_OUTER.");
+                break;
+        }
+    }
+
+    tetwild::log_and_throw("GetRegionType: invalid input.");
+    return 0;  // never reach here
+}
+
+
 void LabelTet(
     const std::vector<Point_3> &VI, 
     const Eigen::MatrixXi &FI, 
@@ -130,7 +204,8 @@ void LabelTet(
     Eigen::VectorXi &labels) {
 
     const int Ntet = TO.size();
-    labels.setZero(Ntet, 1);  // default zero, not in any layer of the shell
+    labels.setOnes(Ntet, 1);  // default zero, not in any layer of the shell
+    labels = labels * (-1);
 
     // Get four surfaces from VI
     GenDualShell(VI, FI, dualShell);
@@ -138,21 +213,89 @@ void LabelTet(
     // loop over all tets and check which prism contains them
     /*
     for (int i=0; i<Ntet; i++) {
-
-        Point_3 center = GetBarycenter(VO, TO, i);
-        if (PointInShell(center, dualShell.shell_inner_bottom, VI))
-            labels(i) = 1;
-        else if (PointInShell(center, dualShell.shell_bottom_top, VI))
-            labels(i) = 2;
-        else if (PointInShell(center, dualShell.shell_top_outer, VI))
-            labels(i) = 3;
+        labels[i] = TetRegion(VO, TO, VI, dualShell, i);
     }
     */
 
     // BFS to label tets
-    std::queue<int> Q;
-    
+    std::queue<std::pair<int, int> > Q;  // <tetIdx, regionType>
+                                         // Q stores tets that have been visited & labeled but can be used to expand search
+    std::unordered_set<int> uset, set_tmp;
+    std::vector<bool> visited(Ntet, false);  // whether this tet has been visited and labeled
 
+    // first element
+    int regionTet0 = TetRegion(VO, TO, VI, dualShell, 0);
+    Q.push(std::make_pair(0, regionTet0));
+    labels[0] = regionTet0;
+    visited[0] = true;
+
+    // Start BFS
+    while (!Q.empty()) {
+
+        // tetIdx-th tetrahedron
+        int oldTetIdx = Q.front().first;
+        int oldRegionType = Q.front().second;
+        Q.pop();
+
+        // Consider four faces seperately
+        for (int i=0; i<4; i++) {
+
+            int vert1 = TO[oldTetIdx][(0+i) % 4];
+            int vert2 = TO[oldTetIdx][(1+i) % 4];
+            int vert3 = TO[oldTetIdx][(2+i) % 4];
+            int oppositeVert = (3+i) % 4;
+            // Find the intersection of {vert1.conn_tets, vert2.conn_tets, vert3.conn_tets}
+            UnorderedsetIntersection(VO[vert1].conn_tets, VO[vert2].conn_tets, set_tmp);
+            UnorderedsetIntersection(set_tmp, VO[vert3].conn_tets, uset);
+
+            for (int newTetIdx : uset) {
+
+                if (newTetIdx == oldTetIdx) continue;
+                if (visited[newTetIdx]) continue;
+                // decide the label of newTetIdx
+                int surfaceType = face_on_shell[oldTetIdx][oppositeVert];
+                int newRegionType = GetRegionType(oldRegionType, surfaceType);
+                labels[newTetIdx] = newRegionType;
+                visited[newTetIdx] = true;
+
+                // DEBUG ONLY
+                /*
+                if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
+                    labels[newTetIdx] = 5;  // err code
+                    std::cerr << "Wrong tet label" << std::endl;
+                    return;
+                }
+                */
+                // push to Q for further search
+                Q.push(std::make_pair(newTetIdx, newRegionType));
+            }
+        }
+    }
+
+    // assert
+    if (std::count(visited.begin(), visited.end(), false))
+        tetwild::log_and_throw("LabelTet: not all tets are visited.");
+
+/*
+    // this code can be used to visualize "face_on_shell"
+    for (int i=0; i<Ntet; i++) {
+
+        const std::array<int, 4> &faceInfo = face_on_shell[i];
+        int countNonZero = int(faceInfo[0] > 0) + int(faceInfo[1] > 0) + int(faceInfo[2] > 0) + int(faceInfo[3] > 0);
+        if (countNonZero == 0)
+            labels[i] = -1;
+        else if (countNonZero > 1)
+            labels[i] = 5;
+        else if (faceInfo[0] > 0)
+            labels[i] = faceInfo[0];
+        else if (faceInfo[1] > 0)
+            labels[i] = faceInfo[1];
+        else if (faceInfo[2] > 0)
+            labels[i] = faceInfo[2];
+        else if (faceInfo[3] > 0)
+            labels[i] = faceInfo[3];
+    }
+*/
     logger().info("Tetrahedra label done.");
 }
 

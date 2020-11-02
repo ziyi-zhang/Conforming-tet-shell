@@ -410,6 +410,7 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
 
     std::vector<std::vector<int>> track_on_edges = conn_e4v;
     track_on_edges.resize(bsp_vertices.size());
+    // update tet_vertices.on_edge
     for (unsigned int i = 0; i < m_vertices.size(); i++) {
         for (int j = 0; j < track_on_edges[i].size(); j++) {
             if (m_e_tags[track_on_edges[i][j]] >= 0) {
