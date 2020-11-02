@@ -76,6 +76,7 @@ void MapIndex(
                 }
                 if (found) continue;
                 // Should not reach here
+                std::cerr << "VI_index = " << VI_index << std::endl;
                 tetwild::log_and_throw("MapIndex: A vertex in VI not found in VO");
             }
         }
@@ -354,7 +355,7 @@ void GetTetFromPrism(
         cnt_singularity_type3++;
     }
 
-    
+
 }
 
 
