@@ -278,6 +278,7 @@ void Preprocess::process(GEO::Mesh& geo_sf_mesh, std::vector<Point_3>& m_vertice
         for (int j = 0; j < 3; j++)
             conn_fs[F_in(i, j)].insert(i);
     }
+    // No swap?
     swap(geo_sf_mesh, geo_face_tree);
     if(args.save_mid_result == 0)
         igl::writeSTL(state.working_dir+state.postfix+"_simplified.stl", V_in, F_in);
@@ -310,11 +311,16 @@ void Preprocess::process(GEO::Mesh& geo_sf_mesh, std::vector<Point_3>& m_vertice
     //    outputSurfaceColormap(geo_face_tree, geo_sf_mesh);
 }
 
+
 void Preprocess::swap(const GEO::Mesh &geo_mesh, const GEO::MeshFacetsAABBWithEps& face_aabb_tree) {
+
     int cnt = 0;
+
     for (int i = 0; i < F_in.rows(); i++) {
+
         bool is_swapped = false;
         for (int j = 0; j < 3; j++) {
+
             int v_id = F_in(i, j);
             int v1_id = F_in(i, (j + 1) % 3);
             int v2_id = F_in(i, (j + 2) % 3);
@@ -406,6 +412,7 @@ void Preprocess::swap(const GEO::Mesh &geo_mesh, const GEO::MeshFacetsAABBWithEp
     }
     logger().debug("{} faces are swapped!!", cnt);
 }
+
 
 double Preprocess::getCosAngle(int v_id, int v1_id, int v2_id) {
     return GEO::Geom::cos_angle(GEO::vec3(V_in(v1_id, 0), V_in(v1_id, 1), V_in(v1_id, 2)) -

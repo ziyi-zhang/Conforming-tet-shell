@@ -77,6 +77,9 @@ struct Args {
     // Skip prism related steps. This is only for debug purpose.
     bool skip_prism = false;
 
+    // Use brute way to label tet region
+    bool brute_label = false;
+
     // Target number of vertices (minimum), within 5% of tolerance
     int target_num_vertices = -1;
 

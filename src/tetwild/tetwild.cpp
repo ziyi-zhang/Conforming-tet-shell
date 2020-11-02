@@ -428,7 +428,7 @@ void tetwild_stage_shell(
 
     // construct dualShell & label tets
     tetshell::DualShell_t dualShell;
-    tetshell::LabelTet(VI_cgal, FI, VO, TO, face_on_shell,  // input
+    tetshell::LabelTet(args, VI_cgal, FI, VO, TO, face_on_shell,  // input
                        dualShell, labels);  // output
 
     // Replace some tets with prism tets

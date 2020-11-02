@@ -5,6 +5,7 @@
 #include <shell/Shell.h>
 #include <tetwild/TetmeshElements.h>
 #include <tetwild/CGALTypes.h>
+#include <tetwild/Args.h>
 
 #include <Eigen/Dense>
 ////////////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@ bool point_in_prism(const tetwild::Point_3& point, bool tetra_split_AB, const st
 bool PointInShell(const tetwild::Point_3 &center, const shell_t &shell, const std::vector<tetwild::Point_3> &VI);
 /// TODO
 
-void LabelTet(const std::vector<tetwild::Point_3> &VI, const Eigen::MatrixXi &FI, const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, const std::vector<std::array<int, 4>> &face_on_shell, DualShell_t &dualShell, Eigen::VectorXi &labels);
+void LabelTet(const tetwild::Args &args, const std::vector<tetwild::Point_3> &VI, const Eigen::MatrixXi &FI, const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, const std::vector<std::array<int, 4>> &face_on_shell, DualShell_t &dualShell, Eigen::VectorXi &labels);
 /// TODO
 
 }  // namespace tetshell

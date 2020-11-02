@@ -195,6 +195,7 @@ int GetRegionType(int oldRegionType, int surfaceType) {
 
 
 void LabelTet(
+    const tetwild::Args &args,
     const std::vector<Point_3> &VI, 
     const Eigen::MatrixXi &FI, 
     const std::vector<tetwild::TetVertex> &VO, 
@@ -210,71 +211,75 @@ void LabelTet(
     // Get four surfaces from VI
     GenDualShell(VI, FI, dualShell);
 
-    // loop over all tets and check which prism contains them
-    /*
-    for (int i=0; i<Ntet; i++) {
-        labels[i] = TetRegion(VO, TO, VI, dualShell, i);
-    }
-    */
+    if (args.brute_label) {
+    // brute label
 
-    // BFS to label tets
-    std::queue<std::pair<int, int> > Q;  // <tetIdx, regionType>
-                                         // Q stores tets that have been visited & labeled but can be used to expand search
-    std::unordered_set<int> uset, set_tmp;
-    std::vector<bool> visited(Ntet, false);  // whether this tet has been visited and labeled
+        // loop over all tets and check which prism contains them
+        for (int i=0; i<Ntet; i++) {
+            labels[i] = TetRegion(VO, TO, VI, dualShell, i);
+        }
+    } else {
+    // BFS label
 
-    // first element
-    int regionTet0 = TetRegion(VO, TO, VI, dualShell, 0);
-    Q.push(std::make_pair(0, regionTet0));
-    labels[0] = regionTet0;
-    visited[0] = true;
+        // BFS to label tets
+        std::queue<std::pair<int, int> > Q;  // <tetIdx, regionType>
+                                            // Q stores tets that have been visited & labeled but can be used to expand search
+        std::unordered_set<int> uset, set_tmp;
+        std::vector<bool> visited(Ntet, false);  // whether this tet has been visited and labeled
 
-    // Start BFS
-    while (!Q.empty()) {
+        // first element
+        int regionTet0 = TetRegion(VO, TO, VI, dualShell, 0);
+        Q.push(std::make_pair(0, regionTet0));
+        labels[0] = regionTet0;
+        visited[0] = true;
 
-        // tetIdx-th tetrahedron
-        int oldTetIdx = Q.front().first;
-        int oldRegionType = Q.front().second;
-        Q.pop();
+        // Start BFS
+        while (!Q.empty()) {
 
-        // Consider four faces seperately
-        for (int i=0; i<4; i++) {
+            // tetIdx-th tetrahedron
+            int oldTetIdx = Q.front().first;
+            int oldRegionType = Q.front().second;
+            Q.pop();
 
-            int vert1 = TO[oldTetIdx][(0+i) % 4];
-            int vert2 = TO[oldTetIdx][(1+i) % 4];
-            int vert3 = TO[oldTetIdx][(2+i) % 4];
-            int oppositeVert = (3+i) % 4;
-            // Find the intersection of {vert1.conn_tets, vert2.conn_tets, vert3.conn_tets}
-            UnorderedsetIntersection(VO[vert1].conn_tets, VO[vert2].conn_tets, set_tmp);
-            UnorderedsetIntersection(set_tmp, VO[vert3].conn_tets, uset);
+            // Consider four faces seperately
+            for (int i=0; i<4; i++) {
 
-            for (int newTetIdx : uset) {
+                int vert1 = TO[oldTetIdx][(0+i) % 4];
+                int vert2 = TO[oldTetIdx][(1+i) % 4];
+                int vert3 = TO[oldTetIdx][(2+i) % 4];
+                int oppositeVert = (3+i) % 4;
+                // Find the intersection of {vert1.conn_tets, vert2.conn_tets, vert3.conn_tets}
+                UnorderedsetIntersection(VO[vert1].conn_tets, VO[vert2].conn_tets, set_tmp);
+                UnorderedsetIntersection(set_tmp, VO[vert3].conn_tets, uset);
 
-                if (newTetIdx == oldTetIdx) continue;
-                if (visited[newTetIdx]) continue;
-                // decide the label of newTetIdx
-                int surfaceType = face_on_shell[oldTetIdx][oppositeVert];
-                int newRegionType = GetRegionType(oldRegionType, surfaceType);
-                labels[newTetIdx] = newRegionType;
-                visited[newTetIdx] = true;
+                for (int newTetIdx : uset) {
 
-                // DEBUG ONLY
-                /*
-                if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
-                    labels[newTetIdx] = 5;  // err code
-                    std::cerr << "Wrong tet label" << std::endl;
-                    return;
+                    if (newTetIdx == oldTetIdx) continue;
+                    if (visited[newTetIdx]) continue;
+                    // decide the label of newTetIdx
+                    int surfaceType = face_on_shell[oldTetIdx][oppositeVert];
+                    int newRegionType = GetRegionType(oldRegionType, surfaceType);
+                    labels[newTetIdx] = newRegionType;
+                    visited[newTetIdx] = true;
+
+                    // DEBUG ONLY
+
+                    if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
+                        labels[newTetIdx] = 5;  // err code
+                        std::cerr << "Wrong tet label" << std::endl;
+                        return;
+                    }
+
+                    // push to Q for further search
+                    Q.push(std::make_pair(newTetIdx, newRegionType));
                 }
-                */
-                // push to Q for further search
-                Q.push(std::make_pair(newTetIdx, newRegionType));
             }
         }
-    }
 
-    // assert
-    if (std::count(visited.begin(), visited.end(), false))
-        tetwild::log_and_throw("LabelTet: not all tets are visited.");
+        // assert
+        if (std::count(visited.begin(), visited.end(), false))
+            tetwild::log_and_throw("LabelTet: not all tets are visited.");
+    }
 
 /*
     // this code can be used to visualize "face_on_shell"
