@@ -353,6 +353,9 @@ double tetwild_stage_one_tetra(
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+
+
 ///
 /// Generate tet mesh from input
 ///
@@ -419,6 +422,12 @@ void tetwild_stage_shell(
     std::vector<std::array<int, 4>> &is_surface_facet, 
     std::vector<std::array<int, 4>> &face_on_shell,
     Eigen::VectorXi &labels) {
+
+    // 
+    std::cerr << "VI " << VI.rows() << " x " << VI.cols() << std::endl;
+    std::cerr << "FI " << FI.rows() << " x " << FI.cols() << std::endl;
+    std::cerr << "VO " << VO.size() << std::endl;
+    std::cerr << "TO " << TO.size() << " x 4" << std::endl;
 
     // convert VI to CGAL rational
     std::vector<Point_3> VI_cgal;

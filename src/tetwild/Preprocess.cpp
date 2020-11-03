@@ -101,19 +101,21 @@ bool Preprocess::init(const Eigen::MatrixXd& V_tmp, const Eigen::MatrixXi& F_tmp
     logger().debug("{} {}", V_tmp.rows(), F_tmp.rows());
 
     Eigen::VectorXi IV, _;
-//        igl::unique_rows(V_tmp, V_in, _, IV);
-    igl::remove_duplicate_vertices(V_tmp, F_tmp, 1e-10, V_in, IV, _, F_in);
+    // Remove identical vertices
+    igl::unique_rows(V_tmp, V_in, _, IV);
+    // Not allowed in TetShell
+    // igl::remove_duplicate_vertices(V_tmp, F_tmp, 1e-10, V_in, IV, _, F_in);
 
-    if (V_in.rows() == 0 || F_in.rows() == 0)
-        return false;
-
-//        for (int i = 0; i < F_in.rows(); i++) {
-//            for (int j = 0; j < 3; j++) {
-//                F_in(i, j) = IV(F_in(i, j));
-//            }
-//        }
+    F_in.resize(F_tmp.rows(), F_tmp.cols());
+    for (int i = 0; i < F_tmp.rows(); i++) {
+        for (int j = 0; j < 3; j++) {
+            F_in(i, j) = IV(F_tmp(i, j));
+        }
+    }
     logger().debug("#v = {} -> {}", V_tmp.rows(), V_in.rows());
     logger().debug("#f = {} -> {}", F_tmp.rows(), F_in.rows());
+    if (V_in.rows() == 0 || F_in.rows() == 0)
+        return false;
 //    checkBoundary(V_in, F_in, state);
 
     ////get GEO meshes
@@ -241,7 +243,8 @@ void Preprocess::process(GEO::Mesh& geo_sf_mesh, std::vector<Point_3>& m_vertice
     //simplification
     ts = 0;
     f_tss.resize(F_in.size());
-    simplify(geo_sf_mesh, geo_face_tree);
+    // "simplify" not needed in TetShell
+    // simplify(geo_sf_mesh, geo_face_tree);
 
     ////get CGAL surface mesh
     int cnt = 0;
@@ -278,9 +281,9 @@ void Preprocess::process(GEO::Mesh& geo_sf_mesh, std::vector<Point_3>& m_vertice
         for (int j = 0; j < 3; j++)
             conn_fs[F_in(i, j)].insert(i);
     }
-    // No swap?
-    swap(geo_sf_mesh, geo_face_tree);
-    if(args.save_mid_result == 0)
+    // "swap" is disabled in TetShell
+    // swap(geo_sf_mesh, geo_face_tree);
+    if (args.save_mid_result == 0)
         igl::writeSTL(state.working_dir+state.postfix+"_simplified.stl", V_in, F_in);
 
 //    checkBoundary(V_in, F_in);
@@ -400,6 +403,7 @@ void Preprocess::swap(const GEO::Mesh &geo_mesh, const GEO::MeshFacetsAABBWithEp
             }
 
             // real update
+            std::cerr << v_id << std::endl;
             conn_fs[v1_id].erase(n12_f_ids[1]);
             conn_fs[v2_id].erase(n12_f_ids[0]);
             conn_fs[v_id].insert(n12_f_ids[1]);
@@ -474,7 +478,8 @@ void Preprocess::postProcess(const GEO::Mesh &geo_mesh, const GEO::MeshFacetsAAB
     ts++;
     inf_e_tss = std::vector<int>(inf_es.size(), ts);
 
-    simplify(geo_mesh, face_aabb_tree);
+    // "simplify" not needed in TetShell
+    // simplify(geo_mesh, face_aabb_tree);
 }
 
 bool Preprocess::removeAnEdge(int v1_id, int v2_id, const GEO::Mesh &geo_mesh, const GEO::MeshFacetsAABBWithEps& face_aabb_tree) {

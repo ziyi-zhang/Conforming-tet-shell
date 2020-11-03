@@ -77,6 +77,7 @@ void MapIndex(
                 if (found) continue;
                 // Should not reach here
                 std::cerr << "VI_index = " << VI_index << std::endl;
+                std::cerr << "V = " << CGAL::to_double(VI[VI_index][0]) << " " << CGAL::to_double(VI[VI_index][1]) << " " <<  CGAL::to_double(VI[VI_index][2]) << std::endl;
                 tetwild::log_and_throw("MapIndex: A vertex in VI not found in VO");
             }
         }
