@@ -263,13 +263,14 @@ void LabelTet(
                     visited[newTetIdx] = true;
 
                     // DEBUG ONLY
-
+/*
                     if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
                         labels[newTetIdx] = 5;  // err code
-                        std::cerr << "Wrong tet label" << std::endl;
+                        logger().error("Wrong tet label: newRegionType = {}, tetRegion = {}", newRegionType, TetRegion(VO, TO, VI, dualShell, newTetIdx));
+                        std::cerr << "oldRegionType = " << oldRegionType << " surfaceType = " << surfaceType << std::endl;
                         return;
                     }
-
+*/
                     // push to Q for further search
                     Q.push(std::make_pair(newTetIdx, newRegionType));
                 }
