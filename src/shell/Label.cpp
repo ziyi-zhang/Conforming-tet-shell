@@ -33,6 +33,21 @@ Point_3 GetBarycenter(const std::vector<tetwild::TetVertex> &VO, const std::vect
     Point_3 center;
 
     center = CGAL::centroid(VO[TO[i][0]].pos, VO[TO[i][1]].pos, VO[TO[i][2]].pos, VO[TO[i][3]].pos);
+    double pos_0_x = CGAL::to_double(VO[TO[i][0]].pos.x());
+    double pos_0_y = CGAL::to_double(VO[TO[i][0]].pos.y());
+    double pos_0_z = CGAL::to_double(VO[TO[i][0]].pos.z());
+
+    double pos_1_x = CGAL::to_double(VO[TO[i][1]].pos.x());
+    double pos_1_y = CGAL::to_double(VO[TO[i][1]].pos.y());
+    double pos_1_z = CGAL::to_double(VO[TO[i][1]].pos.z());
+
+    double pos_2_x = CGAL::to_double(VO[TO[i][2]].pos.x());
+    double pos_2_y = CGAL::to_double(VO[TO[i][2]].pos.y());
+    double pos_2_z = CGAL::to_double(VO[TO[i][2]].pos.z());
+
+    double pos_3_x = CGAL::to_double(VO[TO[i][3]].pos.x());
+    double pos_3_y = CGAL::to_double(VO[TO[i][3]].pos.y());
+    double pos_3_z = CGAL::to_double(VO[TO[i][3]].pos.z());
     return center;
 }
 
@@ -85,6 +100,7 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
     if (ori == CGAL::POSITIVE)
         return side == CGAL::Oriented_side::ON_POSITIVE_SIDE;
     else
+        // TODO make sure no flipped
         return side == CGAL::Oriented_side::ON_NEGATIVE_SIDE;
 }
 
@@ -205,8 +221,8 @@ void LabelTet(
     Eigen::VectorXi &labels) {
 
     const int Ntet = TO.size();
-    labels.setOnes(Ntet, 1);  // default zero, not in any layer of the shell
-    labels = labels * (-1);
+    labels.setOnes(Ntet, 1);  
+    labels = labels * (-1);  // default -1 (unlabeled). 0 means not in any layer of the shell.
 
     // Get four surfaces from VI
     GenDualShell(VI, FI, dualShell);
@@ -234,6 +250,7 @@ void LabelTet(
         visited[0] = true;
 
         // Start BFS
+        int cnt = 0;
         while (!Q.empty()) {
 
             // tetIdx-th tetrahedron
@@ -247,7 +264,7 @@ void LabelTet(
                 int vert1 = TO[oldTetIdx][(0+i) % 4];
                 int vert2 = TO[oldTetIdx][(1+i) % 4];
                 int vert3 = TO[oldTetIdx][(2+i) % 4];
-                int oppositeVert = (3+i) % 4;
+                int oppositeVert = (3+i) % 4;  // not the index, only need to know which one among the four
                 // Find the intersection of {vert1.conn_tets, vert2.conn_tets, vert3.conn_tets}
                 UnorderedsetIntersection(VO[vert1].conn_tets, VO[vert2].conn_tets, set_tmp);
                 UnorderedsetIntersection(set_tmp, VO[vert3].conn_tets, uset);
@@ -263,14 +280,16 @@ void LabelTet(
                     visited[newTetIdx] = true;
 
                     // DEBUG ONLY
-/*
-                    if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
-                        labels[newTetIdx] = 5;  // err code
-                        logger().error("Wrong tet label: newRegionType = {}, tetRegion = {}", newRegionType, TetRegion(VO, TO, VI, dualShell, newTetIdx));
-                        std::cerr << "oldRegionType = " << oldRegionType << " surfaceType = " << surfaceType << std::endl;
-                        return;
+                    if (args.brute_label_validation) {
+                        if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
+                            // labels[newTetIdx] = 5;  // err code
+                            cnt++;
+                            logger().error("Wrong tet label: newRegionType = {}, tetRegion = {}", newRegionType, TetRegion(VO, TO, VI, dualShell, newTetIdx));
+                            std::cerr << "oldRegionType = " << oldRegionType << " surfaceType = " << surfaceType << std::endl;
+                            // return;
+                        }
                     }
-*/
+
                     // push to Q for further search
                     Q.push(std::make_pair(newTetIdx, newRegionType));
                 }
@@ -280,6 +299,7 @@ void LabelTet(
         // assert
         if (std::count(visited.begin(), visited.end(), false))
             tetwild::log_and_throw("LabelTet: not all tets are visited.");
+        std::cerr << "doesn't match cnt " << cnt << std::endl;
     }
 
 /*

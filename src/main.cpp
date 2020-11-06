@@ -124,6 +124,7 @@ int main(int argc, char *argv[]) {
     app.add_flag("-q,--is-quiet", args.is_quiet, "Mute console output. (optional)");
     app.add_flag("-s,--skip-prism", args.skip_prism, "Skip prism removal and insertion");
     app.add_flag("--brute-label", args.brute_label, "Use brute method to label tet region");
+    app.add_flag("--brute-validate", args.brute_label_validation, "Use brute way to cross-validate the labels");
 
     try {
         app.parse(argc, argv);

@@ -211,9 +211,9 @@ void sampleTriangle(const std::array<GEO::vec3, 3>& vs, std::vector<GEO::vec3>& 
     if (N > 1) {
         if (N == int(N))
             N -= 1;
-        GEO::vec3 n_v1v2 = GEO::normalize(v2 - v1);
+        GEO::vec3 n_v1v2__ = GEO::normalize(v2 - v1);
         for (int n = 1; n <= N; n++) {
-            ps.push_back(v1 + n_v1v2 * sampling_dist * n);
+            ps.push_back(v1 + n_v1v2__ * sampling_dist * n);
         }
     }
 

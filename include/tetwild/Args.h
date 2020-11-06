@@ -80,6 +80,9 @@ struct Args {
     // Use brute way to label tet region
     bool brute_label = false;
 
+    // Use brute way to cross-validate the labels
+    bool brute_label_validation = false;
+
     // Target number of vertices (minimum), within 5% of tolerance
     int target_num_vertices = -1;
 
