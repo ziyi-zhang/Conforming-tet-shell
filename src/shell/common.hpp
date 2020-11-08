@@ -52,7 +52,7 @@ constexpr std::array<std::array<size_t, 4>, 3> TETRA_SPLIT_A{
     {{0, 3, 4, 5}, {1, 4, 2, 0}, {2, 5, 0, 4}}};
 // {{{0, 1, 2, 4}, {0, 4, 2, 5}, {0, 4, 5, 3}}};
 constexpr std::array<std::array<size_t, 4>, 3> TETRA_SPLIT_B{
-    {{0, 3, 4, 5}, {1, 4, 5, 0}, {2, 5, 0, 1}}};
+    {{0, 3, 4, 5}, {2, 5, 0, 1}, {1, 4, 5, 0}}};
 // {{{0, 1, 2, 5}, {0, 1, 5, 4}, {0, 4, 5, 3}}};
 
 constexpr std::array<std::array<size_t, 3>, 8> PRISM_BOUNDARY_A{
