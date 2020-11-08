@@ -17,6 +17,7 @@
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <string>
 
 
 namespace tetshell {
@@ -33,21 +34,28 @@ Point_3 GetBarycenter(const std::vector<tetwild::TetVertex> &VO, const std::vect
     Point_3 center;
 
     center = CGAL::centroid(VO[TO[i][0]].pos, VO[TO[i][1]].pos, VO[TO[i][2]].pos, VO[TO[i][3]].pos);
-    double pos_0_x = CGAL::to_double(VO[TO[i][0]].pos.x());
-    double pos_0_y = CGAL::to_double(VO[TO[i][0]].pos.y());
-    double pos_0_z = CGAL::to_double(VO[TO[i][0]].pos.z());
+    /*
+    // DEBUG PURPOSE
+        double pos_0_x = CGAL::to_double(VO[TO[i][0]].pos.x());
+        double pos_0_y = CGAL::to_double(VO[TO[i][0]].pos.y());
+        double pos_0_z = CGAL::to_double(VO[TO[i][0]].pos.z());
 
-    double pos_1_x = CGAL::to_double(VO[TO[i][1]].pos.x());
-    double pos_1_y = CGAL::to_double(VO[TO[i][1]].pos.y());
-    double pos_1_z = CGAL::to_double(VO[TO[i][1]].pos.z());
+        double pos_1_x = CGAL::to_double(VO[TO[i][1]].pos.x());
+        double pos_1_y = CGAL::to_double(VO[TO[i][1]].pos.y());
+        double pos_1_z = CGAL::to_double(VO[TO[i][1]].pos.z());
 
-    double pos_2_x = CGAL::to_double(VO[TO[i][2]].pos.x());
-    double pos_2_y = CGAL::to_double(VO[TO[i][2]].pos.y());
-    double pos_2_z = CGAL::to_double(VO[TO[i][2]].pos.z());
+        double pos_2_x = CGAL::to_double(VO[TO[i][2]].pos.x());
+        double pos_2_y = CGAL::to_double(VO[TO[i][2]].pos.y());
+        double pos_2_z = CGAL::to_double(VO[TO[i][2]].pos.z());
 
-    double pos_3_x = CGAL::to_double(VO[TO[i][3]].pos.x());
-    double pos_3_y = CGAL::to_double(VO[TO[i][3]].pos.y());
-    double pos_3_z = CGAL::to_double(VO[TO[i][3]].pos.z());
+        double pos_3_x = CGAL::to_double(VO[TO[i][3]].pos.x());
+        double pos_3_y = CGAL::to_double(VO[TO[i][3]].pos.y());
+        double pos_3_z = CGAL::to_double(VO[TO[i][3]].pos.z());
+
+        double center_x = CGAL::to_double(center.x());
+        double center_y = CGAL::to_double(center.y());
+        double center_z = CGAL::to_double(center.z());
+    */
     return center;
 }
 
@@ -98,10 +106,12 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
     CGAL::Oriented_side side = tet.oriented_side(point);
     CGAL::Orientation ori = CGAL::orientation(T0, T1, T2, T3);
     if (ori == CGAL::POSITIVE)
-        return side == CGAL::Oriented_side::ON_POSITIVE_SIDE;
-    else
-        // TODO make sure no flipped
+        return (side == CGAL::Oriented_side::ON_POSITIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
+    else {
+        tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected");
+        std::cerr << "point_in_tetrahedron: flipped tet detected" << std::endl;
         return side == CGAL::Oriented_side::ON_NEGATIVE_SIDE;
+    }
 }
 
 
@@ -130,8 +140,10 @@ bool PointInShell(const Point_3 &center, const shell_t &shell, const std::vector
         prism_vertices[3] = VI[shell[i][3]];
         prism_vertices[4] = VI[shell[i][4]];
         prism_vertices[5] = VI[shell[i][5]];
-        if (point_in_prism(center, true, prism_vertices))  // fine to always use TYPE-A
+        if (point_in_prism(center, shell[i][1] > shell[i][2], prism_vertices)) {
+            // if (debugFlag) std::cerr << "debugFlag " << i << std::endl;
             return true;
+        }
     }
     return false;
 }
@@ -250,7 +262,7 @@ void LabelTet(
         visited[0] = true;
 
         // Start BFS
-        int cnt = 0;
+        int cnt = 0;  // brute_label_validation only
         while (!Q.empty()) {
 
             // tetIdx-th tetrahedron
@@ -282,10 +294,11 @@ void LabelTet(
                     // DEBUG ONLY
                     if (args.brute_label_validation) {
                         if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
-                            // labels[newTetIdx] = 5;  // err code
+                            labels[newTetIdx] = 5;  // err code
                             cnt++;
                             logger().error("Wrong tet label: newRegionType = {}, tetRegion = {}", newRegionType, TetRegion(VO, TO, VI, dualShell, newTetIdx));
-                            std::cerr << "oldRegionType = " << oldRegionType << " surfaceType = " << surfaceType << std::endl;
+                            std::string errCode = "newTetIdx = " + std::to_string(newTetIdx) + "  oldRegionType = " + std::to_string(oldRegionType) + "  surfaceType = " + std::to_string(surfaceType);
+                            std::cout << errCode << std::endl;
                             // return;
                         }
                     }
@@ -299,7 +312,8 @@ void LabelTet(
         // assert
         if (std::count(visited.begin(), visited.end(), false))
             tetwild::log_and_throw("LabelTet: not all tets are visited.");
-        std::cerr << "doesn't match cnt " << cnt << std::endl;
+        if (args.brute_label_validation)  // DEBUG PURPOSE
+            std::cerr << "brute_label_validation mismatch cnt = " << cnt << std::endl;
     }
 
 /*
