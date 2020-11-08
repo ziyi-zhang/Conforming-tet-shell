@@ -109,7 +109,6 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
         return (side == CGAL::Oriented_side::ON_POSITIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
     else {
         tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected");
-        std::cerr << "point_in_tetrahedron: flipped tet detected" << std::endl;
         return side == CGAL::Oriented_side::ON_NEGATIVE_SIDE;
     }
 }

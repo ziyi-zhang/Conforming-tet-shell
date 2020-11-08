@@ -204,8 +204,8 @@ void GetTetFromPrism(
     ///   0----|--- 2
     ///     \__1__/
     // We split it into three tet 
-    //      if idx(1)>idx(2): {0, 3, 4, 5}, {1, 4, 2, 0} and {2, 5, 0, 4}
-    //      if idx(1)<idx(2): {0, 3, 4, 5}, {2, 5, 0, 1} and {1, 4, 5, 0}
+    //      if idx(1)>idx(2): {0, 3, 4, 5}, {0, 5, 4, 2} and {0, 1, 2, 4}
+    //      if idx(1)<idx(2): {0, 3, 4, 5}, {0, 5, 4, 1} and {0, 1, 2, 5}
     // It is guaranteed that triangle (345) is intact and only face (012) may be subdivided
 
     // Define the bottom triangle (012)
@@ -213,7 +213,7 @@ void GetTetFromPrism(
     Point_3 base_pt1 = VI[prism[1]];
     Point_3 base_pt2 = VI[prism[2]];  // the annoying triangle
     //
-    auto tets = (prism[1] > prism[2]) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
+    auto tetSplit = (prism[1] > prism[2]) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
     Point_3 &base_ptx = (prism[1] > prism[2]) ? base_pt2 : base_pt1;  // 'x' is either 1 or 2
     Segment_3 edge_0x(base_pt0, base_ptx);
     // Collect vertices in VO that are on edge (0x)
@@ -254,8 +254,7 @@ void GetTetFromPrism(
 
         T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[0]), map_VI2VO.at(prism[3]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5])}}));
         // update this new tet's attribute
-        if (IsTetPositive(VI[prism[0]], VI[prism[3]], VI[prism[4]], VI[prism[5]]))
-            is_surface_facet_temp.push_back(std::array<int, 4>({{1, 1024, 1024, 1024}}));  // even if it is not positive now, it will be corrected soon
+        is_surface_facet_temp.push_back(std::array<int, 4>({{1, 1024, 1024, 1024}}));  // even if it is not positive now, it will be corrected soon
         if (surfaceIdx == SURFACE_INNER)
             face_on_shell_temp.push_back(std::array<int, 4>({{SURFACE_BOTTOM, NOT_SUR, NOT_SUR, NOT_SUR}}));
         else if (surfaceIdx == SURFACE_OUTER)
@@ -264,7 +263,6 @@ void GetTetFromPrism(
             tetwild::log_and_throw("GetTetFromPrism: surfaceIdx invalid");
         // positive tet
         if (MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back())) {
-            std::cerr << "first tet flipped" << std::endl;
             /*
             // DEBUG PURPOSE
             std::array<double, 3> pt_1 = {CGAL::to_double(VI[prism[0]][0]), CGAL::to_double(VI[prism[0]][1]), CGAL::to_double(VI[prism[0]][2])};
@@ -283,34 +281,35 @@ void GetTetFromPrism(
     ////////////////
     //   SECOND   //
     ////////////////
-    // (prism[1] > prism[2])? True : False
-    int local_idx1 = tet[2][0];  //  2       1   (== x)
-    int local_idx2 = tet[2][1];  //  5       4
-    int local_idx3 = tet[2][2];  //  0       5
-    int local_idx4 = tet[2][3];  //  4       0
+    //     (prism[1] > prism[2])?        True : False
+    int local_idx1 = tetSplit[2][0];  //  0       0
+    int local_idx2 = tetSplit[2][1];  //  5       5
+    int local_idx3 = tetSplit[2][2];  //  4       4
+    int local_idx4 = tetSplit[2][3];  //  2       1  (== x)
     if (!IsDegeneratedTet(VI[prism[local_idx1]], VI[prism[local_idx2]], VI[prism[local_idx3]], VI[prism[local_idx4]])) {  // no singularity
 
         // check the first and last of "vertsOnTargetEdge" is pt0 and ptx
         if (base_pt0 != VO[vertsOnTargetEdge.begin()->second].pos || base_ptx != VO[vertsOnTargetEdge.rbegin()->second].pos) {
             tetwild::log_and_throw("GetTetFromPrism: vertsOnTargetEdge construction error.");
         }
-        // insert the second tet {2, 5, 0, 4}/{1, 4, 5, 0} (some split due to subdivision on edge (0x))
-        int ptIdx_1, ptIdx_2;
-        const int ptIdx_3 = map_VI2VO.at(prism[4]);  // the two vertices from the prism
-        const int ptIdx_4 = map_VI2VO.at(prism[5]);  // the two vertices from the prism
+        // insert the second tet {0, 5, 4, 2}/{0, 5, 4, 1} (some split due to subdivision on edge (0x))
+        int ptIdx1, ptIdx4;
+        const int ptIdx2 = map_VI2VO.at(prism[5]);  // the two vertices from the prism
+        const int ptIdx3 = map_VI2VO.at(prism[4]);  // the two vertices from the prism
         for (auto it=vertsOnTargetEdge.begin(); it!=vertsOnTargetEdge.end();) {
 
-            ptIdx_1 = it->second;
+            ptIdx1 = it->second;
             it++;
             if (it == vertsOnTargetEdge.end()) break;
-            ptIdx_2 = it->second;
+            ptIdx4 = it->second;
 
-            T_temp.push_back(std::array<int, 4>({{ptIdx_1, ptIdx_2, ptIdx_3, ptIdx_4}}));
+            T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
             // update this new tet's attribute
             is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1024}}));
             face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, NOT_SUR}}));
             // positive tet
-            MakeTetPositive(VO, T_temp.back());
+            if (MakeTetPositive(VO, T_temp.back())) {
+            }
         }
     } else {
         cnt_singularity_type2++;
@@ -319,15 +318,16 @@ void GetTetFromPrism(
     ///////////////
     //   THIRD   //
     ///////////////
-    // insert the third one (VO might have split face (012) to many triangles)
-    if (!IsDegeneratedTet(VI[prism[0]], VI[prism[1]], VI[prism[2]], VI[prism[5]])) {  // no singularity
+    // insert the third one {0, 1, 2, 4}/{0, 1, 2, 5} (VO might have split face (012) to many triangles)
+    const Point_3 &pt_tip = VI[prism[tetSplit[2][3]]];
+    if (!IsDegeneratedTet(VI[prism[0]], VI[prism[1]], VI[prism[2]], pt_tip)) {  // no singularity
 
         for (auto it=tetsOnTargetSurface.begin(); it!=tetsOnTargetSurface.end(); it++) {
 
             // consider the "TO_row"-th tet in TO
             int TO_row = *it;
             int ptIdx1, ptIdx2, ptIdx3;
-            const int ptIdx4 = map_VI2VO.at(prism[5]);  // the vertex from the prism
+            const int ptIdx4 = map_VI2VO.at(prism[tetSplit[2][3]]);  // the vertex from the prism
             // "tetsOnTargetSurface" has checked whether the tet has been removed by "t_is_removed"
             for (int i=0; i<4; i++) {
                 if (face_on_shell[TO_row][i] == surfaceIdx) {
@@ -340,17 +340,14 @@ void GetTetFromPrism(
                     Point_3 pt3 = VO[ptIdx3].pos;
 
                     if (IsTriInsideTri(pt1, pt2, pt3, base_pt0, base_pt1, base_pt2)) {
-                        // ahaha, we found a desired tet in VO. pt1, pt2, pt3 will be used as new base
+                        // aha, we found a desired tet in VO. pt1, pt2, pt3 will be used as new base
                         T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
                         // update attributes
-                        if (IsTetPositive(pt1, pt2, pt3, VI[prism[5]]))
-                            is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
-                        else
-                            is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, -1}}));
-                        face_on_shell_temp.push_back(std::array<int, 4>({{0, 0, 0, surfaceIdx}}));
+                        is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
+                        face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, surfaceIdx}}));
                         // positive tet
                         if (MakeTetPositive(VO, T_temp.back(), is_surface_facet_temp.back(), face_on_shell_temp.back())) {
-                            is_surface_facet_temp.back()[3] *= -1;
+
                         }
                     }
 
