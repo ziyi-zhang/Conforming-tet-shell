@@ -83,6 +83,9 @@ struct Args {
     // Use brute way to cross-validate the labels
     bool brute_label_validation = false;
 
+    // Sanity check for output tet mesh
+    bool tet_mesh_sanity_check = false;
+
     // Target number of vertices (minimum), within 5% of tolerance
     int target_num_vertices = -1;
 

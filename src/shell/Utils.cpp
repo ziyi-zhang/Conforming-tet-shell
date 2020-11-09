@@ -127,8 +127,8 @@ void ExtractMesh(
         cnt++;
     }
 
-    logger().debug("final output #v = {}", V_out.rows());
-    logger().debug("final output #t = {}", T_out.rows());
+    logger().debug("Final output #VO = {}", V_out.rows());
+    logger().debug("Final output #TO = {}", T_out.rows());
 }
 
 
@@ -146,7 +146,6 @@ void SaveToTetMsh(const std::string fileName, const Eigen::MatrixXd &V, const Ei
     mSaver.save_elem_scalar_field("label", L.cast<double>());
 
     logger().info("Result msh saved to {}", fileName);
-    std::cout << "Result msh saved to " << fileName << std::endl;
 }
 
 }  // namespace tetshell

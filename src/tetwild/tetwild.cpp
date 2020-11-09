@@ -22,6 +22,7 @@
 #include <shell/Label.h>
 #include <shell/Shell.h>
 #include <shell/Utils.h>
+#include <shell/TetMeshCheck.h>
 #include <igl/boundary_facets.h>
 #include <igl/remove_unreferenced.h>
 #include <pymesh/MshSaver.h>
@@ -442,7 +443,6 @@ void tetwild_stage_shell(
 
     // Replace some tets with prism tets
     if (!args.skip_prism) {
-
         tetshell::ReplaceWithPrismTet(dualShell,  // input
                                       VO, TO, labels, is_surface_facet, face_on_shell);  // output
     }
@@ -518,6 +518,14 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     /// STAGE 2: Mesh refinement
     // tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
     //    tet_vertices, tet_indices, is_surface_facet, VO, TO, AO);
+
+    // tet mesh sanity check
+    if (args.tet_mesh_sanity_check) {
+        tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
+        tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, tetMeshCheckArgs);
+        tetMeshCheck.SanityCheck();
+    }
+
     std::vector<bool> t_is_removed(tet_indices.size(), false);  // DEBUG PURPOSE
     tetshell::ExtractMesh(tet_vertices, tet_indices, labels, t_is_removed, VO, TO, LO);
 

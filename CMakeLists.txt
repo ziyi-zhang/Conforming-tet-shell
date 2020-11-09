@@ -133,6 +133,10 @@ add_library(libTetWild
 		src/shell/Shell.h
 		src/shell/Utils.cpp
 		src/shell/Utils.h
+		src/shell/ShellCheck.cpp
+		src/shell/ShellCheck.h
+		src/shell/TetMeshCheck.cpp
+		src/shell/TetMeshCheck.h
 )
 target_include_directories(libTetWild
 	PUBLIC

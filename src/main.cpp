@@ -125,6 +125,7 @@ int main(int argc, char *argv[]) {
     app.add_flag("-s,--skip-prism", args.skip_prism, "Skip prism removal and insertion");
     app.add_flag("--brute-label", args.brute_label, "Use brute method to label tet region");
     app.add_flag("--brute-validate", args.brute_label_validation, "Use brute way to cross-validate the labels");
+    app.add_flag("-m,--mesh-check", args.tet_mesh_sanity_check, "Sanity check for output tet mesh");
 
     try {
         app.parse(argc, argv);
