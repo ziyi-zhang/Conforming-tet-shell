@@ -361,7 +361,10 @@ void GetTetFromPrism(
         cnt_singularity_type3++;
     }
 
-
+    // report singularity
+    if (cnt_singularity_type1 > 0 || cnt_singularity_type2 > 0 || cnt_singularity_type3 > 0) {
+        logger().debug("Singularity handled: Type1 = {}, Type2 = {}, Type3 = {}", cnt_singularity_type1, cnt_singularity_type2, cnt_singularity_type3);
+    }
 }
 
 

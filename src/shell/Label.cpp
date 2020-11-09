@@ -101,15 +101,31 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
             orient3D(T0.data(), T1.data(), T2.data(), point.data()) >= 0 &&
             orient3D(T0.data(), T2.data(), T3.data(), point.data()) >= 0;
     */
+    /*
+    // DEBUG PURPOSE
+    double T0_x = CGAL::to_double(T0.x());
+    double T0_y = CGAL::to_double(T0.y());
+    double T0_z = CGAL::to_double(T0.z());
+    double T1_x = CGAL::to_double(T1.x());
+    double T1_y = CGAL::to_double(T1.y());
+    double T1_z = CGAL::to_double(T1.z());
+    double T2_x = CGAL::to_double(T2.x());
+    double T2_y = CGAL::to_double(T2.y());
+    double T2_z = CGAL::to_double(T2.z());
+    double T3_x = CGAL::to_double(T3.x());
+    double T3_y = CGAL::to_double(T3.y());
+    double T3_z = CGAL::to_double(T3.z());
+    */
 
     CGAL::Tetrahedron_3<tetwild::K> tet(T0, T1, T2, T3);
+    if (tet.is_degenerate()) return false;  // in case of singularity
     CGAL::Oriented_side side = tet.oriented_side(point);
     CGAL::Orientation ori = CGAL::orientation(T0, T1, T2, T3);
     if (ori == CGAL::POSITIVE)
         return (side == CGAL::Oriented_side::ON_POSITIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
     else {
-        tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected");
-        return side == CGAL::Oriented_side::ON_NEGATIVE_SIDE;
+        tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
+        return (side == CGAL::Oriented_side::ON_NEGATIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
     }
 }
 
