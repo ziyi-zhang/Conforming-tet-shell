@@ -4,6 +4,7 @@
 #include <shell/Utils.h>
 #include <tetwild/CGALTypes.h>
 #include <tetwild/Logger.h>
+#include <igl/boundary_facets.h>
 
 #include <Eigen/Dense>
 #include <unordered_set>
@@ -41,6 +42,10 @@ bool TetMeshCheck::SanityCheck() {
         result = result && res;
     }
 
+    if (args.boundary) {
+        bool res = BoundaryCheck();
+        result = result && res;
+    }
 
     logger().info("Tetrahedral mesh sanity check done.");
     logger().info("======================================");
@@ -152,6 +157,51 @@ bool TetMeshCheck::VertexAttriCheck() {
     }
 
     // what about on_edge and on_face?
+
+    return result;
+}
+
+
+bool TetMeshCheck::BoundaryCheck() {
+
+    logger().debug(">>> Boundary Check >>>");
+    bool result = true;
+
+    Eigen::MatrixXi T_temp, F_boundary;
+    Eigen::VectorXi T_temp2TO, F_index, tet_local_idx;
+
+    /// Check region-1 is bounded by surface 1 and 2
+    // retrieve region-1 tets in F_temp
+    int cnt = 0;
+    for (int i=0; i<labels.rows(); i++) {
+        if (labels(i) == SHELL_INNER_BOTTOM) cnt++;
+    }
+    T_temp.resize(cnt, 4);
+    T_temp2TO.resize(cnt, 1);  // index in T_temp -> index in TO
+    cnt = 0;
+    for (int i=0; i<labels.rows(); i++) {
+        if (labels(i) == SHELL_INNER_BOTTOM) {
+            T_temp(cnt, 0) = TO[i][0];
+            T_temp(cnt, 1) = TO[i][1];
+            T_temp(cnt, 2) = TO[i][2];
+            T_temp(cnt, 3) = TO[i][3];
+            T_temp2TO(cnt) = i;
+            cnt++;
+        }
+    }
+    // find boundary
+    igl::boundary_facets(T_temp, F_boundary, F_index, tet_local_idx);
+    // check 
+    for (int i=0; i<F_index.rows(); i++) {
+
+        int TO_boundary_idx = T_temp2TO[F_index[i]];
+        if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] != SURFACE_INNER && 
+            face_on_shell[TO_boundary_idx][tet_local_idx(i)] != SURFACE_BOTTOM) {
+
+                logger().warn("Boundary of SHELL_INNER_BOTTOM not valid. TO index = {}, face_on_shell = {}", TO_boundary_idx, face_on_shell[TO_boundary_idx][tet_local_idx(i)]);
+                result = false;
+            }
+    }
 
     return result;
 }
