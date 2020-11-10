@@ -178,8 +178,8 @@ void CleanTetMesh(
     is_surface_facet = is_surface_facet_out;
     face_on_shell = face_on_shell_out;
 
-    logger().debug("stage shell output #v = {}", V_out.size());
-    logger().debug("stage shell output #t = {}", T_out.size());
+    logger().debug("stage shell output #VO = {}", V_out.size());
+    logger().debug("stage shell output #TO = {}", T_out.size());
 }
 
 
@@ -429,6 +429,22 @@ void GenTetMeshFromShell(
         labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_TOP_OUTER;
 }
 
+
+void UpdateVertexAttributes(std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO) {
+
+    for (int i=0; i<VO.size(); i++) {
+        VO[i].conn_tets.clear();  // reset
+    }
+
+    for (int i=0; i<TO.size(); i++) {
+        for (int j=0; j<4; j++) {
+            VO[TO[i][j]].conn_tets.insert(i);
+        }
+    }
+
+    // what about on_edge & on_face?
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -523,7 +539,10 @@ void ReplaceWithPrismTet(
 
     // remove "t_is_removed" inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
-    logger().info("Replace with prism tet done");
+    // Update "TetVertex" attributes
+    UpdateVertexAttributes(VO, TO);
+
+    logger().info("Replace with prismatic tetrahedra done");
 }
 
 }  // namespace tetshell

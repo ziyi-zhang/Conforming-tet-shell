@@ -6,12 +6,14 @@
 #include <tetwild/Logger.h>
 
 #include <Eigen/Dense>
+#include <unordered_set>
 
 
 namespace tetshell {
 
 using namespace std;
 using tetwild::logger;
+using tetwild::TetVertex;
 
 namespace {
 }  // anonymous namespace
@@ -29,7 +31,17 @@ bool TetMeshCheck::SanityCheck() {
         result = result && res;
     }
 
-    
+    if (args.conform) {
+        bool res = ConformCheck();
+        result = result && res;
+    }
+
+    if (args.vertexAttri) {
+        bool res = VertexAttriCheck();
+        result = result && res;
+    }
+
+
     logger().info("Tetrahedral mesh sanity check done.");
     logger().info("======================================");
     return result;
@@ -38,7 +50,7 @@ bool TetMeshCheck::SanityCheck() {
 
 bool TetMeshCheck::PositiveTetCheck() {
 
-    logger().debug(">>> PositiveTetCheck >>>");
+    logger().debug(">>> Positive Tet Check >>>");
     bool result = true;
 
     for (auto it=TO.begin(); it!=TO.end(); it++) {
@@ -48,8 +60,111 @@ bool TetMeshCheck::PositiveTetCheck() {
         }
     }
 
-    logger().debug("<<< PositiveTetCheck <<<");
     return result;
+}
+
+
+bool TetMeshCheck::ConformCheck() {
+
+    logger().debug(">>> Conform Check >>>");
+    bool result = true;
+
+    // Whether input faces are in tet mesh 
+    // (not rigorous: the input face might be subdivided into many smaller triangles)
+    std::vector<int> on_input_face(FI.rows(), 0);
+    for (int i=0; i<TO.size(); i++) {
+        // for the i-th tet
+        for (int j=0; j<4; j++) {
+            // for the j-th face
+            std::unordered_set<int> sharedInputFace;
+            UnorderedsetIntersection(VO[TO[i][j]].on_face, VO[TO[i][(j+1)%4]].on_face, VO[TO[i][(j+2)%4]].on_face, sharedInputFace);
+
+            if (sharedInputFace.empty()) continue;
+            if (sharedInputFace.size() > 1) tetwild::log_and_throw("ConformCheck: shared_input_face size > 1");
+            int sharedInputFaceIdx = *(sharedInputFace.begin());
+            on_input_face[sharedInputFaceIdx]++;
+        }
+    }
+    for (int i=0; i<on_input_face.size(); i++) {
+        if (on_input_face[i] == 0) {
+            logger().warn("Input triangle face #{} not found in tetMesh", i);
+            result = false;
+        }
+        // DEBUG PURPOSE
+        // if (on_input_face[i] > 4)
+        //     std::cerr << on_input_face[i] << std::endl;
+    }
+
+    return result;
+}
+
+
+bool TetMeshCheck::VertexAttriCheck() {
+
+    logger().debug(">>> Vertex Attributes Check >>>");
+    bool result = true;
+
+    // make sure VO.posf has been computed
+    ConvertDouble();
+
+    // check tets are indeed in "conn_tets"
+    std::vector<int> count_conn_tets(VO.size(), 0);
+    for (int i=0; i<TO.size(); i++) {
+        // for the i-th tet
+        for (int j=0; j<4; j++) {
+            // for the j-th vertex
+            const TetVertex &vertex = VO[TO[i][j]];
+            if (vertex.conn_tets.count(i) == 0) {
+                logger().warn("conn_tets attribute of vertex {} does not contain tet {}", TO[i][j], i);
+                result = false;
+            } else {
+                count_conn_tets[TO[i][j]]++;
+            }
+        }
+    }
+    // check "conn_tets" do not have deprecated tets
+    for (int i=0; i<VO.size(); i++) {
+        if (VO[i].conn_tets.size() != count_conn_tets[i]) {
+            logger().warn("conn_tets attribute of vertex {} is wrong. conn_tet size = {}, count = {}", i, VO[i].conn_tets.size(), count_conn_tets[i]);
+            result = false;
+        }
+    }
+
+    // check "on_face": which input trianglular mesh faces are this vertex on
+    for (int i=0; i<VO.size(); i++) {
+        // for the i-th output vertex
+        for (auto it=VO[i].on_face.begin(); it!=VO[i].on_face.end(); it++) {
+            // for it-th input face
+            int faceIdx = *it;
+            // this output vertex must match one of the following three points
+            bool matched = false;
+            for (int j=0; j<3; j++) {
+                if (VI(FI(faceIdx, j), 0) == VO[i].posf[0] && VI(FI(faceIdx, j), 1) == VO[i].posf[1] && VI(FI(faceIdx, j), 2) == VO[i].posf[2]) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                logger().warn("on_face attribute of vertex {} contains wrong face index {}", i, faceIdx);
+                result = false;
+            }
+        }
+    }
+
+    // what about on_edge and on_face?
+
+    return result;
+}
+
+
+void TetMeshCheck::ConvertDouble() {
+
+    if (VO.size() == 0 || VO[0].is_rounded) return;
+
+    for (auto it=VO.begin(); it!=VO.end(); it++) {
+        it->is_rounded = true;
+        it->round();
+    }
 }
 
 }  // namespace tetshell

@@ -522,6 +522,7 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     // tet mesh sanity check
     if (args.tet_mesh_sanity_check) {
         tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
+        tetMeshCheckArgs.vertexAttri = false;
         tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, tetMeshCheckArgs);
         tetMeshCheck.SanityCheck();
     }

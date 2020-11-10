@@ -75,6 +75,14 @@ void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unor
 }
 
 
+void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unordered_set<int>& s2, const std::unordered_set<int>& s3, std::unordered_set<int>& s) {
+
+    std::unordered_set<int> s_temp;
+    UnorderedsetIntersection(s1, s2, s_temp);
+    UnorderedsetIntersection(s_temp, s3, s);
+}
+
+
 void ExtractMesh(
     const std::vector<tetwild::TetVertex> &VI, 
     const std::vector<std::array<int, 4>> &TI, 
