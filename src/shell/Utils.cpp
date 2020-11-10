@@ -2,6 +2,8 @@
 #include <shell/Utils.h>
 #include <tetwild/CGALTypes.h>
 #include <tetwild/Logger.h>
+#include <igl/boundary_facets.h>
+#include <igl/edges.h>
 
 #include <pymesh/MshSaver.h>
 #include <Eigen/Dense>
@@ -80,6 +82,69 @@ void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unor
     std::unordered_set<int> s_temp;
     UnorderedsetIntersection(s1, s2, s_temp);
     UnorderedsetIntersection(s_temp, s3, s);
+}
+
+
+int EulerNumber(const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, int &V, int &F, int &E) {
+
+    std::unordered_set<int> Vindex;  // not sure whether all vertices in VO are used
+    std::unordered_set<std::pair<int, int> > Eindex;
+    
+    int t[4];
+    for (int i=0; i<TO.size(); i++) {
+
+
+        t[0] = TO[i][0];
+        t[1] = TO[i][1];
+        t[2] = TO[i][2];
+        t[3] = TO[i][3];
+        // sort 
+        for (int ii=0; ii<3; ii++)
+            for (int jj=ii; jj<4; jj++) {
+                if (t[ii]>t[jj]) {
+                    int temp = t[ii];
+                    t[ii] = t[jj];
+                    t[jj] = temp;
+                }
+            }
+        // count vertices
+        Vindex.insert(t[0]);
+        Vindex.insert(t[1]);
+        Vindex.insert(t[2]);
+        Vindex.insert(t[3]);
+        // count edges
+        Eindex.insert(std::make_pair(t[0], t[1]));
+        Eindex.insert(std::make_pair(t[0], t[2]));
+        Eindex.insert(std::make_pair(t[0], t[3]));
+        Eindex.insert(std::make_pair(t[1], t[2]));
+        Eindex.insert(std::make_pair(t[1], t[3]));
+        Eindex.insert(std::make_pair(t[2], t[3]));
+    }
+    V = Vindex.size();
+    E = Eindex.size();
+
+    // count faces
+    Eigen::MatrixXi TO_eigen(TO.size(), 4);
+    Eigen::MatrixXi F_boundary;
+    for (int i=0; i<TO.size(); i++) {
+        TO_eigen(i, 0) = TO[i][0];
+        TO_eigen(i, 1) = TO[i][1];
+        TO_eigen(i, 2) = TO[i][2];
+        TO_eigen(i, 3) = TO[i][3];
+    }
+    igl::boundary_facets(TO_eigen, F_boundary);
+    F = F_boundary.rows();
+
+    logger().info("Euler V={} F={} E={} V+F-E={}", V, F, E, V+F-E);
+
+    return V+F-E;
+}
+
+
+int EulerNumber(const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices) {
+
+    int V, F, E;
+    return EulerNumber(tet_vertices, tet_indices, V, F, E);
 }
 
 

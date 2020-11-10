@@ -40,7 +40,7 @@ public:
 
     // Maintenance methods
     TetMeshCheck(const Eigen::MatrixXd &VI_, const Eigen::MatrixXi &FI_, std::vector<tetwild::TetVertex> &VO_, 
-                 const std::vector<std::array<int, 4>> &TO_, const TetMeshCheckArgs_t &args_) : VI(VI_), FI(FI_), VO(VO_), args(args_), TO(TO_) {}
+                 const std::vector<std::array<int, 4>> &TO_, const TetMeshCheckArgs_t &args_) : args(args_), VI(VI_), FI(FI_), VO(VO_), TO(TO_) {}
 
     ~TetMeshCheck() {}
 };

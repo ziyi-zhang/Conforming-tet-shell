@@ -25,6 +25,10 @@ void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unor
 void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unordered_set<int>& s2, const std::unordered_set<int>& s3, std::unordered_set<int>& s);
 /// TODO
 
+int EulerNumber(const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices, int &V, int &F, int &E);
+int EulerNumber(const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices);
+/// TODO
+
 void ExtractMesh(const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices, const Eigen::VectorXi &labels, const std::vector<bool> &t_is_removed, Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXi &L_out);
 /// TODO
 

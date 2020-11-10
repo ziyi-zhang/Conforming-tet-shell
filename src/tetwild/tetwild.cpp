@@ -504,10 +504,12 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     tetwild_stage_one(VI, FI, args, state, geo_sf_mesh, geo_b_mesh,
         tet_vertices, tet_indices, is_surface_facet, face_on_shell);
 
+    tetshell::EulerNumber(tet_vertices, tet_indices);
     /// STAGE 1.5: Shell
     Eigen::VectorXi labels;
     tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels);
 
+    tetshell::EulerNumber(tet_vertices, tet_indices);
     // DEBUG PURPOSE
     /*
     for (int i=0; i<face_on_shell.size(); i++) {
