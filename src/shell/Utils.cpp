@@ -9,6 +9,8 @@
 #include <Eigen/Dense>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
+#include <tuple>
 
 
 namespace tetshell {
@@ -85,14 +87,20 @@ void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unor
 }
 
 
-int EulerNumber(const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, int &V, int &F, int &E) {
+int EulerNumber(const std::vector<std::array<int, 4>> &TO, int &V, int &F, int &E) {
+
+    Eigen::MatrixXi TO_eigen(TO.size(), 4);
+    for (int i=0; i<TO.size(); i++) {
+        TO_eigen(i, 0) = TO[i][0];
+        TO_eigen(i, 1) = TO[i][1];
+        TO_eigen(i, 2) = TO[i][2];
+        TO_eigen(i, 3) = TO[i][3];
+    }
 
     std::unordered_set<int> Vindex;  // not sure whether all vertices in VO are used
-    std::unordered_set<std::pair<int, int> > Eindex;
-    
+    std::set<std::tuple<int, int, int> > faceIndex;
     int t[4];
     for (int i=0; i<TO.size(); i++) {
-
 
         t[0] = TO[i][0];
         t[1] = TO[i][1];
@@ -112,39 +120,30 @@ int EulerNumber(const std::vector<tetwild::TetVertex> &VO, const std::vector<std
         Vindex.insert(t[1]);
         Vindex.insert(t[2]);
         Vindex.insert(t[3]);
-        // count edges
-        Eindex.insert(std::make_pair(t[0], t[1]));
-        Eindex.insert(std::make_pair(t[0], t[2]));
-        Eindex.insert(std::make_pair(t[0], t[3]));
-        Eindex.insert(std::make_pair(t[1], t[2]));
-        Eindex.insert(std::make_pair(t[1], t[3]));
-        Eindex.insert(std::make_pair(t[2], t[3]));
+        // count faces
+        faceIndex.insert(std::make_tuple(t[0], t[1], t[2]));
+        faceIndex.insert(std::make_tuple(t[0], t[1], t[3]));
+        faceIndex.insert(std::make_tuple(t[0], t[2], t[3]));
+        faceIndex.insert(std::make_tuple(t[1], t[2], t[3]));
     }
     V = Vindex.size();
-    E = Eindex.size();
+    F = faceIndex.size();
 
-    // count faces
-    Eigen::MatrixXi TO_eigen(TO.size(), 4);
-    Eigen::MatrixXi F_boundary;
-    for (int i=0; i<TO.size(); i++) {
-        TO_eigen(i, 0) = TO[i][0];
-        TO_eigen(i, 1) = TO[i][1];
-        TO_eigen(i, 2) = TO[i][2];
-        TO_eigen(i, 3) = TO[i][3];
-    }
-    igl::boundary_facets(TO_eigen, F_boundary);
-    F = F_boundary.rows();
+    // count edges
+    Eigen::MatrixXi edges;
+    igl::edges(TO_eigen, edges);
+    E = edges.rows();
 
-    logger().info("Euler V={} F={} E={} V+F-E={}", V, F, E, V+F-E);
+    logger().info("Euler V={} F={} E={} C={} V+F-E-C={}", V, F, E, TO.size(), V+F-E-TO.size());
 
-    return V+F-E;
+    return V+F-E-TO.size();
 }
 
 
-int EulerNumber(const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices) {
+int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices) {
 
     int V, F, E;
-    return EulerNumber(tet_vertices, tet_indices, V, F, E);
+    return EulerNumber(tet_indices, V, F, E);
 }
 
 

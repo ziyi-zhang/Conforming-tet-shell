@@ -509,6 +509,8 @@ void ReplaceWithPrismTet(
     }
     logger().debug("#tets after removing labeled shell tets = {}", numOldTet);
 
+    tetshell::EulerNumber(TO);
+
     // Generate new tets
     std::vector<std::array<int, 4>> T_temp;
     std::vector<std::array<int, 4>> is_surface_facet_temp;
@@ -525,6 +527,7 @@ void ReplaceWithPrismTet(
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
     logger().debug("GenTetMeshFromShell: SHELL_INNER_BOTTOM done");
+    tetshell::EulerNumber(TO);
 
     /// FOR shell_top_outer
     GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
@@ -536,6 +539,7 @@ void ReplaceWithPrismTet(
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
     logger().debug("GenTetMeshFromShell: SHELL_TOP_OUTER done");
+    tetshell::EulerNumber(TO);
 
     // remove "t_is_removed" inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
