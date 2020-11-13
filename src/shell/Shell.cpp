@@ -195,7 +195,8 @@ void GetTetFromPrism(
     // std::vector<tetwild::TetVertex> &V_temp,  // why? all vertices already exist
     std::vector<std::array<int, 4>> &T_temp, 
     std::vector<std::array<int, 4>> &is_surface_facet_temp,
-    std::vector<std::array<int, 4>> &face_on_shell_temp) {
+    std::vector<std::array<int, 4>> &face_on_shell_temp,
+    std::vector<int> &labels_temp) {
 
     // This is the prism (not necessarily a pentahedron)
     ///   3 ------- 5
@@ -212,7 +213,11 @@ void GetTetFromPrism(
     Point_3 base_pt0 = VI[prism[0]];
     Point_3 base_pt1 = VI[prism[1]];
     Point_3 base_pt2 = VI[prism[2]];  // the annoying triangle
-    //
+    // check
+    if (!(prism[0] < prism[1] && prism[0] < prism[2])) {
+        tetwild::log_and_throw("GetTetFromPrism: Invalid prism.");
+    }
+    // consistent split method
     auto tetSplit = (prism[1] > prism[2]) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
     Point_3 &base_ptx = (prism[1] > prism[2]) ? base_pt2 : base_pt1;  // 'x' is either 1 or 2
     Segment_3 edge_0x(base_pt0, base_ptx);
@@ -254,7 +259,8 @@ void GetTetFromPrism(
 
         T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[0]), map_VI2VO.at(prism[3]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5])}}));
         // update this new tet's attribute
-        is_surface_facet_temp.push_back(std::array<int, 4>({{1, 1024, 1024, 1024}}));  // even if it is not positive now, it will be corrected soon
+        labels_temp.push_back(7);
+        is_surface_facet_temp.push_back(std::array<int, 4>({{1, 1024, 1024, 1024}}));  // force it to be 1
         if (surfaceIdx == SURFACE_INNER)
             face_on_shell_temp.push_back(std::array<int, 4>({{SURFACE_BOTTOM, NOT_SUR, NOT_SUR, NOT_SUR}}));
         else if (surfaceIdx == SURFACE_OUTER)
@@ -282,10 +288,10 @@ void GetTetFromPrism(
     //   SECOND   //
     ////////////////
     //     (prism[1] > prism[2])?        True : False
-    int local_idx1 = tetSplit[2][0];  //  0       0
-    int local_idx2 = tetSplit[2][1];  //  5       5
-    int local_idx3 = tetSplit[2][2];  //  4       4
-    int local_idx4 = tetSplit[2][3];  //  2       1  (== x)
+    int local_idx1 = tetSplit[1][0];  //  0       0
+    int local_idx2 = tetSplit[1][1];  //  5       5
+    int local_idx3 = tetSplit[1][2];  //  4       4
+    int local_idx4 = tetSplit[1][3];  //  2       1  (== x)
     if (!IsDegeneratedTet(VI[prism[local_idx1]], VI[prism[local_idx2]], VI[prism[local_idx3]], VI[prism[local_idx4]])) {  // no singularity
 
         // check the first and last of "vertsOnTargetEdge" is pt0 and ptx
@@ -305,6 +311,7 @@ void GetTetFromPrism(
 
             T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
             // update this new tet's attribute
+            labels_temp.push_back(8);
             is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1024}}));
             face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, NOT_SUR}}));
             // positive tet
@@ -343,6 +350,7 @@ void GetTetFromPrism(
                         // aha, we found a desired tet in VO. pt1, pt2, pt3 will be used as new base
                         T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
                         // update attributes
+                        labels_temp.push_back(9);
                         is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
                         face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, surfaceIdx}}));
                         // positive tet
@@ -386,6 +394,7 @@ void GenTetMeshFromShell(
     T_temp.clear();
     is_surface_facet_temp.clear();
     face_on_shell_temp.clear();
+    std::vector<int> labels_temp_vec;  // vector version of labels_temp
 
     // Find the index of dualShell vertex in VO now
     std::map<int, int> map_VI2VO;
@@ -413,7 +422,7 @@ void GenTetMeshFromShell(
 
         // get tet from prism & update is_surface_facet_temp + face_on_shell_temp
         GetTetFromPrism(VO, TO, face_on_shell, surfaceIdx, prism, dualShell.V, map_VI2VO, t_is_removed,  // const input
-                        T_temp, is_surface_facet_temp, face_on_shell_temp);  // output
+                        T_temp, is_surface_facet_temp, face_on_shell_temp, labels_temp_vec);  // output
     }
 
     // we also want to enlarge "t_is_removed" accordingly
@@ -423,10 +432,15 @@ void GenTetMeshFromShell(
 
     // Update labels
     // All the tets generated here must be in the same region
+    /*
     if (surfaceIdx == SURFACE_INNER)
         labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_INNER_BOTTOM;
     else if (surfaceIdx == SURFACE_OUTER)
         labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_TOP_OUTER;
+    */
+    labels_temp.resize(labels_temp_vec.size(), 1);
+    for (int i=0; i<labels_temp_vec.size(); i++)
+        labels_temp(i) = labels_temp_vec[i];
 }
 
 
@@ -472,6 +486,17 @@ void GenDualShell(const std::vector<Point_3> &VI, const Eigen::MatrixXi &FI, Dua
     }
 
     // split input
+    for (int i=0; i<F1.rows(); i++) {
+        // Make sure F[i, 0] is the smallest among the three indices
+        int smallIdx = 0;
+        if (F1(i, 1) < F1(i, smallIdx)) smallIdx = 1;
+        if (F1(i, 2) < F1(i, smallIdx)) smallIdx = 2;
+        if (smallIdx != 0) {
+            int t = F1(i, 0);
+            F1(i, 0) = F1(i, smallIdx);
+            F1(i, smallIdx) = t;
+        }
+    }
     dualShell.F = F1;
     dualShell.V = VI;
     /*
