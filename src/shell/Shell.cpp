@@ -251,6 +251,11 @@ void GetTetFromPrism(
     int cnt_singularity_type2 = 0;
     int cnt_singularity_type3 = 0;
 
+    // debug
+    if (prism[0] == 669 && prism[1] == 755 && prism[5] == 559) {
+        logger().warn("bad");
+    }
+
     ///////////////
     //   FIRST   //
     ///////////////
@@ -327,13 +332,14 @@ void GetTetFromPrism(
     ///////////////
     // insert the third one {0, 1, 2, 4}/{0, 1, 2, 5} (VO might have split face (012) to many triangles)
     const Point_3 &pt_tip = VI[prism[tetSplit[2][3]]];
+    int cnt_inserted = 0;
+    int ptIdx1, ptIdx2, ptIdx3;
     if (!IsDegeneratedTet(VI[prism[0]], VI[prism[1]], VI[prism[2]], pt_tip)) {  // no singularity
 
         for (auto it=tetsOnTargetSurface.begin(); it!=tetsOnTargetSurface.end(); it++) {
 
             // consider the "TO_row"-th tet in TO
             int TO_row = *it;
-            int ptIdx1, ptIdx2, ptIdx3;
             const int ptIdx4 = map_VI2VO.at(prism[tetSplit[2][3]]);  // the vertex from the prism
             // "tetsOnTargetSurface" has checked whether the tet has been removed by "t_is_removed"
             for (int i=0; i<4; i++) {
@@ -350,6 +356,7 @@ void GetTetFromPrism(
                         // aha, we found a desired tet in VO. pt1, pt2, pt3 will be used as new base
                         T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
                         // update attributes
+                        cnt_inserted++;
                         labels_temp.push_back(9);
                         is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
                         face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, surfaceIdx}}));
@@ -364,6 +371,23 @@ void GetTetFromPrism(
                     break;
                 }
             }
+        }
+        if (cnt_inserted == 0) {
+            logger().error("prism0 = {} prism1 = {} prism2 = {}", prism[0], prism[1], prism[2]);
+            logger().error("VO_1 = {}, VO_2 = {}, VO_3 = {}", map_VI2VO.at(prism[0]), map_VI2VO.at(prism[1]), map_VI2VO.at(prism[2]));
+            double x1 = CGAL::to_double(VO[ map_VI2VO.at(prism[0]) ].pos[0]);
+            double y1 = CGAL::to_double(VO[ map_VI2VO.at(prism[0]) ].pos[1]);
+            double z1 = CGAL::to_double(VO[ map_VI2VO.at(prism[0]) ].pos[2]);
+
+            double x2 = CGAL::to_double(VO[ map_VI2VO.at(prism[1]) ].pos[0]);
+            double y2 = CGAL::to_double(VO[ map_VI2VO.at(prism[1]) ].pos[1]);
+            double z2 = CGAL::to_double(VO[ map_VI2VO.at(prism[1]) ].pos[2]);
+
+            double x3 = CGAL::to_double(VO[ map_VI2VO.at(prism[2]) ].pos[0]);
+            double y3 = CGAL::to_double(VO[ map_VI2VO.at(prism[2]) ].pos[1]);
+            double z3 = CGAL::to_double(VO[ map_VI2VO.at(prism[2]) ].pos[2]);
+            logger().warn("x1={} y1={} z1={} x2={} y2={} z2={} x3={} y3={} z3={}", x1, y1, z1, x2, y2, z2, x3, y3, z3);
+            tetwild::log_and_throw("Type 3 not detected");
         }
     } else {
         cnt_singularity_type3++;
@@ -534,25 +558,25 @@ void ReplaceWithPrismTet(
     }
     logger().debug("#tets after removing labeled shell tets = {}", numOldTet);
 
-    tetshell::EulerNumber(TO);
-
     // Generate new tets
     std::vector<std::array<int, 4>> T_temp;
     std::vector<std::array<int, 4>> is_surface_facet_temp;
     std::vector<std::array<int, 4>> face_on_shell_temp;
     Eigen::VectorXi labels_temp;
+    Eigen::VectorXi temp;
 
     //// FOR shell_inner_bottom
+    /*
     GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_INNER_BOTTOM, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
     is_surface_facet.insert( is_surface_facet.end(), is_surface_facet_temp.begin(), is_surface_facet_temp.end() );
     face_on_shell.insert( face_on_shell.end(), face_on_shell_temp.begin(), face_on_shell_temp.end() );
-      Eigen::VectorXi temp = labels;
+      temp = labels;
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
     logger().debug("GenTetMeshFromShell: SHELL_INNER_BOTTOM done");
-    tetshell::EulerNumber(TO);
+    */
 
     /// FOR shell_top_outer
     GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
@@ -564,10 +588,10 @@ void ReplaceWithPrismTet(
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
     logger().debug("GenTetMeshFromShell: SHELL_TOP_OUTER done");
-    tetshell::EulerNumber(TO);
 
     // remove "t_is_removed" inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
+    tetshell::EulerNumber(TO);
     // Update "TetVertex" attributes
     UpdateVertexAttributes(VO, TO);
 
