@@ -134,9 +134,10 @@ int EulerNumber(const std::vector<std::array<int, 4>> &TO, int &V, int &F, int &
     igl::edges(TO_eigen, edges);
     E = edges.rows();
 
-    logger().info("Euler V={} F={} E={} C={} V+F-E-C={}", V, F, E, TO.size(), V+F-E-TO.size());
+    int C = TO.size();
+    logger().info("Euler V={} F={} E={} C={} V+F-E-C={}", V, F, E, C, V+F-E-C);
 
-    return V+F-E-TO.size();
+    return V+F-E-C;
 }
 
 

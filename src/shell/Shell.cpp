@@ -583,7 +583,6 @@ void ReplaceWithPrismTet(
     Eigen::VectorXi temp;
 
     //// FOR shell_inner_bottom
-    /*
     GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_INNER_BOTTOM, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
@@ -593,7 +592,6 @@ void ReplaceWithPrismTet(
       labels.resize(temp.rows() + labels_temp.rows());
       labels << temp, labels_temp;
     logger().debug("GenTetMeshFromShell: SHELL_INNER_BOTTOM done");
-    */
 
     /// FOR shell_top_outer
     GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);

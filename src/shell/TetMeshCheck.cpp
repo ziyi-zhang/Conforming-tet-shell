@@ -76,12 +76,13 @@ bool TetMeshCheck::ConformCheck() {
 
     // Whether input faces are in tet mesh 
     // (not rigorous: the input face might be subdivided into many smaller triangles)
-    std::vector<int> on_input_face(FI.rows(), 0);
+    int N = FI.rows();
+    std::vector<int> on_input_face(N, 0);
+    std::unordered_set<int> sharedInputFace;
     for (int i=0; i<TO.size(); i++) {
         // for the i-th tet
         for (int j=0; j<4; j++) {
             // for the j-th face
-            std::unordered_set<int> sharedInputFace;
             UnorderedsetIntersection(VO[TO[i][j]].on_face, VO[TO[i][(j+1)%4]].on_face, VO[TO[i][(j+2)%4]].on_face, sharedInputFace);
 
             if (sharedInputFace.empty()) continue;
@@ -90,7 +91,7 @@ bool TetMeshCheck::ConformCheck() {
             on_input_face[sharedInputFaceIdx]++;
         }
     }
-    for (int i=0; i<on_input_face.size(); i++) {
+    for (int i=0; i<N; i++) {
         if (on_input_face[i] == 0) {
             logger().warn("Input triangle face #{} not found in tetMesh", i);
             result = false;
