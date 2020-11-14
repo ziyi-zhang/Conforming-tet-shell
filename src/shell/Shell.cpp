@@ -196,7 +196,8 @@ void GetTetFromPrism(
     std::vector<std::array<int, 4>> &T_temp, 
     std::vector<std::array<int, 4>> &is_surface_facet_temp,
     std::vector<std::array<int, 4>> &face_on_shell_temp,
-    std::vector<int> &labels_temp) {
+    std::vector<int> &labels_temp, 
+    std::array<int, 3> &singularCnt) {
 
     // This is the prism (not necessarily a pentahedron)
     ///   3 ------- 5
@@ -215,9 +216,10 @@ void GetTetFromPrism(
     Point_3 base_pt2 = VI[prism[2]];  // the annoying triangle
     // check
     if (!(prism[0] < prism[1] && prism[0] < prism[2])) {
-        tetwild::log_and_throw("GetTetFromPrism: Invalid prism.");
+        tetwild::log_and_throw("GetTetFromPrism: Invalid prism. prism[0] not the smallest index.");
     }
     // consistent split method
+    // NOTE: comparison is based on VI-index, not VO-index
     auto tetSplit = (prism[1] > prism[2]) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
     Point_3 &base_ptx = (prism[1] > prism[2]) ? base_pt2 : base_pt1;  // 'x' is either 1 or 2
     Segment_3 edge_0x(base_pt0, base_ptx);
@@ -245,11 +247,6 @@ void GetTetFromPrism(
                 }
             }   
     }
-
-    // Stats of degenerated tet
-    int cnt_singularity_type1 = 0;
-    int cnt_singularity_type2 = 0;
-    int cnt_singularity_type3 = 0;
 
     ///////////////
     //   FIRST   //
@@ -281,7 +278,7 @@ void GetTetFromPrism(
             */
         }
     } else {
-        cnt_singularity_type1++;
+        singularCnt[0]++;
     }
 
     ////////////////
@@ -319,7 +316,7 @@ void GetTetFromPrism(
             }
         }
     } else {
-        cnt_singularity_type2++;
+        singularCnt[1]++;
     }
 
     ///////////////
@@ -407,12 +404,7 @@ void GetTetFromPrism(
             tetwild::log_and_throw("GetTetFromPrism: Type 3 tetrahedron not founded.");
         }
     } else {
-        cnt_singularity_type3++;
-    }
-
-    // report singularity
-    if (cnt_singularity_type1 > 0 || cnt_singularity_type2 > 0 || cnt_singularity_type3 > 0) {
-        logger().debug("Singularity handled: Type1 = {}, Type2 = {}, Type3 = {}", cnt_singularity_type1, cnt_singularity_type2, cnt_singularity_type3);
+        singularCnt[2]++;
     }
 }
 
@@ -432,6 +424,7 @@ void GenTetMeshFromShell(
 
     const int N = dualShell.shell_inner_bottom.size();
     int surfaceIdx;
+    std::array<int, 3> singularCnt = {0, 0, 0};
     T_temp.clear();
     is_surface_facet_temp.clear();
     face_on_shell_temp.clear();
@@ -463,8 +456,11 @@ void GenTetMeshFromShell(
 
         // get tet from prism & update is_surface_facet_temp + face_on_shell_temp
         GetTetFromPrism(VO, TO, face_on_shell, surfaceIdx, prism, dualShell.V, map_VI2VO, t_is_removed,  // const input
-                        T_temp, is_surface_facet_temp, face_on_shell_temp, labels_temp_vec);  // output
+                        T_temp, is_surface_facet_temp, face_on_shell_temp, labels_temp_vec, singularCnt);  // output
     }
+
+    // report singularity
+    logger().info("Singularity count for shell #{}: type1 = {}, type2 = {}, type3 = {}", shellName, singularCnt[0], singularCnt[1], singularCnt[2]);
 
     // we also want to enlarge "t_is_removed" accordingly
     // and of course no tet should be discarded
@@ -611,5 +607,39 @@ void ReplaceWithPrismTet(
 
     logger().info("Replace with prismatic tetrahedra done");
 }
+
+
+void GetMeshWithPseudoTets(const DualShell_t &dualShell, const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, std::vector<std::array<int, 4>> &TO_with_pseudo_tets) {
+
+    const shell_t &hallow_shell = dualShell.shell_bottom_top;
+    std::map<int, int> map_VI2VO;
+
+    TO_with_pseudo_tets = TO;
+
+    // get the map from VI-index to VO-index
+    MapIndex(VO, dualShell, dualShell.shell_bottom_top, map_VI2VO);
+
+    for (int i=0; i<hallow_shell.size(); i++) {
+
+        const prism_t &prism = hallow_shell[i];
+        auto tetSplit = (prism[1] > prism[2]) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
+        if (!(prism[0] < prism[1] && prism[0] < prism[2])) {
+            tetwild::log_and_throw("GetMeshWithPseudoTets: Invalid prism. prism[0] not the smallest index.");
+        }
+
+        // insert the three tets
+        for (int j=0; j<3; j++) {
+
+            std::array<int, 4> newTet;
+            newTet[0] = map_VI2VO.at(prism[tetSplit[j][0]]);
+            newTet[1] = map_VI2VO.at(prism[tetSplit[j][1]]);
+            newTet[2] = map_VI2VO.at(prism[tetSplit[j][2]]);
+            newTet[3] = map_VI2VO.at(prism[tetSplit[j][3]]);
+
+            TO_with_pseudo_tets.push_back(newTet);
+        }
+    }
+}
+
 
 }  // namespace tetshell

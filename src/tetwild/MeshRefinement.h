@@ -41,7 +41,7 @@ public:
     int old_pass = 0;
 
     MeshRefinement(GEO::Mesh & sf_mesh, GEO::Mesh & b_mesh, const Args &ar, State &st)
-        : geo_sf_mesh(sf_mesh), geo_b_mesh(b_mesh), args(ar), state(st)
+        : args(ar), state(st), geo_sf_mesh(sf_mesh), geo_b_mesh(b_mesh)
     { }
 
     void prepareData(bool is_init=true);

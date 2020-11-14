@@ -87,7 +87,7 @@ void UnorderedsetIntersection(const std::unordered_set<int>& s1, const std::unor
 }
 
 
-int EulerNumber(const std::vector<std::array<int, 4>> &TO, int &V, int &F, int &E) {
+int EulerNumber(const std::vector<std::array<int, 4>> &TO, int &V, int &F, int &E, const std::string &str) {
 
     Eigen::MatrixXi TO_eigen(TO.size(), 4);
     for (int i=0; i<TO.size(); i++) {
@@ -135,16 +135,16 @@ int EulerNumber(const std::vector<std::array<int, 4>> &TO, int &V, int &F, int &
     E = edges.rows();
 
     int C = TO.size();
-    logger().info("Euler V={} F={} E={} C={} V+F-E-C={}", V, F, E, C, V+F-E-C);
+    logger().info("{} Euler V={} F={} E={} C={} V+F-E-C={}", str, V, F, E, C, V+F-E-C);
 
     return V+F-E-C;
 }
 
 
-int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices) {
+int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices, const std::string &str) {
 
     int V, F, E;
-    return EulerNumber(tet_indices, V, F, E);
+    return EulerNumber(tet_indices, V, F, E, str);
 }
 
 

@@ -430,6 +430,9 @@ void tetwild_stage_shell(
     logger().debug("VO size = {} TetVertex", VO.size());
     logger().debug("TO size = {} x 4", TO.size());
 
+    // report Euler number (this is immediately after tetwild stage 1)
+    tetshell::EulerNumber(TO, "Pre-shell");
+
     // convert VI to CGAL rational
     std::vector<Point_3> VI_cgal;
     for (int i=0; i<VI.rows(); i++) {
@@ -446,6 +449,13 @@ void tetwild_stage_shell(
         tetshell::ReplaceWithPrismTet(dualShell,  // input
                                       VO, TO, labels, is_surface_facet, face_on_shell);  // output
     }
+
+    // report Euler number again (with the hallow region filled with pseudo-tets)
+    std::vector<std::array<int, 4>> TO_with_pseudo_tets;
+    tetshell::GetMeshWithPseudoTets(dualShell, VO, TO,  // input
+                                    TO_with_pseudo_tets);  // output
+    tetshell::EulerNumber(TO_with_pseudo_tets, "Post-shell with pseudo tets");
+    TO = TO_with_pseudo_tets;
 }
 
 // -----------------------------------------------------------------------------
@@ -504,12 +514,10 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     tetwild_stage_one(VI, FI, args, state, geo_sf_mesh, geo_b_mesh,
         tet_vertices, tet_indices, is_surface_facet, face_on_shell);
 
-    tetshell::EulerNumber(tet_indices);
     /// STAGE 1.5: Shell
     Eigen::VectorXi labels;
     tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels);
 
-    tetshell::EulerNumber(tet_indices);
     // DEBUG PURPOSE
     /*
     for (int i=0; i<face_on_shell.size(); i++) {

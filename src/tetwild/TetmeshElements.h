@@ -74,7 +74,7 @@ public:
     double volume = 0;
 
     TetQuality() = default;
-    TetQuality(double d_min, double d_max, double r)
+    TetQuality(double d_min, double d_max, double)
         : min_d_angle(d_min), max_d_angle(d_max)
     { }
 
@@ -129,7 +129,7 @@ public:
           const std::vector<std::array<int, 4>>& is_sf_fs,
           const std::vector<bool>& v_is_rd, const std::vector<bool>& t_is_rd, const std::vector<TetQuality>& tet_qs)
         : tet_vertices(tet_vs), tets(ts), is_surface_fs(is_sf_fs)
-        , v_is_removed(v_is_rd), t_is_removed(t_is_rd), tet_qualities(tet_qs)
+        ,t_is_removed(t_is_rd), v_is_removed(v_is_rd), tet_qualities(tet_qs)
     { }
 
     void serialize(std::string serialize_file);
