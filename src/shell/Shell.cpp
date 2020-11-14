@@ -251,11 +251,6 @@ void GetTetFromPrism(
     int cnt_singularity_type2 = 0;
     int cnt_singularity_type3 = 0;
 
-    // debug
-    if (prism[0] == 669 && prism[1] == 755 && prism[5] == 559) {
-        logger().warn("bad");
-    }
-
     ///////////////
     //   FIRST   //
     ///////////////
@@ -352,6 +347,29 @@ void GetTetFromPrism(
                     Point_3 pt2 = VO[ptIdx2].pos;
                     Point_3 pt3 = VO[ptIdx3].pos;
 
+                    /*
+                    // DEBUG PURPOSE
+                    if (ptIdx1 == 580 || ptIdx1 == 587 || ptIdx1 == 541) {
+                        int pt1_x = CGAL::to_double(pt1[0]);
+                        int pt1_y = CGAL::to_double(pt1[1]);
+                        int pt1_z = CGAL::to_double(pt1[2]);
+
+                        int pt2_x = CGAL::to_double(pt2[0]);
+                        int pt2_y = CGAL::to_double(pt2[1]);
+                        int pt2_z = CGAL::to_double(pt2[2]);
+
+                        int pt3_x = CGAL::to_double(pt3[0]);
+                        int pt3_y = CGAL::to_double(pt3[1]);
+                        int pt3_z = CGAL::to_double(pt3[2]);
+
+                        bool pt1_good = IsPointInsideTri(pt1, base_pt0, base_pt1, base_pt2);
+                        bool pt2_good = IsPointInsideTri(pt2, base_pt0, base_pt1, base_pt2);
+                        bool pt3_good = IsPointInsideTri(pt3, base_pt0, base_pt1, base_pt2);
+
+                        logger().info("{} {} {}: {} {} {}", ptIdx1, ptIdx2, ptIdx3, pt1_good, pt2_good, pt3_good);
+                    }
+                    */
+
                     if (IsTriInsideTri(pt1, pt2, pt3, base_pt0, base_pt1, base_pt2)) {
                         // aha, we found a desired tet in VO. pt1, pt2, pt3 will be used as new base
                         T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
@@ -368,7 +386,8 @@ void GetTetFromPrism(
 
                     // there can be at most one face of any tet that is on "surfaceIdx"
                     // because the faces of one tet cannot be colinear
-                    break;
+                    //// WRONG WRONG WRONG
+                    // break;
                 }
             }
         }
@@ -378,16 +397,14 @@ void GetTetFromPrism(
             double x1 = CGAL::to_double(VO[ map_VI2VO.at(prism[0]) ].pos[0]);
             double y1 = CGAL::to_double(VO[ map_VI2VO.at(prism[0]) ].pos[1]);
             double z1 = CGAL::to_double(VO[ map_VI2VO.at(prism[0]) ].pos[2]);
-
             double x2 = CGAL::to_double(VO[ map_VI2VO.at(prism[1]) ].pos[0]);
             double y2 = CGAL::to_double(VO[ map_VI2VO.at(prism[1]) ].pos[1]);
             double z2 = CGAL::to_double(VO[ map_VI2VO.at(prism[1]) ].pos[2]);
-
             double x3 = CGAL::to_double(VO[ map_VI2VO.at(prism[2]) ].pos[0]);
             double y3 = CGAL::to_double(VO[ map_VI2VO.at(prism[2]) ].pos[1]);
             double z3 = CGAL::to_double(VO[ map_VI2VO.at(prism[2]) ].pos[2]);
-            logger().warn("x1={} y1={} z1={} x2={} y2={} z2={} x3={} y3={} z3={}", x1, y1, z1, x2, y2, z2, x3, y3, z3);
-            tetwild::log_and_throw("Type 3 not detected");
+            logger().error("x1={} y1={} z1={} x2={} y2={} z2={} x3={} y3={} z3={}", x1, y1, z1, x2, y2, z2, x3, y3, z3);
+            tetwild::log_and_throw("GetTetFromPrism: Type 3 tetrahedron not founded.");
         }
     } else {
         cnt_singularity_type3++;
@@ -591,7 +608,6 @@ void ReplaceWithPrismTet(
 
     // remove "t_is_removed" inplace
     CleanTetMesh(t_is_removed, VO, TO, labels, is_surface_facet, face_on_shell);
-    tetshell::EulerNumber(TO);
     // Update "TetVertex" attributes
     UpdateVertexAttributes(VO, TO);
 
