@@ -212,6 +212,10 @@ void GetTetFromPrism(
     //      if idx(1)<idx(2): {0, 3, 4, 5}, {0, 5, 4, 1} and {0, 1, 2, 5}
     // It is guaranteed that triangle (345) is intact and only face (012) may be subdivided
 
+    // singualrity
+    bool top_collapse;  // whether the top has collapsed due to singularity
+    bool middle_collapse;
+    bool bottom_collapse;  // whether bottom has collapsed due to singularity
     // Define the bottom triangle (012)
     Point_3 base_pt0 = VI[prism[0]];
     Point_3 base_pt1 = VI[prism[1]];
@@ -222,8 +226,9 @@ void GetTetFromPrism(
     }
     // consistent split method
     // NOTE: comparison is based on VI-index, not VO-index
-    auto tetSplit = (prism[1] > prism[2]) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
-    Point_3 &base_ptx = (prism[1] > prism[2]) ? base_pt2 : base_pt1;  // 'x' is either 1 or 2
+    bool tetSplitA = (prism[1] > prism[2]);
+    auto tetSplit = tetSplitA ? TETRA_SPLIT_A : TETRA_SPLIT_B;
+    Point_3 &base_ptx = tetSplitA ? base_pt2 : base_pt1;  // 'x' is either 1 or 2
     Segment_3 edge_0x(base_pt0, base_ptx);
     // Collect vertices in VO that are on edge (0x)
     // sort "vertsOnTargetEdge" in order from "base_pt0" to "base_ptx"
@@ -250,11 +255,31 @@ void GetTetFromPrism(
             }   
     }
 
-    ///////////////
-    //   FIRST   //
-    ///////////////
+    /////////////////
+    // SINGULARITY //
+    /////////////////
+    // TYPE - 1
+    top_collapse = IsDegeneratedTet(VI[prism[0]], VI[prism[3]], VI[prism[4]], VI[prism[5]]);
+    // TYPE - 2
+    //     (prism[1] > prism[2])?        True : False
+    int local_idx1 = tetSplit[1][0];  //  0       0
+    int local_idx2 = tetSplit[1][1];  //  5       5
+    int local_idx3 = tetSplit[1][2];  //  4       4
+    int local_idx4 = tetSplit[1][3];  //  2       1  (== x)
+    middle_collapse = IsDegeneratedTet(VI[prism[local_idx1]], VI[prism[local_idx2]], VI[prism[local_idx3]], VI[prism[local_idx4]]);
+    // TYPE - 3
+    const Point_3 &pt_tip = VI[prism[tetSplit[2][3]]];  // 4 or 5
+    bottom_collapse = IsDegeneratedTet(VI[prism[0]], VI[prism[1]], VI[prism[2]], pt_tip);
+    // assert
+    if ((top_collapse && middle_collapse) || (top_collapse && bottom_collapse) || (middle_collapse && bottom_collapse)) {
+        tetwild::log_and_throw("GetTetFromPrism: adjacent singularities found.");
+    }
+
+    ////////////////
+    //   TYPE 1   //
+    ////////////////
     // insert the first tet {0, 3, 4, 5} (no further split)
-    if (!IsDegeneratedTet(VI[prism[0]], VI[prism[3]], VI[prism[4]], VI[prism[5]])) {  // no singularity
+    if (!top_collapse) {  // no singularity
 
         T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[0]), map_VI2VO.at(prism[3]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5])}}));
         // update this new tet's attribute
@@ -280,18 +305,14 @@ void GetTetFromPrism(
             */
         }
     } else {
+        // logger().warn("{}, {}, {}, {}, {}, {}", prism[0], prism[1], prism[2], prism[3], prism[4], prism[5]);
         singularCnt[0]++;
     }
 
     ////////////////
-    //   SECOND   //
+    //   TYPE 2   //
     ////////////////
-    //     (prism[1] > prism[2])?        True : False
-    int local_idx1 = tetSplit[1][0];  //  0       0
-    int local_idx2 = tetSplit[1][1];  //  5       5
-    int local_idx3 = tetSplit[1][2];  //  4       4
-    int local_idx4 = tetSplit[1][3];  //  2       1  (== x)
-    if (!IsDegeneratedTet(VI[prism[local_idx1]], VI[prism[local_idx2]], VI[prism[local_idx3]], VI[prism[local_idx4]])) {  // no singularity
+    if (!middle_collapse) {  // no singularity
 
         // check the first and last of "vertsOnTargetEdge" is pt0 and ptx
         if (base_pt0 != VO[vertsOnTargetEdge.begin()->second].pos || base_ptx != VO[vertsOnTargetEdge.rbegin()->second].pos) {
@@ -311,8 +332,30 @@ void GetTetFromPrism(
             T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
             // update this new tet's attribute
             labels_temp.push_back(8);  // DEBUG PURPOSE
-            is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1024}}));
-            face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, NOT_SUR}}));
+            /// NOTE: the face label depends on whether some collapse has occured
+            if (top_collapse) {
+                // top has collapsed
+                int surface_label;
+                if (surfaceIdx == SURFACE_INNER)
+                    surface_label = SURFACE_BOTTOM;
+                else
+                    surface_label = SURFACE_TOP;
+                is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
+                face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, surface_label}}));
+            } else if (bottom_collapse) {
+                // bottom has collapsed
+                if (tetSplitA) {
+                    is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1, 1024, 1024}}));
+                    face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, surfaceIdx, NOT_SUR, NOT_SUR}}));
+                } else {
+                    is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1, 1024}}));
+                    face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, surfaceIdx, NOT_SUR}}));
+                }
+            } else {
+                // ordinary
+                is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1024}}));
+                face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, NOT_SUR}}));
+            }
             // positive tet
             if (MakeTetPositive(VO, T_temp.back())) {
             }
@@ -321,14 +364,13 @@ void GetTetFromPrism(
         singularCnt[1]++;
     }
 
-    ///////////////
-    //   THIRD   //
-    ///////////////
+    ////////////////
+    //   TYPE 3   //
+    ////////////////
     // insert the third one {0, 1, 2, 4}/{0, 1, 2, 5} (VO might have split face (012) to many triangles)
-    const Point_3 &pt_tip = VI[prism[tetSplit[2][3]]];
     int cnt_inserted = 0;
     int ptIdx1, ptIdx2, ptIdx3;
-    if (!IsDegeneratedTet(VI[prism[0]], VI[prism[1]], VI[prism[2]], pt_tip)) {  // no singularity
+    if (!bottom_collapse) {  // no singularity
 
         for (auto it=tetsOnTargetSurface.begin(); it!=tetsOnTargetSurface.end(); it++) {
 
@@ -383,9 +425,8 @@ void GetTetFromPrism(
                         }
                     }
 
-                    // there can be at most one face of any tet that is on "surfaceIdx"
-                    // because the faces of one tet cannot be colinear
-                    //// WRONG WRONG WRONG
+                    // there can be more than one face of a tet that is on "surfaceIdx"
+                    //// DO NOT BREAK HERE
                     // break;
                 }
             }
