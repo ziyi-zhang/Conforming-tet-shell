@@ -18,6 +18,7 @@ typedef struct TetMeshCheckArgs_t {
     bool conform = true;  // whether preserve user input
     bool vertexAttri = true;  // whether vectex attributes are correct
     bool boundary = true;  // check the boundary of region 1 and 3
+    bool euler = true;  // compute the global Euler
 } TetMeshCheckArgs_t;
 
 
@@ -35,10 +36,12 @@ public:
     const std::vector<std::array<int, 4>> face_on_shell;
 
     bool SanityCheck();
+
     bool PositiveTetCheck();
     bool ConformCheck();
     bool VertexAttriCheck();
     bool BoundaryCheck();
+    bool EulerCheck();
 
     void ConvertDouble();
 

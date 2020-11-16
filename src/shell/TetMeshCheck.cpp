@@ -48,6 +48,11 @@ bool TetMeshCheck::SanityCheck() {
         result = result && res;
     }
 
+    if (args.euler) {
+        bool res = EulerCheck();
+        result = result && res;
+    }
+
     logger().info("Tetrahedral mesh sanity check done.");
     logger().info("======================================");
     return result;
@@ -252,6 +257,12 @@ bool TetMeshCheck::BoundaryCheck() {
     }
 
     return result;
+}
+
+
+bool TetMeshCheck::EulerCheck() {
+
+    return true;
 }
 
 
