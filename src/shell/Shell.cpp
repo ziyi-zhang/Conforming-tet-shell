@@ -1,8 +1,10 @@
 #include <shell/common.hpp>
 #include <shell/Shell.h>
 #include <shell/Utils.h>
+#include <tetwild/Args.h>
 #include <tetwild/CGALTypes.h>
 #include <tetwild/Logger.h>
+#include <tetwild/TetmeshElements.h>
 
 #include <Eigen/Dense>
 
@@ -196,7 +198,7 @@ void GetTetFromPrism(
     std::vector<std::array<int, 4>> &T_temp, 
     std::vector<std::array<int, 4>> &is_surface_facet_temp,
     std::vector<std::array<int, 4>> &face_on_shell_temp,
-    std::vector<int> &labels_temp, 
+    std::vector<int> &labels_temp,  // DEBUG PURPOSE, should be filled with the same number
     std::array<int, 3> &singularCnt) {
 
     // This is the prism (not necessarily a pentahedron)
@@ -256,7 +258,7 @@ void GetTetFromPrism(
 
         T_temp.push_back(std::array<int, 4>({{map_VI2VO.at(prism[0]), map_VI2VO.at(prism[3]), map_VI2VO.at(prism[4]), map_VI2VO.at(prism[5])}}));
         // update this new tet's attribute
-        labels_temp.push_back(7);
+        labels_temp.push_back(7);  // DEBUG PURPOSE
         is_surface_facet_temp.push_back(std::array<int, 4>({{1, 1024, 1024, 1024}}));  // force it to be 1
         if (surfaceIdx == SURFACE_INNER)
             face_on_shell_temp.push_back(std::array<int, 4>({{SURFACE_BOTTOM, NOT_SUR, NOT_SUR, NOT_SUR}}));
@@ -308,7 +310,7 @@ void GetTetFromPrism(
 
             T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
             // update this new tet's attribute
-            labels_temp.push_back(8);
+            labels_temp.push_back(8);  // DEBUG PURPOSE
             is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1024}}));
             face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, NOT_SUR}}));
             // positive tet
@@ -372,7 +374,7 @@ void GetTetFromPrism(
                         T_temp.push_back(std::array<int, 4>({{ptIdx1, ptIdx2, ptIdx3, ptIdx4}}));
                         // update attributes
                         cnt_inserted++;
-                        labels_temp.push_back(9);
+                        labels_temp.push_back(9);  // DEBUG PURPOSE
                         is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
                         face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, surfaceIdx}}));
                         // positive tet
@@ -410,6 +412,7 @@ void GetTetFromPrism(
 
 
 void GenTetMeshFromShell(
+    const tetwild::Args &args, 
     const std::vector<tetwild::TetVertex> &VO, 
     const std::vector<std::array<int, 4>> &TO, 
     const DualShell_t &dualShell, 
@@ -417,7 +420,7 @@ void GenTetMeshFromShell(
     const int shellName,  // either SHELL_INNER_BOTTOM or SHELL_TOP_OUTER
     // std::vector<tetwild::TetVertex> &V_temp,  // why? all vertices already exist
     std::vector<std::array<int, 4>> &T_temp, 
-    Eigen::VectorXi &labels_temp,
+    Eigen::VectorXi &labels_temp,  // DEBUG purpose, should be filled with the same number
     std::vector<std::array<int, 4>> &is_surface_facet_temp,
     std::vector<std::array<int, 4>> &face_on_shell_temp, 
     std::vector<bool> &t_is_removed) {
@@ -468,16 +471,17 @@ void GenTetMeshFromShell(
     t_is_removed.insert( t_is_removed.end(), falseVector.begin(), falseVector.end() );
 
     // Update labels
-    // All the tets generated here must be in the same region
-    /*
-    if (surfaceIdx == SURFACE_INNER)
-        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_INNER_BOTTOM;
-    else if (surfaceIdx == SURFACE_OUTER)
-        labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_TOP_OUTER;
-    */
-    labels_temp.resize(labels_temp_vec.size(), 1);
-    for (int i=0; i<labels_temp_vec.size(); i++)
-        labels_temp(i) = labels_temp_vec[i];
+    if (!args.shell_type_debug) {
+        // All the tets generated here must be in the same region
+        if (surfaceIdx == SURFACE_INNER)
+            labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_INNER_BOTTOM;
+        else if (surfaceIdx == SURFACE_OUTER)
+            labels_temp = Eigen::VectorXi::Ones(T_temp.size(), 1).array() * SHELL_TOP_OUTER;
+    } else {
+        labels_temp.resize(labels_temp_vec.size(), 1);
+        for (int i=0; i<labels_temp_vec.size(); i++)
+            labels_temp(i) = labels_temp_vec[i];
+    }
 }
 
 
@@ -551,6 +555,7 @@ void GenDualShell(const std::vector<Point_3> &VI, const Eigen::MatrixXi &FI, Dua
 
 
 void ReplaceWithPrismTet(
+    const tetwild::Args &args,
     const DualShell_t &dualShell, 
     std::vector<tetwild::TetVertex> &VO,
     std::vector<std::array<int, 4>> &TO, 
@@ -579,7 +584,7 @@ void ReplaceWithPrismTet(
     Eigen::VectorXi temp;
 
     //// FOR shell_inner_bottom
-    GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_INNER_BOTTOM, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
+    GenTetMeshFromShell(args, VO, TO, dualShell, face_on_shell, SHELL_INNER_BOTTOM, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
     is_surface_facet.insert( is_surface_facet.end(), is_surface_facet_temp.begin(), is_surface_facet_temp.end() );
@@ -590,7 +595,7 @@ void ReplaceWithPrismTet(
     logger().debug("GenTetMeshFromShell: SHELL_INNER_BOTTOM done");
 
     /// FOR shell_top_outer
-    GenTetMeshFromShell(VO, TO, dualShell, face_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
+    GenTetMeshFromShell(args, VO, TO, dualShell, face_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
     is_surface_facet.insert( is_surface_facet.end(), is_surface_facet_temp.begin(), is_surface_facet_temp.end() );

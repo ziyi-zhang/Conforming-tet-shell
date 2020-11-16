@@ -292,7 +292,7 @@ void LocalOperations::comformalAMIPSHessian_new(const double * T, double *result
 
 void LocalOperations::check() {
     ///check correctness
-    int n_size=0;
+    // int n_size=0;
     int d_size=0;
     for (int i = 0; i < tet_vertices.size(); i++) {
         if (v_is_removed[i])

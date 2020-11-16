@@ -325,6 +325,7 @@ void LabelTet(
         }
 
         // assert
+        /// Note: even the model is not connected, the use of a bounding box will make them connected
         if (std::count(visited.begin(), visited.end(), false))
             tetwild::log_and_throw("LabelTet: not all tets are visited.");
         if (args.brute_label_validation)  // DEBUG PURPOSE

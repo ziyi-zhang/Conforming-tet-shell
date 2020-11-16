@@ -446,7 +446,7 @@ void tetwild_stage_shell(
 
     // Replace some tets with prism tets
     if (!args.skip_prism) {
-        tetshell::ReplaceWithPrismTet(dualShell,  // input
+        tetshell::ReplaceWithPrismTet(args, dualShell,  // input
                                       VO, TO, labels, is_surface_facet, face_on_shell);  // output
     }
 
@@ -455,7 +455,6 @@ void tetwild_stage_shell(
     tetshell::GetMeshWithPseudoTets(dualShell, VO, TO,  // input
                                     TO_with_pseudo_tets);  // output
     tetshell::EulerNumber(TO_with_pseudo_tets, "Post-shell with pseudo tets");
-    TO = TO_with_pseudo_tets;
 }
 
 // -----------------------------------------------------------------------------
