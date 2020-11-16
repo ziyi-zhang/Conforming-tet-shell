@@ -17,6 +17,7 @@ using tetwild::logger;
 using tetwild::TetVertex;
 
 namespace {
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -93,7 +94,7 @@ bool TetMeshCheck::ConformCheck() {
     }
     for (int i=0; i<N; i++) {
         if (on_input_face[i] == 0) {
-            logger().warn("Input triangle face #{} not found in tetMesh", i);
+            logger().warn("Input triangle face #{} not found in tetMesh: cnt == 0", i);
             result = false;
         }
         // DEBUG PURPOSE
@@ -170,10 +171,13 @@ bool TetMeshCheck::BoundaryCheck() {
 
     Eigen::MatrixXi T_temp, F_boundary;
     Eigen::VectorXi T_temp2TO, F_index, tet_local_idx;
-
-    /// Check region-1 is bounded by surface 1 and 2
-    // retrieve region-1 tets in F_temp
+    int cnt_surface_A, cnt_surface_B;
     int cnt = 0;
+
+    //////////////////////////////////////////////////
+    // Check region-1 is bounded by surface 1 and 2 //
+    //////////////////////////////////////////////////
+    // retrieve region-1 tets in F_temp
     for (int i=0; i<labels.rows(); i++) {
         if (labels(i) == SHELL_INNER_BOTTOM) cnt++;
     }
@@ -193,15 +197,58 @@ bool TetMeshCheck::BoundaryCheck() {
     // find boundary
     igl::boundary_facets(T_temp, F_boundary, F_index, tet_local_idx);
     // check 
+    cnt_surface_A = 0;
+    cnt_surface_B = 0;
     for (int i=0; i<F_index.rows(); i++) {
 
         int TO_boundary_idx = T_temp2TO[F_index[i]];
-        if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] != SURFACE_INNER && 
-            face_on_shell[TO_boundary_idx][tet_local_idx(i)] != SURFACE_BOTTOM) {
+        if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_INNER) {
+            cnt_surface_A++;
+        } else if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_BOTTOM) {
+            cnt_surface_B++;
+        } else {
+            logger().warn("Boundary of SHELL_INNER_BOTTOM not valid. TO index = {}, face_on_shell = {}", TO_boundary_idx, face_on_shell[TO_boundary_idx][tet_local_idx(i)]);
+            result = false;
+        }
+    }
 
-                logger().warn("Boundary of SHELL_INNER_BOTTOM not valid. TO index = {}, face_on_shell = {}", TO_boundary_idx, face_on_shell[TO_boundary_idx][tet_local_idx(i)]);
-                result = false;
-            }
+    //////////////////////////////////////////////////
+    // Check region-3 is bounded by surface 3 and 4 //
+    //////////////////////////////////////////////////
+    // retrieve region-3 tets in F_temp
+    cnt = 0;
+    for (int i=0; i<labels.rows(); i++) {
+        if (labels(i) == SHELL_TOP_OUTER) cnt++;
+    }
+    T_temp.resize(cnt, 4);
+    T_temp2TO.resize(cnt, 1);  // index in T_temp -> index in TO
+    cnt = 0;
+    for (int i=0; i<labels.rows(); i++) {
+        if (labels(i) == SHELL_TOP_OUTER) {
+            T_temp(cnt, 0) = TO[i][0];
+            T_temp(cnt, 1) = TO[i][1];
+            T_temp(cnt, 2) = TO[i][2];
+            T_temp(cnt, 3) = TO[i][3];
+            T_temp2TO(cnt) = i;
+            cnt++;
+        }
+    }
+    // find boundary
+    igl::boundary_facets(T_temp, F_boundary, F_index, tet_local_idx);
+    // check 
+    cnt_surface_A = 0;
+    cnt_surface_B = 0;
+    for (int i=0; i<F_index.rows(); i++) {
+
+        int TO_boundary_idx = T_temp2TO[F_index[i]];
+        if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_TOP) {
+            cnt_surface_A++;
+        } else if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_OUTER) {
+            cnt_surface_B++;
+        } else {
+            logger().warn("Boundary of SHELL_TOP_OUTER not valid. TO index = {}, face_on_shell = {}", TO_boundary_idx, face_on_shell[TO_boundary_idx][tet_local_idx(i)]);
+            result = false;
+        }
     }
 
     return result;
