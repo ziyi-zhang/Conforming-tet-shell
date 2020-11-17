@@ -176,8 +176,30 @@ bool TetMeshCheck::BoundaryCheck() {
 
     Eigen::MatrixXi T_temp, F_boundary;
     Eigen::VectorXi T_temp2TO, F_index, tet_local_idx;
-    int cnt_surface_A, cnt_surface_B;
+    int cnt_surface_inner = 0, cnt_surface_bottom = 0, cnt_surface_top = 0, cnt_surface_outer = 0;
+    int cnt_face_on_shell_inner = 0, cnt_face_on_shell_bottom = 0, cnt_face_on_shell_top = 0, cnt_face_on_shell_outer = 0;
     int cnt = 0;
+
+    for (int i=0; i<face_on_shell.size(); i++)
+        for (int j=0; j<4; j++) {
+
+            switch (face_on_shell[i][j]) {
+            case SURFACE_INNER:
+                cnt_face_on_shell_inner++;
+                break;
+            case SURFACE_BOTTOM:
+                cnt_face_on_shell_bottom++;
+                break;
+            case SURFACE_TOP:
+                cnt_face_on_shell_top++;
+                break;
+            case SURFACE_OUTER:
+                cnt_face_on_shell_outer++;
+                break;
+            default:
+                break;
+            }
+        }
 
     //////////////////////////////////////////////////
     // Check region-1 is bounded by surface 1 and 2 //
@@ -202,19 +224,26 @@ bool TetMeshCheck::BoundaryCheck() {
     // find boundary
     igl::boundary_facets(T_temp, F_boundary, F_index, tet_local_idx);
     // check 
-    cnt_surface_A = 0;
-    cnt_surface_B = 0;
     for (int i=0; i<F_index.rows(); i++) {
 
         int TO_boundary_idx = T_temp2TO[F_index[i]];
         if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_INNER) {
-            cnt_surface_A++;
+            cnt_surface_inner++;
         } else if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_BOTTOM) {
-            cnt_surface_B++;
+            cnt_surface_bottom++;
         } else {
             logger().warn("Boundary of SHELL_INNER_BOTTOM not valid. TO index = {}, face_on_shell = {}", TO_boundary_idx, face_on_shell[TO_boundary_idx][tet_local_idx(i)]);
             result = false;
         }
+    }
+    // check the number matches
+    /// NOTES: Why "cnt_surface_bottom * 2"? Because each face is counted twice in face_on_shell (two sides)
+    ///        Why "cnt_surface_inner" not multiplied by 2? Because the bottom-top region is hallow
+    if (cnt_surface_inner != cnt_face_on_shell_inner) {
+        logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_INNER do not match");
+    }
+    if (cnt_surface_bottom * 2 != cnt_face_on_shell_bottom) {
+        logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_BOTTOM do not match");
     }
 
     //////////////////////////////////////////////////
@@ -241,19 +270,24 @@ bool TetMeshCheck::BoundaryCheck() {
     // find boundary
     igl::boundary_facets(T_temp, F_boundary, F_index, tet_local_idx);
     // check 
-    cnt_surface_A = 0;
-    cnt_surface_B = 0;
     for (int i=0; i<F_index.rows(); i++) {
 
         int TO_boundary_idx = T_temp2TO[F_index[i]];
         if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_TOP) {
-            cnt_surface_A++;
+            cnt_surface_top++;
         } else if (face_on_shell[TO_boundary_idx][tet_local_idx(i)] == SURFACE_OUTER) {
-            cnt_surface_B++;
+            cnt_surface_outer++;
         } else {
             logger().warn("Boundary of SHELL_TOP_OUTER not valid. TO index = {}, face_on_shell = {}", TO_boundary_idx, face_on_shell[TO_boundary_idx][tet_local_idx(i)]);
             result = false;
         }
+    }
+    // check the number matches
+    if (cnt_surface_top != cnt_face_on_shell_top) {
+        logger().warn("Boundary of SHELL_TOP_OUTER: cnts of SURFACE_TOP do not match");
+    }
+    if (cnt_surface_outer * 2 != cnt_face_on_shell_outer) {
+        logger().warn("Boundary of SHELL_TOP_OUTER: cnts of SURFACE_OUTER do not match");
     }
 
     return result;

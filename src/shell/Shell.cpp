@@ -684,7 +684,7 @@ void GetMeshWithPseudoTets(const DualShell_t &dualShell, const std::vector<tetwi
 
             // degenerated due to singularity
             if (IsDegeneratedTet(VO[newTet[0]].pos, VO[newTet[1]].pos, VO[newTet[2]].pos, VO[newTet[3]].pos)) {
-                logger().warn("{} {} {} {}", newTet[0], newTet[1], newTet[2], newTet[3]);
+                // logger().warn("{} {} {} {}", newTet[0], newTet[1], newTet[2], newTet[3]);
                 continue;
             }
 
