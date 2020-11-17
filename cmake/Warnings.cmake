@@ -31,7 +31,6 @@ set(MY_FLAGS
 		-Werror=nonnull
 		-Werror=init-self
 		-Werror=main
-		-Werror=missing-braces
 		-Werror=sequence-point
 		-Werror=return-type
 		-Werror=trigraphs

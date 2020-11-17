@@ -124,7 +124,7 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
     if (ori == CGAL::POSITIVE)
         return (side == CGAL::Oriented_side::ON_POSITIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
     else {
-        tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
+        // tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
         return (side == CGAL::Oriented_side::ON_NEGATIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
     }
 }
@@ -197,6 +197,7 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_OUTER:
                 return SHELL_TOP_OUTER;
             default:
+                std::cerr << surfaceType << std::endl;
                 tetwild::log_and_throw("GetRegionType: exception in NON_SHELL_REGION.");
                 break;
         }
@@ -207,6 +208,7 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_BOTTOM:
                 return SHELL_BOTTOM_TOP;
             default:
+                std::cerr << surfaceType << std::endl;
                 tetwild::log_and_throw("GetRegionType: exception in SHELL_INNER_BOTTOM.");
                 break;
         }
@@ -217,6 +219,7 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_TOP:
                 return SHELL_TOP_OUTER;
             default:
+                std::cerr << surfaceType << std::endl;
                 tetwild::log_and_throw("GetRegionType: exception in SHELL_BOTTOM_TOP.");
                 break;
         }
@@ -227,6 +230,7 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_OUTER:
                 return NON_SHELL_REGION;
             default:
+                std::cerr << surfaceType << std::endl;
                 tetwild::log_and_throw("GetRegionType: exception in SHELL_TOP_OUTER.");
                 break;
         }
