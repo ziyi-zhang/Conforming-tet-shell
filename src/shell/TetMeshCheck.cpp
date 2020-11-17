@@ -237,12 +237,12 @@ bool TetMeshCheck::BoundaryCheck() {
         }
     }
     // check the number matches
-    /// NOTES: Why "cnt_surface_bottom * 2"? Because each face is counted twice in face_on_shell (two sides)
-    ///        Why "cnt_surface_inner" not multiplied by 2? Because the bottom-top region is hallow
-    if (cnt_surface_inner != cnt_face_on_shell_inner) {
+    /// NOTE: Why "cnt_surface_inner * 2" multiplied by 2? Because each face is counted twice in face_on_shell (two sides)
+    ///       Why "cnt_surface_bottom" not multiplied? Because the middle region is hallow
+    if (cnt_surface_inner * 2 != cnt_face_on_shell_inner) {
         logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_INNER do not match");
     }
-    if (cnt_surface_bottom * 2 != cnt_face_on_shell_bottom) {
+    if (cnt_surface_bottom != cnt_face_on_shell_bottom) {
         logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_BOTTOM do not match");
     }
 
