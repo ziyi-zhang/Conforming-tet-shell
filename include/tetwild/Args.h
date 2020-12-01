@@ -77,6 +77,9 @@ struct Args {
     // Skip prism related steps. This is only for debug purpose.
     bool skip_prism = false;
 
+    // Skip mesh refinement. This is only for debug purpose.
+    bool skip_optim = false;
+
     // Use brute way to label tet region
     bool brute_label = false;
 

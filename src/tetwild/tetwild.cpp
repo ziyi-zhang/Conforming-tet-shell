@@ -469,10 +469,8 @@ void tetwild_stage_two(const Args &args, State &state,
     GEO::Mesh &geo_b_mesh,
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
-    std::vector<std::array<int, 4>> &is_surface_facet,
-    Eigen::MatrixXd &VO,
-    Eigen::MatrixXi &TO,
-    Eigen::VectorXd &AO) {
+    std::vector<std::array<int, 4>> &is_surface_facet, 
+    std::vector<bool> &t_is_removed) {
 
     // init
     logger().info("Refinement initializing...");
@@ -486,8 +484,11 @@ void tetwild_stage_two(const Args &args, State &state,
     // improvement
     MR.refine(state.ENERGY_AMIPS);
 
-    // do winding number and output the tetmesh
-    extractFinalTetmesh(MR, VO, TO, AO, args, state);
+    tet_vertices = std::move(MR.tet_vertices);
+    tet_indices = std::move(MR.tets);
+    is_surface_facet = std::move(MR.is_surface_fs);
+    t_is_removed = std::move(MR.t_is_removed);
+    // extractFinalTetmesh(MR, VO, TO, AO, args, state);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -517,26 +518,25 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     Eigen::VectorXi labels;
     tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels);
 
-    // DEBUG PURPOSE
-    /*
-    for (int i=0; i<face_on_shell.size(); i++) {
-        std::cout << face_on_shell[i][0] << " " << face_on_shell[i][1] << " " << face_on_shell[i][2] << " " << face_on_shell[i][3] << std::endl;
-    }
-    */
-
     /// STAGE 2: Mesh refinement
-    // tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
-    //    tet_vertices, tet_indices, is_surface_facet, VO, TO, AO);
+    std::vector<bool> t_is_removed(tet_indices.size(), false);
+    if (!args.skip_optim) {
+        geo_sf_mesh.clear();  // Do not need this in TetShell
+        geo_b_mesh.clear();   // Do not need this in TetShell
+        tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
+                          tet_vertices, tet_indices, is_surface_facet, t_is_removed);
+    }
 
     // tet mesh sanity check
     if (args.tet_mesh_sanity_check) {
         tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
         tetMeshCheckArgs.vertexAttri = false;
+        tetMeshCheckArgs.conform = false;
         tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, labels, face_on_shell, tetMeshCheckArgs);
         tetMeshCheck.SanityCheck();
     }
 
-    std::vector<bool> t_is_removed(tet_indices.size(), false);  // DEBUG PURPOSE
+    // Extract to VO TO LO
     tetshell::ExtractMesh(tet_vertices, tet_indices, labels, t_is_removed, VO, TO, LO);
 
     double total_time = igl_timer.getElapsedTime();

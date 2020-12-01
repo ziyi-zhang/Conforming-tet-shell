@@ -26,10 +26,10 @@ public:
     Point_3 pos;//todo: how to remove it?
 
     // for surface conforming
-    int on_fixed_vertex = -1;
-    std::unordered_set<int> on_edge;  // fixed points can be on more than one edges
-    std::unordered_set<int> on_face;  // on input mesh triangle
-    bool is_on_surface = false;
+    int on_fixed_vertex = -1;  // fixed if set >0 (input index)
+    std::unordered_set<int> on_edge;  // fixed points can be on more than one edges NO TET
+    std::unordered_set<int> on_face;  // on input mesh triangle, NO TET
+    bool is_on_surface = false;  // TET
 
     // for local operations
     std::unordered_set<int> conn_tets;
@@ -46,7 +46,7 @@ public:
     bool is_on_bbox = false;
 
     // for boundary
-    bool is_on_boundary = false;
+    bool is_on_boundary = false;  // NO TET
 
     // for adaptive refinement
     double adaptive_scale = 1.0;
@@ -59,7 +59,7 @@ public:
 
     void printInfo() const;
 
-    bool is_locked = false;
+    bool is_locked = false;  // TET set to be true
     bool is_inside = false;
 };
 

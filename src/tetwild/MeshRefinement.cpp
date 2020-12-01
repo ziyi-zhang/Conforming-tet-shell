@@ -34,8 +34,10 @@ void MeshRefinement::prepareData(bool is_init) {
 
     igl_timer.start();
     if (is_init) {
-        t_is_removed = std::vector<bool>(tets.size(), false);//have to
+        t_is_removed = std::vector<bool>(tets.size(), false);  // have to
         v_is_removed = std::vector<bool>(tet_vertices.size(), false);
+
+        // rational to float
         for (int i = 0; i < tet_vertices.size(); i++) {
             if (tet_vertices[i].is_rounded)
                 continue;
