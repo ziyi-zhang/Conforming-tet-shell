@@ -295,6 +295,18 @@ void LabelTet(
                 int vert1 = TO[oldTetIdx][(0+i) % 4];
                 int vert2 = TO[oldTetIdx][(1+i) % 4];
                 int vert3 = TO[oldTetIdx][(2+i) % 4];
+
+                tetwild::TetVertex pt1 = VO[vert1];
+                pt1.round();
+                tetwild::TetVertex pt2 = VO[vert2];
+                pt2.round();
+                tetwild::TetVertex pt3 = VO[vert3];
+                pt3.round();
+
+                tetwild::TetVertex pt0 = VO[TO[oldTetIdx][(3+i) % 4]];
+                pt0.round();
+
+
                 int oppositeVert = (3+i) % 4;  // not the index, only need to know which one among the four
                 // Find the intersection of {vert1.conn_tets, vert2.conn_tets, vert3.conn_tets}
                 UnorderedsetIntersection(VO[vert1].conn_tets, VO[vert2].conn_tets, set_tmp);
