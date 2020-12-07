@@ -296,15 +296,17 @@ void LabelTet(
                 int vert2 = TO[oldTetIdx][(1+i) % 4];
                 int vert3 = TO[oldTetIdx][(2+i) % 4];
 
+                /*
+                // DEBUG PURPOSE - inspect rational coordinates
                 tetwild::TetVertex pt1 = VO[vert1];
                 pt1.round();
                 tetwild::TetVertex pt2 = VO[vert2];
                 pt2.round();
                 tetwild::TetVertex pt3 = VO[vert3];
                 pt3.round();
-
                 tetwild::TetVertex pt0 = VO[TO[oldTetIdx][(3+i) % 4]];
                 pt0.round();
+                */
 
 
                 int oppositeVert = (3+i) % 4;  // not the index, only need to know which one among the four
@@ -323,6 +325,7 @@ void LabelTet(
                     visited[newTetIdx] = true;
 
                     // DEBUG ONLY
+                    // std::cout << newTetIdx << " (from " << oldTetIdx << " " << surfaceType << ") = ";
                     if (args.brute_label_validation) {
                         if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
                             labels[newTetIdx] = 5;  // err code
