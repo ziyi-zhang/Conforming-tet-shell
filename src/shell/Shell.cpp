@@ -316,6 +316,9 @@ void GetTetFromPrism(
 
         // check the first and last of "vertsOnTargetEdge" is pt0 and ptx
         if (base_pt0 != VO[vertsOnTargetEdge.begin()->second].pos || base_ptx != VO[vertsOnTargetEdge.rbegin()->second].pos) {
+            
+            printf("vertsOnTargetEdge.size = %lu\n", vertsOnTargetEdge.size());
+            PrintPoints(base_pt0, VO[vertsOnTargetEdge.begin()->second].pos, base_ptx, VO[vertsOnTargetEdge.rbegin()->second].pos);
             tetwild::log_and_throw("GetTetFromPrism: vertsOnTargetEdge construction error.");
         }
         // insert the second tet {0, 5, 4, 2}/{0, 5, 4, 1} (some split due to subdivision on edge (0x))

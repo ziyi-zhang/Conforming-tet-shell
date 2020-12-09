@@ -503,8 +503,8 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     igl_timer.start();
 
     State state(args, VI);
-    GEO::Mesh geo_sf_mesh;
-    GEO::Mesh geo_b_mesh;
+    GEO::Mesh geo_sf_mesh;  // surface
+    GEO::Mesh geo_b_mesh;  // open boundary
     std::vector<TetVertex> tet_vertices;
     std::vector<std::array<int, 4>> tet_indices;
     std::vector<std::array<int, 4>> is_surface_facet;
@@ -521,8 +521,8 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     /// STAGE 2: Mesh refinement
     std::vector<bool> t_is_removed(tet_indices.size(), false);
     if (!args.skip_optim) {
-        geo_sf_mesh.clear();  // Do not need this in TetShell
-        geo_b_mesh.clear();   // Do not need this in TetShell
+        // geo_sf_mesh.clear();  // Do not need this in TetShell
+        // geo_b_mesh.clear();   // Do not need this in TetShell
         tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
                           tet_vertices, tet_indices, is_surface_facet, t_is_removed);
     }
@@ -537,7 +537,7 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     }
 
     // Extract to VO TO LO
-    tetshell::ExtractMesh(tet_vertices, tet_indices, labels, t_is_removed, VO, TO, LO);
+    tetshell::ExtractMesh(args, tet_vertices, tet_indices, labels, t_is_removed, VO, TO, LO);
 
     double total_time = igl_timer.getElapsedTime();
     logger().info("Total time for all stages = {}s", total_time);

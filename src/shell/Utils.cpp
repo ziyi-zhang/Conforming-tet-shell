@@ -2,6 +2,7 @@
 #include <shell/Utils.h>
 #include <tetwild/CGALTypes.h>
 #include <tetwild/Logger.h>
+#include <tetwild/Args.h>
 #include <igl/boundary_facets.h>
 #include <igl/edges.h>
 
@@ -149,6 +150,7 @@ int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices, const std::s
 
 
 void ExtractMesh(
+    const tetwild::Args &args,
     const std::vector<tetwild::TetVertex> &VI, 
     const std::vector<std::array<int, 4>> &TI, 
     const Eigen::VectorXi &LI,
@@ -196,7 +198,12 @@ void ExtractMesh(
         for (int j = 0; j < 4; j++) {
             T_out(cnt, j) = map_ids[TI[i][j]];  // the index is new as defined in map_ids
         }
-        L_out(cnt) = LI(i);
+        if (args.skip_optim) {
+            L_out(cnt) = LI(i);
+        } else {
+            // DEBUG PURPOSE // TEMPORARY
+            L_out(cnt) = 0;
+        }
         cnt++;
     }
 
@@ -219,6 +226,15 @@ void SaveToTetMsh(const std::string fileName, const Eigen::MatrixXd &V, const Ei
     mSaver.save_elem_scalar_field("label", L.cast<double>());
 
     logger().info("Result msh saved to {}", fileName);
+}
+
+
+void PrintPoints(const Point_3& pt1, const Point_3& pt2, const Point_3& pt3, const Point_3& pt4) {
+
+    printf("%.16f  %.16f  %.16f\n", CGAL::to_double(pt1[0]), CGAL::to_double(pt1[1]), CGAL::to_double(pt1[2]));
+    printf("%.16f  %.16f  %.16f\n", CGAL::to_double(pt2[0]), CGAL::to_double(pt2[1]), CGAL::to_double(pt2[2]));
+    printf("%.16f  %.16f  %.16f\n", CGAL::to_double(pt3[0]), CGAL::to_double(pt3[1]), CGAL::to_double(pt3[2]));
+    printf("%.16f  %.16f  %.16f\n", CGAL::to_double(pt4[0]), CGAL::to_double(pt4[1]), CGAL::to_double(pt4[2]));
 }
 
 }  // namespace tetshell

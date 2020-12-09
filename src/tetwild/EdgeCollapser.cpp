@@ -79,8 +79,8 @@ void EdgeCollapser::collapse() {
             continue;
         }
 
-        //during operations, the length of edges in the queue may be changed
-        //also, we need to eliminate the old edges, that is, the edges have an wrong/old weight in the queue
+        // during operations, the length of edges in the queue may be changed
+        // also, we need to eliminate the old edges, that is, the edges have an wrong/old weight in the queue
         double weight = calEdgeLength(v_ids);
         if (weight != old_weight || !isCollapsable_cd3(v_ids[0], v_ids[1], weight)) {
             continue;
@@ -100,6 +100,7 @@ void EdgeCollapser::collapse() {
 #if TIMING_BREAKDOWN
         igl_timer.start();
 #endif
+        std::cerr << v_ids[0] << v_ids[1] << std::endl;
         int return_code = collapseAnEdge(v_ids[0], v_ids[1]);
         if (return_code == SUCCESS) {
 #if TIMING_BREAKDOWN
@@ -142,6 +143,7 @@ void EdgeCollapser::collapse() {
         }
 
         counter++;
+        printf("%d  %d\n", suc_counter, counter);
     }
     logger().debug("{} {} {}", suc_counter, counter, inf_es.size());
     logger().debug("envelop accept = {}", envelop_accept_cnt);

@@ -122,10 +122,17 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
     CGAL::Oriented_side side = tet.oriented_side(point);
     CGAL::Orientation ori = CGAL::orientation(T0, T1, T2, T3);
     if (ori == CGAL::POSITIVE)
-        return (side == CGAL::Oriented_side::ON_POSITIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
+        return (side == CGAL::Oriented_side::ON_POSITIVE_SIDE) || (side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY);
     else {
-        // tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
-        return (side == CGAL::Oriented_side::ON_NEGATIVE_SIDE) || (side == CGAL::ON_ORIENTED_BOUNDARY);
+        PrintPoints(T0, T1, T2, T3);
+        if (side == CGAL::Oriented_side::ON_POSITIVE_SIDE)
+            printf("side == CGAL::Oriented_side::ON_POSITIVE_SIDE");
+        else if (side == CGAL::Oriented_side::ON_NEGATIVE_SIDE)
+            printf("side == CGAL::Oriented_side::ON_NEGATIVE_SIDE");
+        else if (side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY)
+            printf("side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY");
+        tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
+        // return (side == CGAL::Oriented_side::ON_NEGATIVE_SIDE) || (side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY);
     }
 }
 
@@ -280,6 +287,18 @@ void LabelTet(
         labels[0] = regionTet0;
         visited[0] = true;
 
+        // DEBUG PURPOSE
+        /*
+        for (auto it=VO.begin(); it!=VO.end(); it++) {
+            if (it->on_face.find(1669) != it->on_face.end()) {
+                tetwild::TetVertex pt = *it;
+                pt.round();
+                printf("%d: %.16f  %.16f  %.16f\n", it-VO.begin(), pt.posf[0], pt.posf[1], pt.posf[2]);
+            }
+        }
+        return;
+        */
+
         // Start BFS
         int cnt = 0;  // brute_label_validation only
         while (!Q.empty()) {
@@ -296,8 +315,8 @@ void LabelTet(
                 int vert2 = TO[oldTetIdx][(1+i) % 4];
                 int vert3 = TO[oldTetIdx][(2+i) % 4];
 
-                /*
                 // DEBUG PURPOSE - inspect rational coordinates
+                /*
                 tetwild::TetVertex pt1 = VO[vert1];
                 pt1.round();
                 tetwild::TetVertex pt2 = VO[vert2];
@@ -320,12 +339,19 @@ void LabelTet(
                     if (visited[newTetIdx]) continue;
                     // decide the label of newTetIdx
                     int surfaceType = face_on_shell[oldTetIdx][oppositeVert];
+                    // DEBUG
+                    /*
+                    int newRegionType;
+                    if (surfaceType == 0)
+                        newRegionType = oldRegionType;
+                    else
+                        newRegionType = TetRegion(VO, TO, VI, dualShell, newTetIdx);
+                    */
                     int newRegionType = GetRegionType(oldRegionType, surfaceType);
                     labels[newTetIdx] = newRegionType;
                     visited[newTetIdx] = true;
 
-                    // DEBUG ONLY
-                    // std::cout << newTetIdx << " (from " << oldTetIdx << " " << surfaceType << ") = ";
+                    // std::cout << newTetIdx << " (from " << oldTetIdx << " " << surfaceType << ") = " << newRegionType << std::endl;
                     if (args.brute_label_validation) {
                         if (newRegionType != TetRegion(VO, TO, VI, dualShell, newTetIdx)) {
                             labels[newTetIdx] = 5;  // err code
@@ -333,7 +359,7 @@ void LabelTet(
                             logger().error("Wrong tet label: newRegionType = {}, tetRegion = {}", newRegionType, TetRegion(VO, TO, VI, dualShell, newTetIdx));
                             std::string errCode = "newTetIdx = " + std::to_string(newTetIdx) + "  oldRegionType = " + std::to_string(oldRegionType) + "  surfaceType = " + std::to_string(surfaceType);
                             std::cout << errCode << std::endl;
-                            // return;
+                            return;
                         }
                     }
 

@@ -555,7 +555,7 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
             // if there are more than one sf_faces
             if (sf_faces.size() > 1) {
                 // This should never happen in the shell tet case
-                log_and_throw("ERROR: in is_surface_fs duplicate faces");
+                // log_and_throw("ERROR: in is_surface_fs duplicate faces");
                 /*
                 // cal normal vec for [0]
                 int delta = is_surface_fs[i][j];

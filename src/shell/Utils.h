@@ -29,10 +29,13 @@ int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices, int &V, int 
 int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices, const std::string &info);
 /// TODO
 
-void ExtractMesh(const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices, const Eigen::VectorXi &labels, const std::vector<bool> &t_is_removed, Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXi &L_out);
+void ExtractMesh(const tetwild::Args &args, const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices, const Eigen::VectorXi &labels, const std::vector<bool> &t_is_removed, Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXi &L_out);
 /// TODO
 
 void SaveToTetMsh(const std::string fileName, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::VectorXi &L);
+/// TODO
+
+void PrintPoints(const tetwild::Point_3& pt1, const tetwild::Point_3& pt2, const tetwild::Point_3& pt3, const tetwild::Point_3& pt4);
 /// TODO
 
 }  // namespace tetshell

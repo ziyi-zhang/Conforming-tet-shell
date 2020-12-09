@@ -26,7 +26,7 @@ public:
     Point_3 pos;//todo: how to remove it?
 
     // for surface conforming
-    int on_fixed_vertex = -1;  // fixed if set >0 (input index)
+    int on_fixed_vertex = -1;  // fixed if set >0 (input index), correspondance
     std::unordered_set<int> on_edge;  // fixed points can be on more than one edges NO TET
     std::unordered_set<int> on_face;  // on input mesh triangle, NO TET
     bool is_on_surface = false;  // TET

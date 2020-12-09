@@ -1032,6 +1032,7 @@ bool LocalOperations::isFaceOutEnvelop(const Triangle_3f& tri) {
 }
 
 bool LocalOperations::isPointOutEnvelop(const Point_3f& p) {
+return true;  // TetShell
 #if CHECK_ENVELOP
     GEO::vec3 geo_p(p[0], p[1], p[2]);
     if (geo_sf_tree.squared_distance(geo_p) > state.eps_2)
@@ -1044,6 +1045,7 @@ bool LocalOperations::isPointOutEnvelop(const Point_3f& p) {
 }
 
 bool LocalOperations::isFaceOutEnvelop_sampling(const Triangle_3f& tri) {
+return true;  // TetShell
 #if CHECK_ENVELOP
     if (tri.is_degenerate())
         return false;
