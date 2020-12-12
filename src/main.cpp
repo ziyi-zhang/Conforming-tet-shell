@@ -11,6 +11,7 @@
 #include <tetwild/Logger.h>
 #include <tetwild/MeshRefinement.h>
 #include <shell/Utils.h>
+#include <shell/ShellCheck.h>
 #include <igl/read_triangle_mesh.h>
 #include <igl/write_triangle_mesh.h>
 #include <igl/writeOBJ.h>
@@ -86,7 +87,7 @@ void gtet_new_slz(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const st
 //    MR.is_dealing_unrounded = true;
     MR.refine(state.ENERGY_AMIPS, ops, false, true);
 
-    extractFinalTetmesh(MR, VO, TO, AO, args, state); //do winding number and output the tetmesh
+    extractFinalTetmesh(MR, VO, TO, AO, args, state);  // do winding number and output the tetmesh
 }
 
 
@@ -94,7 +95,7 @@ void gtet_new_slz(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const st
 #include <geogram/mesh/mesh_io.h>
 #include <geogram/mesh/mesh.h>
 int main(int argc, char *argv[]) {
-    int log_level = 1; // debug
+    int log_level = 1;  // debug
     std::string log_filename;
     std::string input_surface;
     std::string output_volume;
@@ -140,7 +141,7 @@ int main(int argc, char *argv[]) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(log_level));
     spdlog::flush_every(std::chrono::seconds(3));
 
-    //initialization
+    // Initialization
     GEO::initialize();
     if(slz_file != "") {
         args.working_dir = input_surface.substr(0, slz_file.size() - 4);
@@ -164,7 +165,7 @@ int main(int argc, char *argv[]) {
         args.write_csv_file = false;
     }
 
-    // do tetrahedralization
+    // Read V, F from file
     Eigen::MatrixXd VI, VO;
     Eigen::MatrixXi FI, TO;
     Eigen::VectorXd AO;  // tet quality
@@ -174,13 +175,23 @@ int main(int argc, char *argv[]) {
         logger().error("Failed to load the input mesh.");
         return 0;
     }
-    VI.resize(input.vertices.nb(), 3);
-    for(int i=0; i<VI.rows(); i++)
-        VI.row(i)<<(input.vertices.point(i))[0], (input.vertices.point(i))[1], (input.vertices.point(i))[2];
-    FI.resize(input.facets.nb(), 3);
-    for(int i=0; i<FI.rows(); i++)
-        FI.row(i)<<input.facets.vertex(i, 0), input.facets.vertex(i, 1), input.facets.vertex(i, 2);
+    int oneShellVertices = input.vertices.nb() / 4;
+    VI.resize(oneShellVertices * 4, 3);
+    for (int i=0; i<VI.rows(); i++)
+        VI.row(i) << (input.vertices.point(i))[0], (input.vertices.point(i))[1], (input.vertices.point(i))[2];
+    int oneShellFaces = input.facets.nb();
+    FI.resize(oneShellFaces * 4, 3);  // Four shells
+    for (int i=0; i<4; i++)
+        for (int j=0; j<oneShellFaces; j++)
+            FI.row(i*oneShellFaces+j) << input.facets.vertex(j, 0)+i*oneShellVertices, input.facets.vertex(j, 1)+i*oneShellVertices, input.facets.vertex(j, 2)+i*oneShellVertices;
+    // Sanity check for input shell
+    tetshell::ShellCheckArgs_t ShellCheckArgs;  // default on
+    tetshell::ShellCheck shellCheck(VI, FI, ShellCheckArgs);
+    if (!shellCheck.SanityCheck()) {
+        tetwild::log_and_throw("Input shell is not valid: Abort.");
+    }
 
+    // Tetrahedralization
     if(slz_file != "") {
         gtet_new_slz(VI, FI, slz_file,
             {{true, false, true, true}}, VO, TO, AO, args);
