@@ -22,11 +22,21 @@ namespace {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool TetMeshCheck::SanityCheck() {
+bool TetMeshCheck::SanityCheck(int eulerNumber) {
 
     logger().info("======================================");
     logger().info("Tetrahedral mesh sanity check results:");
     bool result = true;
+
+    if (eulerNumber != std::numeric_limits<int>::max()) {
+        if (eulerNumber == 1) {
+            logger().debug(">>> Euler number == 1 >>>");
+            result = result && true;
+        } else {
+            logger().warn("Euler number = {}", eulerNumber);
+            result = result && false;
+        }
+    }
 
     if (args.positiveTet) {
         bool res = PositiveTetCheck();
@@ -200,6 +210,10 @@ bool TetMeshCheck::BoundaryCheck() {
                 break;
             }
         }
+    if ((cnt_face_on_shell_top != FI.rows()/4) || (cnt_face_on_shell_bottom != FI.rows()/4)) {
+        logger().warn("face_on_shell error: cnt_face_on_shell_top={}, cnt_face_on_shell_bottom={}, FI.rows()/4={}", cnt_face_on_shell_top, cnt_face_on_shell_bottom, FI.rows()/4);
+        result = false;
+    }
 
     //////////////////////////////////////////////////
     // Check region-1 is bounded by surface 1 and 2 //
@@ -240,10 +254,10 @@ bool TetMeshCheck::BoundaryCheck() {
     /// NOTE: Why "cnt_surface_inner * 2" multiplied by 2? Because each face is counted twice in face_on_shell (two sides)
     ///       Why "cnt_surface_bottom" not multiplied? Because the middle region is hallow
     if (cnt_surface_inner * 2 != cnt_face_on_shell_inner) {
-        logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_INNER do not match");
+        logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_INNER do not match. cnt_surface_inner={}, cnt_face_on_shell_inner={}", cnt_surface_inner, cnt_face_on_shell_inner);
     }
     if (cnt_surface_bottom != cnt_face_on_shell_bottom) {
-        logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_BOTTOM do not match");
+        logger().warn("Boundary of SHELL_INNER_BOTTOM: cnts of SURFACE_BOTTOM do not match. cnt_surface_bottom={}, cnt_face_on_shell_bottom={}", cnt_surface_bottom, cnt_face_on_shell_bottom);
     }
 
     //////////////////////////////////////////////////
@@ -284,10 +298,10 @@ bool TetMeshCheck::BoundaryCheck() {
     }
     // check the number matches
     if (cnt_surface_top != cnt_face_on_shell_top) {
-        logger().warn("Boundary of SHELL_TOP_OUTER: cnts of SURFACE_TOP do not match");
+        logger().warn("Boundary of SHELL_TOP_OUTER: cnts of SURFACE_TOP do not match. cnt_surface_top={}, cnt_face_on_shell_top={}", cnt_surface_top, cnt_face_on_shell_top);
     }
     if (cnt_surface_outer * 2 != cnt_face_on_shell_outer) {
-        logger().warn("Boundary of SHELL_TOP_OUTER: cnts of SURFACE_OUTER do not match");
+        logger().warn("Boundary of SHELL_TOP_OUTER: cnts of SURFACE_OUTER do not match. cnt_surface_outer={}, cnt_face_on_shell_outer={}", cnt_surface_outer, cnt_face_on_shell_outer);
     }
 
     return result;

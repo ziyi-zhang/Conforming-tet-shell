@@ -422,7 +422,8 @@ void tetwild_stage_shell(
     std::vector<std::array<int, 4>> &TO,
     std::vector<std::array<int, 4>> &is_surface_facet, 
     std::vector<std::array<int, 4>> &face_on_shell,
-    Eigen::VectorXi &labels) {
+    Eigen::VectorXi &labels, 
+    int &eulerNumber) {
 
     // the input mesh size
     logger().debug("VI size = {} x {}", VI.rows(), VI.cols());
@@ -454,7 +455,7 @@ void tetwild_stage_shell(
     std::vector<std::array<int, 4>> TO_with_pseudo_tets;
     tetshell::GetMeshWithPseudoTets(dualShell, VO, TO,  // input
                                     TO_with_pseudo_tets);  // output
-    tetshell::EulerNumber(TO_with_pseudo_tets, "Post-shell with pseudo tets");
+    eulerNumber = tetshell::EulerNumber(TO_with_pseudo_tets, "Post-shell with pseudo tets");
 }
 
 // -----------------------------------------------------------------------------
@@ -509,6 +510,7 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     std::vector<std::array<int, 4>> tet_indices;
     std::vector<std::array<int, 4>> is_surface_facet;
     std::vector<std::array<int, 4>> face_on_shell;  // 0 for not on shell
+    int eulerNumber;  // Post-shell with pseudo tets
 
     /// STAGE 1: Preprocess & Generate tet mesh
     tetwild_stage_one(VI, FI, args, state, geo_sf_mesh, geo_b_mesh,
@@ -516,7 +518,7 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
 
     /// STAGE 1.5: Shell
     Eigen::VectorXi labels;
-    tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels);
+    tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels, eulerNumber);
 
     /// STAGE 2: Mesh refinement
     std::vector<bool> t_is_removed(tet_indices.size(), false);
@@ -533,7 +535,7 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
         tetMeshCheckArgs.vertexAttri = false;
         tetMeshCheckArgs.conform = false;
         tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, labels, face_on_shell, tetMeshCheckArgs);
-        tetMeshCheck.SanityCheck();
+        tetMeshCheck.SanityCheck(eulerNumber);
     }
 
     // Extract to VO TO LO

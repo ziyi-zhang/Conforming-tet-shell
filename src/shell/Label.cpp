@@ -131,7 +131,9 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
             printf("side == CGAL::Oriented_side::ON_NEGATIVE_SIDE\n");
         else if (side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY)
             printf("side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY\n");
-        tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
+        logger().warn("point_in_tetrahedron: flipped tet detected.");
+        return false;
+        // tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
         // return (side == CGAL::Oriented_side::ON_NEGATIVE_SIDE) || (side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY);
     }
 }

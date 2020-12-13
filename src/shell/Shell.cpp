@@ -327,6 +327,7 @@ void GetTetFromPrism(
         const int ptIdx3 = map_VI2VO.at(prism[4]);  // the two vertices from the prism
         for (auto it=vertsOnTargetEdge.begin(); it!=vertsOnTargetEdge.end();) {
 
+            bool is_tet_with_idx0 = (it == vertsOnTargetEdge.begin());
             ptIdx1 = it->second;
             it++;
             if (it == vertsOnTargetEdge.end()) break;
@@ -336,16 +337,19 @@ void GetTetFromPrism(
             // update this new tet's attribute
             labels_temp.push_back(8);  // DEBUG PURPOSE
             /// NOTE: the face label depends on whether some collapse has occured
-            if (top_collapse) {
+            if (top_collapse && is_tet_with_idx0) {  // this correction only works for the tet with face 045 (not for the subdivided ones)
                 // top has collapsed
                 int surface_label;
-                if (surfaceIdx == SURFACE_INNER)
+                if (surfaceIdx == SURFACE_INNER) {
                     surface_label = SURFACE_BOTTOM;
-                else
+                } else if (surfaceIdx == SURFACE_OUTER) {
                     surface_label = SURFACE_TOP;
+                } else {
+                    tetwild::log_and_throw("surfaceIdx error.");
+                }
                 is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1024, 1024, 1}}));
                 face_on_shell_temp.push_back(std::array<int, 4>({{NOT_SUR, NOT_SUR, NOT_SUR, surface_label}}));
-            } else if (bottom_collapse) {
+            } else if (bottom_collapse) {  // this correction works for all subdivided tets
                 // bottom has collapsed
                 if (tetSplitA) {
                     is_surface_facet_temp.push_back(std::array<int, 4>({{1024, 1, 1024, 1024}}));

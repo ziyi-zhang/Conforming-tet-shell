@@ -32,6 +32,8 @@ public:
     bool BoundaryCheck();
     bool SingularityCheck();
 
+    bool SamePoint(int x, int y);
+
 
     // Maintenance methods
     ShellCheck(const Eigen::MatrixXd &VI_, const Eigen::MatrixXi &FI_, const ShellCheckArgs_t &args_) : args(args_), VI(VI_), FI(FI_) {}

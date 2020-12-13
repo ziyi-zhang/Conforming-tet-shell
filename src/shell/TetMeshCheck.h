@@ -9,6 +9,7 @@
 #include <vector>
 #include <array>
 #include <set>
+#include <limits>
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace tetshell {
@@ -35,7 +36,7 @@ public:
     const Eigen::VectorXi &labels;
     const std::vector<std::array<int, 4>> face_on_shell;
 
-    bool SanityCheck();
+    bool SanityCheck(int eulerNumber = std::numeric_limits<int>::max());
 
     bool PositiveTetCheck();
     bool ConformCheck();
