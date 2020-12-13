@@ -451,15 +451,9 @@ void tetwild_stage_shell(
                                       VO, TO, labels, is_surface_facet, face_on_shell);  // output
     }
 
-    // Freeze bottom and top faces
-    for (int i=0; i<face_on_shell.size(); i++)
-        for (int j=0; j<4; j++) {
-            if (face_on_shell[i][j] == SURFACE_BOTTOM || face_on_shell[i][j] == SURFACE_TOP) {
-                int vIdx = TO[i][j];
-                VO[vIdx].is_locked = true;
-                VO[vIdx].is_on_surface = true;
-            }
-        }
+    // Freeze vertices on bottom and top surfaces
+    tetshell::FreezeVertices(face_on_shell, TO,  // input
+                             VO);  // output
 
     // report Euler number again (with the hallow region filled with pseudo-tets)
     std::vector<std::array<int, 4>> TO_with_pseudo_tets;
@@ -483,6 +477,8 @@ void tetwild_stage_two(const Args &args, State &state,
     std::vector<std::array<int, 4>> &is_surface_facet, 
     std::vector<bool> &t_is_removed) {
 
+    spdlog::level::level_enum verbose_level = logger().level();
+    logger().set_level(static_cast<spdlog::level::level_enum>(2));
     // init
     logger().info("Refinement initializing...");
     MeshRefinement MR(geo_sf_mesh, geo_b_mesh, args, state);
@@ -499,7 +495,8 @@ void tetwild_stage_two(const Args &args, State &state,
     tet_indices = std::move(MR.tets);
     is_surface_facet = std::move(MR.is_surface_fs);
     t_is_removed = std::move(MR.t_is_removed);
-    // extractFinalTetmesh(MR, VO, TO, AO, args, state);
+
+    logger().set_level(verbose_level);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -529,23 +526,19 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     /// STAGE 1.5: Shell
     Eigen::VectorXi labels;
     tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels, eulerNumber);
-
-    /// STAGE 2: Mesh refinement
-    std::vector<bool> t_is_removed(tet_indices.size(), false);
-    if (!args.skip_optim) {
-        // geo_sf_mesh.clear();  // Do not need this in TetShell
-        // geo_b_mesh.clear();   // Do not need this in TetShell
-        tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
-                          tet_vertices, tet_indices, is_surface_facet, t_is_removed);
-    }
-
-    // tet mesh sanity check
     if (args.tet_mesh_sanity_check) {
         tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
         tetMeshCheckArgs.vertexAttri = false;
         tetMeshCheckArgs.conform = false;
         tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, labels, face_on_shell, tetMeshCheckArgs);
         tetMeshCheck.SanityCheck(eulerNumber);
+    }
+
+    /// STAGE 2: Mesh refinement
+    std::vector<bool> t_is_removed(tet_indices.size(), false);
+    if (!args.skip_optim) {
+        tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
+                          tet_vertices, tet_indices, is_surface_facet, t_is_removed);
     }
 
     // Extract to VO TO LO

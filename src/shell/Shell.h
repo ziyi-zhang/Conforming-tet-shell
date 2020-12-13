@@ -49,5 +49,7 @@ void ReplaceWithPrismTet(const tetwild::Args &args, const DualShell_t &dualShell
 void GetMeshWithPseudoTets(const DualShell_t &dualShell, const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, std::vector<std::array<int, 4>> &TO_with_pseudo_tets);
 /// TODO
 
+void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const std::vector<std::array<int, 4>> &TO, std::vector<tetwild::TetVertex> &VO);
+/// TODO
 
 }  // namespace tetshell

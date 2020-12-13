@@ -48,4 +48,4 @@ void Logger::init(bool use_cout, const std::string &filename, bool truncate) {
     registry_inst.register_and_init(logger_);
 }
 
-} // namespace tetwild
+}  // namespace tetwild

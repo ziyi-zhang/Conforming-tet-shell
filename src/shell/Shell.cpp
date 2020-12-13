@@ -545,7 +545,7 @@ void UpdateVertexAttributes(std::vector<tetwild::TetVertex> &VO, const std::vect
         }
     }
 
-    // what about on_edge & on_face?
+    // no need to update on_edge / on_face
 }
 
 }  // anonymous namespace
@@ -700,5 +700,19 @@ void GetMeshWithPseudoTets(const DualShell_t &dualShell, const std::vector<tetwi
     }
 }
 
+
+void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const std::vector<std::array<int, 4>> &TO, std::vector<tetwild::TetVertex> &VO) {
+
+    for (int i=0; i<face_on_shell.size(); i++)
+        for (int j=0; j<4; j++) {
+            // Only lock vertices on SURFACE_BOTTOM and SURFACE_TOP
+            if (face_on_shell[i][j] == SURFACE_BOTTOM || face_on_shell[i][j] == SURFACE_TOP) {
+
+                int vIdx = TO[i][j];
+                VO[vIdx].is_locked = true;
+                VO[vIdx].is_on_surface = true;
+            }
+        }
+}
 
 }  // namespace tetshell

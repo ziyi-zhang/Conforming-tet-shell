@@ -277,7 +277,7 @@ void EdgeCollapser::postProcess() {
 
 int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 
-    bool is_edge_too_short = false;
+//    bool is_edge_too_short = false;
     bool is_edge_degenerate = false;
     double length = sqrt(CGAL::squared_distance(tet_vertices[v1_id].posf, tet_vertices[v2_id].posf));
     if (length == 0) {
@@ -511,7 +511,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 
         tet_vertices[v2_id].is_on_surface = true;
 
-        bool is_check_isolated = false;
+//        bool is_check_isolated = false;
         for (int i = 0; i < n12_t_ids.size(); i++) {
             std::array<int, 2> is_sf_fs;
             std::vector<int> es;
@@ -562,7 +562,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
         }
     }
 
-    //update boundary points //todo: Pls figure out a more efficient way
+    // update boundary points //todo: Pls figure out a more efficient way
 //    if(tet_vertices[v2_id].is_on_boundary && !isBoundaryPoint(v2_id)) {
 //        tet_vertices[v2_id].is_on_boundary = false;
 ////        logger().debug("a boundary vertex is removed");
