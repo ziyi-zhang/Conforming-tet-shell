@@ -451,6 +451,16 @@ void tetwild_stage_shell(
                                       VO, TO, labels, is_surface_facet, face_on_shell);  // output
     }
 
+    // Freeze bottom and top faces
+    for (int i=0; i<face_on_shell.size(); i++)
+        for (int j=0; j<4; j++) {
+            if (face_on_shell[i][j] == SURFACE_BOTTOM || face_on_shell[i][j] == SURFACE_TOP) {
+                int vIdx = TO[i][j];
+                VO[vIdx].is_locked = true;
+                VO[vIdx].is_on_surface = true;
+            }
+        }
+
     // report Euler number again (with the hallow region filled with pseudo-tets)
     std::vector<std::array<int, 4>> TO_with_pseudo_tets;
     tetshell::GetMeshWithPseudoTets(dualShell, VO, TO,  // input

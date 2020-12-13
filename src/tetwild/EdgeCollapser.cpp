@@ -456,23 +456,27 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
                     getFaceConnTets(tets[n12_t_ids[i]][(j + 1) % 4], tets[n12_t_ids[i]][(j + 2) % 4],
                                     tets[n12_t_ids[i]][(j + 3) % 4], ts);
 
-//                    if(ts.size() != 2) {
-//                        logger().debug("ts.size() != 2 but = {}", ts.size());
-//                        logger().debug("v1 info:");
-//                        tet_vertices[v1_id].printInfo();
-//                        logger().debug("v2 info:");
-//                        tet_vertices[v2_id].printInfo();
-//
-//                        tet_vertices[tets[n12_t_ids[i]][(j + 1) % 4]].printInfo();
-//                        tet_vertices[tets[n12_t_ids[i]][(j + 2) % 4]].printInfo();
-//                        tet_vertices[tets[n12_t_ids[i]][(j + 3) % 4]].printInfo();
-//                        pausee();
-//                    }
+                    // TetShell: Make sure freeze TOP and BOTTOM shell faces
+                    /*
+                    if (ts.size() != 2) {
+                        logger().error("ts.size() != 2 but = {}", ts.size());
+                        logger().error("v1 info:");
+                        tet_vertices[v1_id].printInfo();
+                        logger().error("v2 info:");
+                        tet_vertices[v2_id].printInfo();
 
-                    if (tets[n12_t_ids[i]][j] == v1_id)
+                        tet_vertices[tets[n12_t_ids[i]][(j + 1) % 4]].printInfo();
+                        tet_vertices[tets[n12_t_ids[i]][(j + 2) % 4]].printInfo();
+                        tet_vertices[tets[n12_t_ids[i]][(j + 3) % 4]].printInfo();
+                        pausee();
+                    }
+                    */
+
+                    if (tets[n12_t_ids[i]][j] == v1_id) {
                         update_sf_t_ids[i][1] = ts[0] != n12_t_ids[i] ? ts[0] : ts[1];
-                    else
+                    } else {
                         update_sf_t_ids[i][0] = ts[0] != n12_t_ids[i] ? ts[0] : ts[1];
+                    }
                 }
             }
         }
@@ -502,7 +506,6 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
             cnt++;
         }
     }
-
 
     if (tet_vertices[v1_id].is_on_surface || tet_vertices[v2_id].is_on_surface) {
 
@@ -597,6 +600,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 //    }
 
 //    logger().debug("{}{}jt==tri.end()", n1_v_ids.size(), "->";
+    if (v1_id == 6537 && v2_id == 8584) printf("Before n1_v_ids_vec\n");
     std::vector<int> n1_v_ids_vec, n12_v_ids_vec;
     n1_v_ids_vec.reserve(n1_v_ids.size());
     n12_v_ids_vec.reserve(n12_v_ids.size());
@@ -636,6 +640,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
         }
     }
 
+    if (v1_id == 6537 && v2_id == 8584) printf("End of collapse an edge\n");
     if(is_envelop_suc)
         return ENVELOP_SUC;
     return SUCCESS;
