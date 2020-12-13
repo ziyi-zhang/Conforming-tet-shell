@@ -267,6 +267,7 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
 //    state.eps *= eps_s;
 //    state.eps_2 *= eps_s*eps_s;
     bool is_split = true;
+
     for (int pass = old_pass; pass < old_pass + args.max_num_passes; pass++) {
         if (is_dealing_unrounded && pass == old_pass) {
             updateScalarField(false, false, args.filter_energy_thres);
@@ -296,7 +297,7 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
         if (localOperation.getMaxEnergy() < args.filter_energy_thres)
             break;
 
-        //check and mark is_bad_element
+        // check and mark is_bad_element
         double avg_energy, max_energy;
         localOperation.getAvgMaxEnergy(avg_energy, max_energy);
         if (pass > 0 && pass < old_pass + args.max_num_passes - 1
@@ -341,7 +342,7 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
 //                refine_unrounded(splitter, collapser, edge_remover, smoother);
 //            }
 
-            //get target energy
+            // get target energy
             double target_energy = localOperation.getMaxEnergy() / 100;
             target_energy = std::min(target_energy, target_energy0 / 10);
             target_energy = std::max(target_energy, args.filter_energy_thres * 0.8);
