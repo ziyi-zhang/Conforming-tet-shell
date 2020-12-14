@@ -149,6 +149,32 @@ int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices, const std::s
 }
 
 
+bool SameUnorderedTriangle(const Eigen::Matrix<double, 3, 3> &triA, const Eigen::Matrix<double, 3, 3> &triB, const double epsilon) {
+
+    Eigen::Matrix<double, 1, 3> vec;
+    bool f[3];
+    f[0] = false;
+    f[1] = false;
+    f[2] = false;
+
+    for (int i=0; i<3; i++) {
+        for (int j=0; j<3; j++) {
+
+            if (f[j]) continue;
+            vec = triA.row(i) - triB.row(j);
+            double maxDiff = vec.cwiseAbs().maxCoeff();
+            if (maxDiff <= epsilon) {
+                // A[i, :] ~ B[j, :]
+                f[j] = true;
+                break;
+            }
+        }
+    }
+
+    return f[0] && f[1] && f[2];
+}
+
+
 void ExtractMesh(
     const tetwild::Args &args,
     const std::vector<tetwild::TetVertex> &VI, 

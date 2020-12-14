@@ -708,9 +708,12 @@ void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const 
             // Only lock vertices on SURFACE_BOTTOM and SURFACE_TOP
             if (face_on_shell[i][j] == SURFACE_BOTTOM || face_on_shell[i][j] == SURFACE_TOP) {
 
-                int vIdx = TO[i][j];
-                VO[vIdx].is_locked = true;
-                VO[vIdx].is_on_surface = true;
+                for (int k=1; k<4; k++) {
+
+                    int vIdx = TO[i][(j+k)%4];
+                    VO[vIdx].is_locked = true;
+                    VO[vIdx].is_on_surface = true;
+                }
             }
         }
 }

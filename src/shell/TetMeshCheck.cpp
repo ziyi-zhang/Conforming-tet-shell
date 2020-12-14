@@ -69,6 +69,62 @@ bool TetMeshCheck::SanityCheck(int eulerNumber) {
 }
 
 
+bool TetMeshCheck::ConformityCheck() {
+
+    logger().info("======================================");
+    logger().debug(">>> Post-refinement Conformity Check >>>");
+    bool result = true;
+
+    ConvertDouble();
+
+    int idx1, idx2, idx3;
+    int count = 0;
+    for (int i=0; i<TO.size(); i++)
+        for (int j=0; j<4; j++) {
+
+            idx1 = TO[i][(j+1) % 4];
+            idx2 = TO[i][(j+2) % 4];
+            idx3 = TO[i][(j+3) % 4];
+            if (VO[idx1].is_locked && VO[idx2].is_locked && VO[idx3].is_locked) {
+                std::unordered_set<int> sharedInputFace;
+                UnorderedsetIntersection(VO[idx1].on_face, VO[idx2].on_face, VO[idx3].on_face, sharedInputFace);
+
+                if (sharedInputFace.empty()) {
+                    // if (VO[idx1].on_face.size() > 0) countNeg++;  // DEBUG PURPOSE
+                    continue;  // this is the bounding box, skip
+                }
+                for (auto it=sharedInputFace.begin(); it!=sharedInputFace.end(); it++) {
+
+                    int FI_idx = *it;
+                    Eigen::Matrix<double, 3, 3> inputTriangle, outputTriangle;
+                    inputTriangle << VI.row(FI(FI_idx, 0)), VI.row(FI(FI_idx, 1)), VI.row(FI(FI_idx, 2));
+                    outputTriangle << VO[idx1].posf.x(), VO[idx1].posf.y(), VO[idx1].posf.z(), 
+                                      VO[idx2].posf.x(), VO[idx2].posf.y(), VO[idx2].posf.z(), 
+                                      VO[idx3].posf.x(), VO[idx3].posf.y(), VO[idx3].posf.z();
+                    if (SameUnorderedTriangle(inputTriangle, outputTriangle, 0.0)) {
+                        count++;
+                    } else {
+                        result = false;
+                        std::cout << "Input triangle:" << std::endl;
+                        std::cout << inputTriangle << std::endl;
+                        std::cout << "Output triangle:" << std::endl;
+                        std::cout << outputTriangle << std::endl;
+                        logger().warn("Triangle coordinates not match: FI_idx={}", FI_idx);
+                    }
+                }
+            }
+        }
+
+    if (count != 2 * (FI.rows()/4)) {
+        result = false;
+        logger().warn("#[locked faces] after refinement is wrong: count={} FI/4={}", count, FI.rows()/4);
+    }
+
+    logger().info("======================================");
+    return result;
+}
+
+
 bool TetMeshCheck::PositiveTetCheck() {
 
     logger().debug(">>> Positive Tet Check >>>");

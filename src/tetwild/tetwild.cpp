@@ -115,7 +115,7 @@ void extractFinalTetmesh(MeshRefinement& MR,
 
     std::vector<TetVertex> &tet_vertices = MR.tet_vertices;
     std::vector<std::array<int, 4>> &tets = MR.tets;
-    std::vector<bool> &v_is_removed = MR.v_is_removed;
+//    std::vector<bool> &v_is_removed = MR.v_is_removed;
     std::vector<bool> &t_is_removed = MR.t_is_removed;
     std::vector<TetQuality> &tet_qualities = MR.tet_qualities;
     int t_cnt = std::count(t_is_removed.begin(), t_is_removed.end(), false);
@@ -534,11 +534,23 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
         tetMeshCheck.SanityCheck(eulerNumber);
     }
 
+    // DEBUG PURPOSE
+    if (args.tet_mesh_sanity_check) {
+        tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
+        tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, labels, face_on_shell, tetMeshCheckArgs);
+        tetMeshCheck.ConformityCheck();
+    }
     /// STAGE 2: Mesh refinement
     std::vector<bool> t_is_removed(tet_indices.size(), false);
     if (!args.skip_optim) {
         tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
                           tet_vertices, tet_indices, is_surface_facet, t_is_removed);
+        // Post-refinement check
+        if (args.tet_mesh_sanity_check) {
+            tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
+            tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, labels, face_on_shell, tetMeshCheckArgs);
+            tetMeshCheck.ConformityCheck();
+        }
     }
 
     // Extract to VO TO LO
