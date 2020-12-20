@@ -61,6 +61,12 @@ public:
 
     bool is_locked = false;  // TET set to be true
     bool is_inside = false;
+
+    // TetShell: not allowed to smooth
+    bool is_frozen = false;
+    // TetShell: frozen edges, not allowed to split, swap or collapse
+    // stores the other vertex index
+    std::unordered_set<int> frozen_edge;
 };
 
 

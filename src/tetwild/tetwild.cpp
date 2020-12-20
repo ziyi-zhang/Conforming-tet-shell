@@ -431,16 +431,16 @@ void tetwild_stage_shell(
     logger().debug("VO size = {} TetVertex", VO.size());
     logger().debug("TO size = {} x 4", TO.size());
 
-    // report Euler number (this is immediately after tetwild stage 1)
+    // Report Euler number (this is immediately after tetwild stage 1)
     tetshell::EulerNumber(TO, "Pre-shell");
 
-    // convert VI to CGAL rational
+    // Convert VI to CGAL rational
     std::vector<Point_3> VI_cgal;
     for (int i=0; i<VI.rows(); i++) {
         VI_cgal.push_back(Point_3(VI(i, 0), VI(i, 1), VI(i, 2)));
     }
 
-    // construct dualShell & label tets
+    // Construct dualShell & label tets
     tetshell::DualShell_t dualShell;
     tetshell::LabelTet(args, VI_cgal, FI, VO, TO, face_on_shell,  // input
                        dualShell, labels);  // output
@@ -455,7 +455,7 @@ void tetwild_stage_shell(
     tetshell::FreezeVertices(face_on_shell, TO,  // input
                              VO);  // output
 
-    // report Euler number again (with the hallow region filled with pseudo-tets)
+    // Report Euler number again (with the hallow region filled with pseudo-tets)
     std::vector<std::array<int, 4>> TO_with_pseudo_tets;
     tetshell::GetMeshWithPseudoTets(dualShell, VO, TO,  // input
                                     TO_with_pseudo_tets);  // output
@@ -538,7 +538,6 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     if (args.tet_mesh_sanity_check) {
         tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
         tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, labels, face_on_shell, tetMeshCheckArgs);
-        tetMeshCheck.ConformityCheck();
     }
     /// STAGE 2: Mesh refinement
     std::vector<bool> t_is_removed(tet_indices.size(), false);

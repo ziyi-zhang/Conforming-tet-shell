@@ -15,6 +15,7 @@ namespace tetshell {
 typedef struct ShellCheckArgs_t {
     bool boundary = true;  // whether the four shells are closed (judging from F only)
     bool singularity = true;  // 
+    bool Findex = true;  // F[k, 0] smallest && V, F size should match
 } ShellCheckArgs_t;
 
 
@@ -31,6 +32,7 @@ public:
 
     bool BoundaryCheck();
     bool SingularityCheck();
+    bool FindexCheck();
 
     bool SamePoint(int x, int y);
 

@@ -148,7 +148,7 @@ bool point_in_prism(const Point_3& point, bool tetra_split_AB, const std::array<
                                 verts[tets[i][2]], verts[tets[i][3]]))
         return true;
     return false;
-} 
+}
 
 
 bool PointInShell(const Point_3 &center, const shell_t &shell, const std::vector<Point_3> &VI) {

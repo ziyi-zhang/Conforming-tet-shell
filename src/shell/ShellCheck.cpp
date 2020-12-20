@@ -30,6 +30,11 @@ bool ShellCheck::SanityCheck() {
         result = result && res;
     }
 
+    if (args.Findex) {
+        bool res = FindexCheck();
+        result = result && res;
+    }
+
     logger().info("Input shell sanity check done.");
     logger().info("======================================");
     return result;
@@ -70,6 +75,28 @@ bool ShellCheck::SingularityCheck() {
                 logger().warn("Input shell has problematic singularites among [{}, {}, {}, {}]", i, i+Nv, i+Nv*2, i+Nv*3);
                 return false;
             }
+    }
+
+    return true;
+}
+
+
+bool ShellCheck::FindexCheck() {
+
+    // first index of a triangle must be the smallest
+    for (int i=0; i<FI.rows(); i++)
+        if (FI(i, 0) >= FI(i, 1) || FI(i, 0) >= FI(i, 2)) {
+            logger().warn("Input connectivity matrix first index not the smallest F[{}, :] = [{}, {}, {}]", i, FI(i, 0), FI(i, 1), FI(i, 2));
+            return false;
+        }
+
+    // V, F size should match
+    int Nf = FI.rows() / 4;
+    const Eigen::MatrixXi &FI_one_shell = FI.block(0, 0, Nf, 3);
+    int maxF_index = FI_one_shell.maxCoeff();
+    if (maxF_index+1 != VI.rows() / 4) {
+        logger().warn("Input V, F not valid. F.max()={}, V.rows()={}", maxF_index, VI.rows());
+        return false;
     }
 
     return true;
