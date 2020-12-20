@@ -1,5 +1,8 @@
+#include <shell/common.hpp>
 #include <shell/ShellCheck.h>
+#include <shell/Utils.h>
 #include <tetwild/Logger.h>
+#include <tetwild/CGALTypes.h>
 #include <igl/boundary_facets.h>
 
 #include <Eigen/Dense>
@@ -9,6 +12,7 @@ namespace tetshell {
 
 using namespace std;
 using tetwild::logger;
+using tetwild::Point_3;
 
 namespace {
 
@@ -32,6 +36,11 @@ bool ShellCheck::SanityCheck() {
 
     if (args.Findex) {
         bool res = FindexCheck();
+        result = result && res;
+    }
+
+    if (args.positiveTet) {
+        bool res = PositiveTetCheck();
         result = result && res;
     }
 
@@ -97,6 +106,49 @@ bool ShellCheck::FindexCheck() {
     if (maxF_index+1 != VI.rows() / 4) {
         logger().warn("Input V, F not valid. F.max()={}, V.rows()={}", maxF_index, VI.rows());
         return false;
+    }
+
+    return true;
+}
+
+
+bool PrismPositveTets(const std::vector<Point_3> &VI_cgal, const Eigen::Vector3i &tri1, const Eigen::Vector3i &tri2) {
+
+    auto tets = tri1(1)>tri1(2) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
+    Eigen::VectorXi verts(1, 6);
+    verts << tri1, tri2;
+
+    for (int i = 0; i < 3; i++) {
+        if (!IsTetPositive(VI_cgal[verts(tets[i][0])], VI_cgal[verts(tets[i][1])], VI_cgal[verts(tets[i][2])], VI_cgal[verts(tets[i][3])]))
+            return false;
+    }
+    return true;
+}
+
+
+bool ShellCheck::PositiveTetCheck() {
+
+    // Convert VI to CGAL rational
+    std::vector<Point_3> VI_cgal;
+    for (int i=0; i<VI.rows(); i++) {
+        VI_cgal.push_back(Point_3(VI(i, 0), VI(i, 1), VI(i, 2)));
+    }
+
+    // check positive tet between two adjacent surfaces
+    int Nf = FI.rows() / 4;
+    for (int i=0; i<Nf; i++) {
+        if (!PrismPositveTets(VI_cgal, FI.row(i), FI.row(i+Nf))) {
+            logger().warn("Input prism not consisted of positive tets: INNER-BOTTOM with row = {}", i);
+            return false;
+        }
+        if (!PrismPositveTets(VI_cgal, FI.row(i+Nf), FI.row(i+Nf*2))) {
+            logger().warn("Input prism not consisted of positive tets: BOTTOM-TOP with row = {}", i);
+            return false;
+        }
+        if (!PrismPositveTets(VI_cgal, FI.row(i+Nf*2), FI.row(i+Nf*3))) {
+            logger().warn("Input prism not consisted of positive tets: TOP_OUTER with row = {}", i);
+            return false;
+        }
     }
 
     return true;

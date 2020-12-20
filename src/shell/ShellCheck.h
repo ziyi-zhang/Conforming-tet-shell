@@ -14,8 +14,9 @@ namespace tetshell {
 
 typedef struct ShellCheckArgs_t {
     bool boundary = true;  // whether the four shells are closed (judging from F only)
-    bool singularity = true;  // 
+    bool singularity = true;  // check singularity
     bool Findex = true;  // F[k, 0] smallest && V, F size should match
+    bool positiveTet = true;  // check the input F leads to positive tets using standard prismatic dividing
 } ShellCheckArgs_t;
 
 
@@ -33,6 +34,7 @@ public:
     bool BoundaryCheck();
     bool SingularityCheck();
     bool FindexCheck();
+    bool PositiveTetCheck();
 
     bool SamePoint(int x, int y);
 
