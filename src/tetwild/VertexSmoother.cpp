@@ -14,9 +14,11 @@
 #include <tetwild/Logger.h>
 #include <pymesh/MshSaver.h>
 
+
 namespace tetwild {
 
 void VertexSmoother::smooth() {
+
     tets_tss = std::vector<int>(tets.size(), 1);
     tet_vertices_tss = std::vector<int>(tet_vertices.size(), 0);
     ts = 1;
@@ -45,7 +47,9 @@ void VertexSmoother::smooth() {
     }
 }
 
-bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy){
+
+bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy) {
+
     std::vector<std::array<int, 4>> new_tets;
     std::vector<int> t_ids;
     for (int t_id:tet_vertices[v_id].conn_tets) {
@@ -53,18 +57,18 @@ bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy){
         t_ids.push_back(t_id);
     }
 
-    ///try to round the vertex
-    if(!tet_vertices[v_id].is_rounded) {
+    // try to round the vertex
+    if (!tet_vertices[v_id].is_rounded) {
         Point_3 old_p = tet_vertices[v_id].pos;
         tet_vertices[v_id].pos = Point_3(tet_vertices[v_id].posf[0], tet_vertices[v_id].posf[1],
                                          tet_vertices[v_id].posf[2]);
-        if(isFlip(new_tets))
+        if (isFlip(new_tets))
             tet_vertices[v_id].pos = old_p;
         else
             tet_vertices[v_id].is_rounded = true;
     }
 
-    ///check if should use exact smoothing
+    // check if should use exact smoothing
     bool is_valid = true;
     for (auto it = tet_vertices[v_id].conn_tets.begin(); it != tet_vertices[v_id].conn_tets.end(); it++) {
         CGAL::Orientation ori = CGAL::orientation(tet_vertices[tets[*it][0]].posf, tet_vertices[tets[*it][1]].posf,
@@ -78,12 +82,12 @@ bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy){
         return false;
     } else {
         Point_3f pf;
-        if(energy_type == state.ENERGY_AMIPS) {
+        if (energy_type == state.ENERGY_AMIPS) {
             if (!NewtonsMethod(t_ids, new_tets, v_id, pf))
                 return false;
         }
 
-        //assign new coordinate and try to round it
+        // assign new coordinate and try to round it
         Point_3 old_p = tet_vertices[v_id].pos;
         Point_3f old_pf = tet_vertices[v_id].posf;
         bool old_is_rounded = tet_vertices[v_id].is_rounded;
@@ -91,7 +95,7 @@ bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy){
         tet_vertices[v_id].pos = p;
         tet_vertices[v_id].posf = pf;
         tet_vertices[v_id].is_rounded = true;
-        if (isFlip(new_tets)) {//TODO: why it happens?
+        if (isFlip(new_tets)) {  //TODO: why it happens?
             logger().debug("flip in the end");
             tet_vertices[v_id].pos = old_p;
             tet_vertices[v_id].posf = old_pf;
@@ -99,7 +103,7 @@ bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy){
         }
     }
 
-    if(is_cal_energy){
+    if (is_cal_energy){
         std::vector<TetQuality> tet_qs;
         calTetQualities(new_tets, tet_qs);
         int cnt = 0;
@@ -111,7 +115,9 @@ bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy){
     return true;
 }
 
+
 void VertexSmoother::smoothSingle() {
+
     double old_ts = ts;
     counter = 0;
     suc_counter = 0;
@@ -240,6 +246,7 @@ void VertexSmoother::smoothSingle() {
         tet_qualities[i] = tet_qs[cnt++];
     }
 }
+
 
 void VertexSmoother::smoothSurface() {//smoothing surface using two methods
 //    suc_counter = 0;
@@ -462,6 +469,7 @@ void VertexSmoother::smoothSurface() {//smoothing surface using two methods
     logger().debug("Totally {}({}) vertices on surface are smoothed.", sf_suc_counter, sf_counter);
 }
 
+
 bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vector<std::array<int, 4>>& new_tets,
                                    int v_id, Point_3f& p) {
 //    bool is_moved=true;
@@ -540,6 +548,7 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
 
     return is_moved;
 }
+
 
 double VertexSmoother::getNewEnergy(const std::vector<int>& t_ids) {
     double s_energy = 0;
@@ -624,6 +633,7 @@ double VertexSmoother::getNewEnergy(const std::vector<int>& t_ids) {
     return s_energy;
 }
 
+
 bool VertexSmoother::NewtonsUpdate(const std::vector<int>& t_ids, int v_id,
                                    double& energy, Eigen::Vector3d& J, Eigen::Matrix3d& H, Eigen::Vector3d& X0) {
     energy = 0;
@@ -701,18 +711,19 @@ bool VertexSmoother::NewtonsUpdate(const std::vector<int>& t_ids, int v_id,
     return true;
 }
 
+
 int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std::vector<bool>& tmp_is_on_surface,
                                       const std::vector<bool>& tmp_t_is_removed){
     int cnt_suc = 0;
     double max_slim_evergy = 0;
-    for(unsigned int i=0;i<tet_qualities.size();i++) {
+    for (unsigned int i=0;i<tet_qualities.size();i++) {
         if (tmp_t_is_removed[i])
             continue;
         if (tet_qualities[i].slim_energy > max_slim_evergy)
             max_slim_evergy = tet_qualities[i].slim_energy;
     }
 
-    for(int v_id:b_v_ids){
+    for (int v_id:b_v_ids) {
         // do laplacian on v_id
         std::vector<std::array<int, 4>> new_tets;
         std::unordered_set<int> n_v_ids;
@@ -735,10 +746,10 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
             setIntersection(tet_vertices[v_id].conn_tets, tet_vertices[n_sf_v_id].conn_tets, t_ids);
             bool has_removed = false;
             bool has_unremoved = false;
-            for(int t_id:t_ids){
-                if(tmp_t_is_removed[t_id])
+            for (int t_id:t_ids) {
+                if (tmp_t_is_removed[t_id])
                     has_removed=true;
-                if(!tmp_t_is_removed[t_id])
+                if (!tmp_t_is_removed[t_id])
                     has_unremoved=true;
             }
             if(has_removed && has_unremoved)
@@ -752,11 +763,11 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
 //            }
 //        }
         std::array<double, 3> vec ={{0, 0, 0}};
-        for(int n_sf_v_id:n_sf_v_ids) {
+        for (int n_sf_v_id:n_sf_v_ids) {
             for (int j = 0; j < 3; j++)
                 vec[j] += tet_vertices[n_sf_v_id].posf[j];
         }
-        for(int j=0;j<3;j++) {
+        for (int j=0;j<3;j++) {
             vec[j] = (vec[j] / n_sf_v_ids.size()) - tet_vertices[v_id].posf[j];
         }
 
@@ -801,7 +812,7 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
             cnt_suc++;
             break;
         }
-        if(!is_suc) {
+        if (!is_suc) {
             tet_vertices[v_id].pos = old_p;
             tet_vertices[v_id].posf = old_pf;
             continue;
@@ -817,7 +828,7 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
         // do normal smoothing on neighbor vertices
 //        logger().debug("n_v_ids.size = {}", n_v_ids.size());
 //        logger().debug("n_v_ids2.size = {}", n_v_ids2.size());
-        for(int n_v_id:n_v_ids){
+        for (int n_v_id:n_v_ids) {
             smoothSingleVertex(n_v_id, true);
         }
 //        for(int n_v_id:n_v_ids2){
@@ -832,7 +843,9 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
     return cnt_suc;
 }
 
-void VertexSmoother::outputOneRing(int v_id, std::string s){
+
+void VertexSmoother::outputOneRing(int v_id, std::string s) {
+
     PyMesh::MshSaver mSaver(state.working_dir+state.postfix+"_smooth_"+std::to_string(v_id)+s+".msh", true);
     std::vector<int> v_ids;
     std::vector<int> new_ids(tet_vertices.size(), -1);
@@ -842,7 +855,7 @@ void VertexSmoother::outputOneRing(int v_id, std::string s){
     }
     std::sort(v_ids.begin(), v_ids.end());
     v_ids.erase(std::unique(v_ids.begin(), v_ids.end()), v_ids.end());
-    int cnt=0;
+    int cnt = 0;
     for(int id:v_ids){
         new_ids[id] = cnt;
         cnt++;
@@ -865,7 +878,7 @@ void VertexSmoother::outputOneRing(int v_id, std::string s){
     mSaver.save_mesh(oV, oT, 3, mSaver.TET);
 
     Eigen::VectorXd cv(v_ids.size());
-    for(int i=0;i<v_ids.size();i++){
+    for(int i=0; i<v_ids.size(); i++){
         cv[i] = (v_ids[i] == v_id);
     }
     mSaver.save_scalar_field("center vertex", cv);
@@ -879,4 +892,4 @@ void VertexSmoother::outputOneRing(int v_id, std::string s){
     mSaver.save_elem_scalar_field("quality", q);
 }
 
-} // namespace tetwild
+}  // namespace tetwild

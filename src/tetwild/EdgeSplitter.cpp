@@ -13,6 +13,7 @@
 #include <tetwild/Common.h>
 #include <tetwild/Logger.h>
 
+
 namespace tetwild {
 
 void EdgeSplitter::getMesh_ui(const std::vector<std::array<int, 4>>& tets, Eigen::MatrixXd& V, Eigen::MatrixXi& F) {
@@ -34,19 +35,21 @@ void EdgeSplitter::getMesh_ui(const std::vector<std::array<int, 4>>& tets, Eigen
     }
 }
 
+
 void EdgeSplitter::init() {
+
     std::vector<std::array<int, 2>> edges;
     for (unsigned int i = 0; i < tets.size(); i++) {
         if (t_is_removed[i])
             continue;
         for (int j = 0; j < 3; j++) {
             std::array<int, 2> e = {{tets[i][0], tets[i][j + 1]}};
-            if(e[0]>e[1]) e={{e[1], e[0]}};
-            if(!isLocked_ui(e))
+            if (e[0]>e[1]) e = {{e[1], e[0]}};
+            if (!isLocked_ui(e))
                 edges.push_back(e);
             e = {{tets[i][j + 1], tets[i][(j + 1) % 3 + 1]}};
-            if(e[0]>e[1]) e={{e[1], e[0]}};
-            if(!isLocked_ui(e))
+            if (e[0]>e[1]) e = {{e[1], e[0]}};
+            if (!isLocked_ui(e))
                 edges.push_back(e);
         }
     }
@@ -69,12 +72,12 @@ void EdgeSplitter::init() {
 
     counter=0;
     suc_counter=0;
-
 }
+
 
 void EdgeSplitter::split() {
 
-    if(budget >0) {
+    if (budget >0) {
         int v_slots = std::count(v_is_removed.begin(), v_is_removed.end(), true);
         v_slots = budget - v_slots;
         if (v_slots > 0) {
@@ -145,10 +148,11 @@ void EdgeSplitter::split() {
             tet_qualities[i] = tet_qs[cnt++];
         }
     }
-
 }
 
+
 bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
+
     int v1_id = edge[0];
     int v2_id = edge[1];
 
@@ -162,7 +166,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
             break;
         }
     }
-    if(!is_found)
+    if (!is_found)
         v_empty_start = v_is_removed.size();
 
     int v_id = v_empty_start;
@@ -338,10 +342,11 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
     return true;
 }
 
-int EdgeSplitter::getOverRefineScale(int v1_id, int v2_id){
+
+int EdgeSplitter::getOverRefineScale(int v1_id, int v2_id) {
     return 1;
 
-    if(is_over_refine) {
+    if (is_over_refine) {
         std::vector<int> n12_t_ids;
         setIntersection(tet_vertices[v1_id].conn_tets, tet_vertices[v2_id].conn_tets, n12_t_ids);
         for(int i=0;i<n12_t_ids.size();i++) {
@@ -360,8 +365,10 @@ int EdgeSplitter::getOverRefineScale(int v1_id, int v2_id){
     return 1;
 }
 
+
 bool EdgeSplitter::isSplittable_cd1(double weight) {
-    if(is_check_quality)
+
+    if (is_check_quality)
         return true;
 
     if (weight > ideal_weight)
@@ -369,7 +376,9 @@ bool EdgeSplitter::isSplittable_cd1(double weight) {
     return false;
 }
 
+
 bool EdgeSplitter::isSplittable_cd1(int v1_id, int v2_id, double weight) {
+
     double adaptive_scale = (tet_vertices[v1_id].adaptive_scale + tet_vertices[v2_id].adaptive_scale) / 2.0;
 //    if(adaptive_scale==0){
 //        logger().debug("adaptive_scale==0!!!");
@@ -386,7 +395,9 @@ bool EdgeSplitter::isSplittable_cd1(int v1_id, int v2_id, double weight) {
     return false;
 }
 
+
 void EdgeSplitter::getNewTetSlots(int n, std::vector<int>& new_conn_tets) {
+
     int cnt = 0;
     for (int i = t_empty_start; i < t_is_removed.size(); i++) {
         if (t_is_removed[i]) {

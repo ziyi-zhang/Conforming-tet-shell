@@ -15,6 +15,7 @@
 #include <tetwild/LocalOperations.h>
 #include <queue>
 
+
 namespace tetwild {
 
 class ElementInQueue_ec{
@@ -27,6 +28,7 @@ public:
             v_ids(ids), weight(w){}
 };
 
+
 struct cmp_ec {
     bool operator()(const ElementInQueue_ec &e1, const ElementInQueue_ec &e2) {
         if (e1.weight == e2.weight)
@@ -34,6 +36,7 @@ struct cmp_ec {
         return e1.weight > e2.weight;
     }
 };
+
 
 class EdgeCollapser: public LocalOperations {
 public:
@@ -97,6 +100,6 @@ public:
     igl::Timer igl_timer;
 };
 
-} // namespace tetwild
+}  // namespace tetwild
 
-#endif //NEW_GTET_EDGECOLLAPSER_H
+#endif  //NEW_GTET_EDGECOLLAPSER_H

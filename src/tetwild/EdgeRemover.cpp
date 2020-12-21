@@ -14,9 +14,11 @@
 #include <tetwild/Logger.h>
 #include <unordered_map>
 
+
 namespace tetwild {
 
 void EdgeRemover::init() {
+
     energy_time = 0;
 
     const unsigned int tets_size = tets.size();
@@ -60,23 +62,26 @@ void EdgeRemover::init() {
     equal_buget = 100;
 }
 
-void EdgeRemover::swap(){
+
+void EdgeRemover::swap() {
+
     tmp_cnt3=0;
     tmp_cnt4=0;
     tmp_cnt5=0;
     tmp_cnt6=0;
     int cnt5=0;
 
-    while(!er_queue.empty()){
+    while (!er_queue.empty()) {
+
         const ElementInQueue_er& ele=er_queue.top();
 
-        if(!isEdgeValid(ele.v_ids)){
+        if (!isEdgeValid(ele.v_ids)) {
             er_queue.pop();
             continue;
         }
 
         std::vector<int> t_ids;
-        if(!isSwappable_cd1(ele.v_ids, t_ids, true)){
+        if (!isSwappable_cd1(ele.v_ids, t_ids, true)) {
             er_queue.pop();
             continue;
         }
@@ -86,23 +91,23 @@ void EdgeRemover::swap(){
 
 //        logger().debug("{} {} {} ", v_ids[0], v_ids[1], t_ids.size());
 
-        while(!er_queue.empty()){
+        while (!er_queue.empty()) {
             std::array<int, 2> tmp_v_ids = er_queue.top().v_ids;
-            if(tmp_v_ids==v_ids)
+            if (tmp_v_ids==v_ids)
                 er_queue.pop();
             else
                 break;
         }
 
         bool is_fail=false;
-        if(removeAnEdge_32(v_ids[0], v_ids[1], t_ids))
+        if (removeAnEdge_32(v_ids[0], v_ids[1], t_ids))
             suc_counter++;
-        else if(removeAnEdge_44(v_ids[0], v_ids[1], t_ids))
+        else if (removeAnEdge_44(v_ids[0], v_ids[1], t_ids))
             suc_counter++;
-        else if(removeAnEdge_56(v_ids[0], v_ids[1], t_ids)) {
+        else if (removeAnEdge_56(v_ids[0], v_ids[1], t_ids)) {
             suc_counter++;
             cnt5++;
-        } else{
+        } else {
             is_fail=true;
         }
 
@@ -122,11 +127,13 @@ void EdgeRemover::swap(){
     logger().debug("energy_time = {}", energy_time);
 }
 
+
 bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& old_t_ids) {
-    if(old_t_ids.size() >= 6) tmp_cnt6++;
-    if(old_t_ids.size() == 5) tmp_cnt5++;
-    if(old_t_ids.size() == 4) tmp_cnt4++;
-    if(old_t_ids.size() == 3) tmp_cnt3++;
+
+    if (old_t_ids.size() >= 6) tmp_cnt6++;
+    if (old_t_ids.size() == 5) tmp_cnt5++;
+    if (old_t_ids.size() == 4) tmp_cnt4++;
+    if (old_t_ids.size() == 3) tmp_cnt3++;
 
     if (old_t_ids.size() != 3)
         return false;
@@ -164,9 +171,9 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
     getCheckQuality(old_t_ids, old_tq);
     tmp_timer.start();
     calTetQualities(new_tets, tet_qs);
-    energy_time+=tmp_timer.getElapsedTime();
+    energy_time += tmp_timer.getElapsedTime();
     getCheckQuality(tet_qs, new_tq);
-    if(equal_buget>0) {
+    if (equal_buget>0) {
         equal_buget--;
         if (!new_tq.isBetterOrEqualThan(old_tq, energy_type, state))
             return false;
@@ -178,7 +185,7 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
     //real update
     std::vector<std::array<int, 3>> fs;
     std::vector<int> is_sf_fs;
-    for(int i=0;i<old_t_ids.size();i++) {
+    for (int i=0;i<old_t_ids.size();i++) {
         for (int j = 0; j < 4; j++) {
             if (tets[old_t_ids[i]][j] == v1_id || tets[old_t_ids[i]][j] == v2_id) {
                 std::array<int, 3> tmp = {{tets[old_t_ids[i]][(j + 1) % 4], tets[old_t_ids[i]][(j + 2) % 4],
@@ -194,7 +201,7 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
     tets[t_ids[0]] = new_tets[0];//v2
     tets[t_ids[1]] = new_tets[1];//v1
 
-    for(int i=0;i<4;i++) {
+    for (int i=0;i<4;i++) {
         if (tets[t_ids[0]][i] != v2_id) {
             std::array<int, 3> tmp = {{tets[t_ids[0]][(i + 1) % 4], tets[t_ids[0]][(i + 2) % 4],
                                        tets[t_ids[0]][(i + 3) % 4]}};
@@ -239,9 +246,9 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
     //repush new edges
     //Note that you need to pop out the current element first!!
     std::unordered_set<int> n12_v_ids;
-    for(int i=0;i<new_tets.size();i++){
-        for(int j=0;j<4;j++){
-            if(new_tets[i][j]!=v1_id && new_tets[i][j]!=v2_id)
+    for (int i=0;i<new_tets.size();i++) {
+        for (int j=0;j<4;j++) {
+            if (new_tets[i][j]!=v1_id && new_tets[i][j]!=v2_id)
                 n12_v_ids.insert(new_tets[i][j]);
         }
     }
@@ -253,15 +260,15 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
 
     std::vector<std::array<int, 2>> es;
     es.reserve(new_tets.size()*6);
-    for(int i=0;i<new_tets.size();i++) {
+    for (int i=0;i<new_tets.size();i++) {
         for (int j = 0; j < 3; j++) {
             std::array<int, 2> e = {{new_tets[i][0], new_tets[i][j + 1]}};
-            if(e[0]>e[1]) e={{e[1], e[0]}};
-            if(!isLocked_ui(e))
+            if (e[0]>e[1]) e={{e[1], e[0]}};
+            if (!isLocked_ui(e))
                 es.push_back(e);
             e = {{new_tets[i][j + 1], new_tets[i][(j + 1) % 3 + 1]}};
-            if(e[0]>e[1]) e={{e[1], e[0]}};
-            if(!isLocked_ui(e))
+            if (e[0]>e[1]) e={{e[1], e[0]}};
+            if (!isLocked_ui(e))
                 es.push_back(e);
         }
     }
@@ -274,7 +281,9 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
     return true;
 }
 
+
 bool EdgeRemover::removeAnEdge_44(int v1_id, int v2_id, const std::vector<int>& old_t_ids) {
+
     const int N = 4;
     if (old_t_ids.size() != N)
         return false;
@@ -353,7 +362,7 @@ bool EdgeRemover::removeAnEdge_44(int v1_id, int v2_id, const std::vector<int>& 
         calTetQualities(tmp_new_tets, tmp_tet_qs);
         energy_time+=tmp_timer.getElapsedTime();
         getCheckQuality(tmp_tet_qs, new_tq);
-        if(equal_buget>0) {
+        if (equal_buget>0) {
             equal_buget--;
             if (!new_tq.isBetterOrEqualThan(old_tq, energy_type, state))
                 return false;
@@ -455,7 +464,9 @@ bool EdgeRemover::removeAnEdge_44(int v1_id, int v2_id, const std::vector<int>& 
 //    }
 //}
 
+
 bool EdgeRemover::removeAnEdge_56(int v1_id, int v2_id, const std::vector<int>& old_t_ids) {
+
     if (old_t_ids.size() != 5)
         return false;
 
@@ -498,7 +509,6 @@ bool EdgeRemover::removeAnEdge_56(int v1_id, int v2_id, const std::vector<int>& 
         }
     }
     n12_t_ids.push_back(n12_es[std::find(is_visited.begin(), is_visited.end(), false) - is_visited.begin()][2]);
-
 
     //check valid
     TetQuality old_tq, new_tq;
@@ -575,11 +585,11 @@ bool EdgeRemover::removeAnEdge_56(int v1_id, int v2_id, const std::vector<int>& 
             qs.push_back(tet_qs[(i + 1) % 5][j]);
             qs.push_back(tet_qs[(i - 1 + 5) % 5][j]);
         }
-        if(qs.size() != 6){
+        if (qs.size() != 6) {
             log_and_throw("qs.size() != 6");
         }
         getCheckQuality(qs, new_tq);
-        if(equal_buget>0) {
+        if (equal_buget>0) {
             equal_buget--;
             if (!new_tq.isBetterOrEqualThan(old_tq, energy_type, state))
                 continue;
@@ -669,7 +679,7 @@ bool EdgeRemover::removeAnEdge_56(int v1_id, int v2_id, const std::vector<int>& 
 
     std::vector<std::array<int, 2>> es;
     es.reserve(new_t_ids.size()*6);
-    for(int i=0;i<new_t_ids.size();i++) {
+    for (int i=0;i<new_t_ids.size();i++) {
         for (int j = 0; j < 3; j++) {
             std::array<int, 2> e = {{tets[new_t_ids[i]][0], tets[new_t_ids[i]][j + 1]}};
             if(e[0]>e[1]) e={{e[1], e[0]}};
@@ -690,7 +700,9 @@ bool EdgeRemover::removeAnEdge_56(int v1_id, int v2_id, const std::vector<int>& 
     return true;
 }
 
+
 bool EdgeRemover::isSwappable_cd1(const std::array<int, 2>& v_ids){
+
     std::vector<int> t_ids;
     setIntersection(tet_vertices[v_ids[0]].conn_tets, tet_vertices[v_ids[1]].conn_tets, t_ids);
 
@@ -701,6 +713,7 @@ bool EdgeRemover::isSwappable_cd1(const std::array<int, 2>& v_ids){
 
     return true;
 }
+
 
 bool EdgeRemover::isSwappable_cd1(const std::array<int, 2>& v_ids, std::vector<int>& t_ids, bool is_check_conn_tet_num){
 //    std::vector<int> t_ids;
@@ -717,6 +730,7 @@ bool EdgeRemover::isSwappable_cd1(const std::array<int, 2>& v_ids, std::vector<i
     return true;
 }
 
+
 bool EdgeRemover::isSwappable_cd2(double weight){
     return true;
 
@@ -724,6 +738,7 @@ bool EdgeRemover::isSwappable_cd2(double weight){
         return true;
     return false;
 }
+
 
 bool EdgeRemover::isEdgeValid(const std::array<int, 2>& v_ids){
     if(v_is_removed[v_ids[0]] || v_is_removed[v_ids[1]])
@@ -733,7 +748,9 @@ bool EdgeRemover::isEdgeValid(const std::array<int, 2>& v_ids){
     return true;
 }
 
+
 void EdgeRemover::getNewTetSlots(int n, std::vector<int>& new_conn_tets) {
+
     unsigned int cnt = 0;
     for (unsigned int i = t_empty_start; i < t_is_removed.size(); i++) {
         if (t_is_removed[i]) {
@@ -757,7 +774,9 @@ void EdgeRemover::getNewTetSlots(int n, std::vector<int>& new_conn_tets) {
     }
 }
 
+
 void EdgeRemover::addNewEdge(const std::array<int, 2>& e){
+
     if (isSwappable_cd1(e)) {
         double weight = calEdgeLength(e);
         if (isSwappable_cd2(weight)) {
@@ -772,4 +791,4 @@ void EdgeRemover::addNewEdge(const std::array<int, 2>& e){
     }
 }
 
-} // namespace tetwild
+}  // namespace tetwild

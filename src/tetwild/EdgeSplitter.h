@@ -27,11 +27,13 @@ public:
             v_ids(ids), weight(w){}
 };
 
+
 struct cmp_es {
     bool operator()(const ElementInQueue_es &e1, const ElementInQueue_es &e2) {
         return e1.weight < e2.weight;
     }
 };
+
 
 class EdgeSplitter:public LocalOperations {
 public:
@@ -46,7 +48,7 @@ public:
     double max_weight=0;
     double ideal_weight=0;
 
-    EdgeSplitter(LocalOperations lo, double ideal_w): LocalOperations(lo), ideal_weight(ideal_w){}
+    EdgeSplitter(LocalOperations lo, double ideal_w): LocalOperations(lo), ideal_weight(ideal_w) {}
 
     void init();
     void split();
@@ -64,6 +66,6 @@ public:
     unsigned int budget = 0;
 };
 
-} // namespace tetwild
+}  // namespace tetwild
 
 #endif //NEW_GTET_EDGESPLITTER_H

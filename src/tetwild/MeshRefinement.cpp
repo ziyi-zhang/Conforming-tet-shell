@@ -127,9 +127,9 @@ void MeshRefinement::clear() {
 int MeshRefinement::doOperations(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
                                  VertexSmoother& smoother, const std::array<bool, 4>& ops){
 
-    int cnt0=0;
-    for(int i=0;i<tet_vertices.size();i++){
-        if(v_is_removed[i] || tet_vertices[i].is_locked || tet_vertices[i].is_rounded)
+    int cnt0 = 0;
+    for (int i=0; i<tet_vertices.size(); i++) {
+        if (v_is_removed[i] || tet_vertices[i].is_locked || tet_vertices[i].is_rounded)
             continue;
         cnt0++;
     }
@@ -143,8 +143,7 @@ int MeshRefinement::doOperations(EdgeSplitter& splitter, EdgeCollapser& collapse
         splitter.split();
         tmp_time = igl_timer.getElapsedTime();
         splitter.outputInfo(MeshRecord::OpType::OP_SPLIT, tmp_time, is_log);
-        logger().info("edge splitting done!");
-        logger().info("time = {}s", tmp_time);
+        logger().info("edge splitting done in {}s", tmp_time);
     }
 
     if (ops[1]) {
@@ -154,8 +153,7 @@ int MeshRefinement::doOperations(EdgeSplitter& splitter, EdgeCollapser& collapse
         collapser.collapse();
         tmp_time = igl_timer.getElapsedTime();
         collapser.outputInfo(MeshRecord::OpType::OP_COLLAPSE, tmp_time, is_log);
-        logger().info("edge collasing done!");
-        logger().info("time = {}s", tmp_time);
+        logger().info("edge collasing done in {}s", tmp_time);
     }
 
     if (ops[2]) {
@@ -165,8 +163,7 @@ int MeshRefinement::doOperations(EdgeSplitter& splitter, EdgeCollapser& collapse
         edge_remover.swap();
         tmp_time = igl_timer.getElapsedTime();
         edge_remover.outputInfo(MeshRecord::OpType::OP_SWAP, tmp_time, is_log);
-        logger().info("edge removal done!");
-        logger().info("time = {}s", tmp_time);
+        logger().info("edge removal done in {}s", tmp_time);
     }
 
     if (ops[3]) {
@@ -175,19 +172,18 @@ int MeshRefinement::doOperations(EdgeSplitter& splitter, EdgeCollapser& collapse
         smoother.smooth();
         tmp_time = igl_timer.getElapsedTime();
         smoother.outputInfo(MeshRecord::OpType::OP_SMOOTH, tmp_time, is_log);
-        logger().info("vertex smooth done!");
-        logger().info("time = {}s", tmp_time);
+        logger().info("vertex smooth done in {}s", tmp_time);
     }
 
     round();
 
     int cnt1=0;
-    for(int i=0;i<tet_vertices.size();i++){
-        if(v_is_removed[i] || tet_vertices[i].is_locked || tet_vertices[i].is_rounded)
+    for (int i=0; i<tet_vertices.size(); i++) {
+        if (v_is_removed[i] || tet_vertices[i].is_locked || tet_vertices[i].is_rounded)
             continue;
         cnt1++;
     }
-    return cnt0-cnt1;
+    return cnt0 - cnt1;
 }
 
 

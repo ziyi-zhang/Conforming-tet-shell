@@ -15,6 +15,7 @@
 #include <tetwild/LocalOperations.h>
 #include <queue>
 
+
 namespace tetwild {
 
 class ElementInQueue_er{
@@ -26,6 +27,7 @@ public:
     ElementInQueue_er(const std::array<int, 2>& ids, double w): v_ids(ids), weight(w){}
 };
 
+
 struct cmp_er {
     bool operator()(const ElementInQueue_er &e1, const ElementInQueue_er &e2) {
         if (e1.weight == e2.weight)
@@ -34,21 +36,22 @@ struct cmp_er {
     }
 };
 
+
 class EdgeRemover:public LocalOperations {
 public:
     std::priority_queue<ElementInQueue_er, std::vector<ElementInQueue_er>, cmp_er> er_queue;
 
     double ideal_weight;
 
-    int v_empty_start=0;
-    int t_empty_start=0;
+    int v_empty_start = 0;
+    int t_empty_start = 0;
 
-    int flag_cnt=0;
+    int flag_cnt = 0;
 
-    int tmp_cnt3=0;
-    int tmp_cnt4=0;
-    int tmp_cnt5=0;
-    int tmp_cnt6=0;
+    int tmp_cnt3 = 0;
+    int tmp_cnt4 = 0;
+    int tmp_cnt5 = 0;
+    int tmp_cnt6 = 0;
 
     int equal_buget = 100;
 
@@ -73,6 +76,6 @@ public:
     double energy_time = 0;
 };
 
-} // namespace tetwild
+}  // namespace tetwild
 
-#endif //NEW_GTET_EDGEREMOVER_H
+#endif  //NEW_GTET_EDGEREMOVER_H

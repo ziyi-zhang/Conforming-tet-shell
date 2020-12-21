@@ -398,7 +398,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 //        if (is_soft && old_tq.slim_energy < soft_energy) {
 //            old_tq.slim_energy = Args::args().filter_energy_thres;
 //        }
-        if(is_soft)
+        if (is_soft)
             old_tq.slim_energy = soft_energy;
         if (!tet_vertices[v1_id].is_rounded) //remove an unroundable vertex anyway
             new_tq.slim_energy = 0;
@@ -730,6 +730,7 @@ bool EdgeCollapser::isCollapsable_cd3(int v1_id, int v2_id, double weight) {
     return false;
 }
 
+
 bool EdgeCollapser::isCollapsable_epsilon(int v1_id, int v2_id) {
 //    std::vector<Triangle_3f> tris;
 //    for (auto it = tet_vertices[v1_id].conn_tets.begin(); it != tet_vertices[v1_id].conn_tets.end(); it++) {
@@ -806,4 +807,4 @@ bool EdgeCollapser::isEdgeValid(const std::array<int, 2>& e){
 //    }
 //}
 
-} // namespace tetwild
+}  // namespace tetwild

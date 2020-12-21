@@ -14,11 +14,12 @@
 
 #include <tetwild/LocalOperations.h>
 
+
 namespace tetwild {
 
 class VertexSmoother:public LocalOperations {
 public:
-    VertexSmoother(LocalOperations lo): LocalOperations(lo){}
+    VertexSmoother(LocalOperations lo): LocalOperations(lo) {}
 
     void smooth();
     void smoothSingle();
@@ -50,6 +51,6 @@ public:
     igl::Timer igl_timer;
 };
 
-} // namespace tetwild
+}  // namespace tetwild
 
-#endif //NEW_GTET_VERTEXSMOOTHER_H
+#endif  //NEW_GTET_VERTEXSMOOTHER_H
