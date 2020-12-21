@@ -122,13 +122,18 @@ void VertexSmoother::smoothSingle() {
     counter = 0;
     suc_counter = 0;
     for (int v_id = 0; v_id < tet_vertices.size(); v_id++) {
+
+        // TetShell: Frozen vertex
+        if (tet_vertices[v_id].is_frozen) {
+            continue;
+        }
+
         if (v_is_removed[v_id])
             continue;
         if (tet_vertices[v_id].is_on_bbox)
             continue;
         if (state.eps != state.EPSILON_INFINITE && tet_vertices[v_id].is_on_surface)
             continue;
-
         if (tet_vertices[v_id].is_locked)
             continue;
 
@@ -155,7 +160,7 @@ void VertexSmoother::smoothSingle() {
             t_ids.push_back(*it);
         }
 
-        ///try to round the vertex
+        // try to round the vertex
         if (!tet_vertices[v_id].is_rounded) {
             Point_3 old_p = tet_vertices[v_id].pos;
             tet_vertices[v_id].pos = Point_3(tet_vertices[v_id].posf[0], tet_vertices[v_id].posf[1],
@@ -166,7 +171,7 @@ void VertexSmoother::smoothSingle() {
                 tet_vertices[v_id].is_rounded = true;
         }
 
-        ///check if should use exact smoothing
+        // check if should use exact smoothing
         bool is_valid = true;
         for (auto it = tet_vertices[v_id].conn_tets.begin(); it != tet_vertices[v_id].conn_tets.end(); it++) {
             CGAL::Orientation ori = CGAL::orientation(tet_vertices[tets[*it][0]].posf, tet_vertices[tets[*it][1]].posf,
@@ -191,7 +196,7 @@ void VertexSmoother::smoothSingle() {
 #if TIMING_BREAKDOWN
             igl_timer.start();
 #endif
-            //assign new coordinate and try to round it
+            // assign new coordinate and try to round it
             Point_3 old_p = tet_vertices[v_id].pos;
             Point_3f old_pf = tet_vertices[v_id].posf;
             bool old_is_rounded = tet_vertices[v_id].is_rounded;
@@ -210,7 +215,7 @@ void VertexSmoother::smoothSingle() {
 #endif
         }
 
-        ///update timestamps
+        // update timestamps
         ts++;
         for(auto it=tet_vertices[v_id].conn_tets.begin();it!=tet_vertices[v_id].conn_tets.end();it++)
             tets_tss[*it]=ts;
@@ -219,7 +224,7 @@ void VertexSmoother::smoothSingle() {
         suc_counter++;
     }
 
-    //calculate the quality for all tets
+    // calculate the quality for all tets
     std::vector<std::array<int, 4>> new_tets;//todo: can be improve
     new_tets.reserve(std::count(t_is_removed.begin(), t_is_removed.end(), false));
     for (int i = 0; i < tets.size(); i++) {
@@ -248,18 +253,23 @@ void VertexSmoother::smoothSingle() {
 }
 
 
-void VertexSmoother::smoothSurface() {//smoothing surface using two methods
+void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
 //    suc_counter = 0;
 //    counter = 0;
     int sf_suc_counter = 0;
     int sf_counter = 0;
 
     for (int v_id = 0; v_id < tet_vertices.size(); v_id++) {
+
+        // TetShell: Frozen vertex
+        if (tet_vertices[v_id].is_frozen) {
+            continue;
+        }
+
         if (v_is_removed[v_id])
             continue;
         if (!tet_vertices[v_id].is_on_surface)
             continue;
-
         if (tet_vertices[v_id].is_locked)
             continue;
 
@@ -416,7 +426,7 @@ void VertexSmoother::smoothSurface() {//smoothing surface using two methods
             }
         }
 
-        ///check if tris outside the envelop
+        // check if tris outside the envelop
         std::vector<Triangle_3f> trisf;
         for (int i = 0; i < tri_ids.size(); i++) {
             auto jt = std::find(tri_ids[i].begin(), tri_ids[i].end(), v_id);
@@ -445,6 +455,8 @@ void VertexSmoother::smoothSurface() {//smoothing surface using two methods
 
         ///real update
         ///update timestamps
+        if (tet_vertices[v_id].is_frozen)
+            log_and_throw("A frozen vertex is moved.");
         ts++;
         for (auto it = tet_vertices[v_id].conn_tets.begin(); it != tet_vertices[v_id].conn_tets.end(); it++)
             tets_tss[*it] = ts;
@@ -636,6 +648,7 @@ double VertexSmoother::getNewEnergy(const std::vector<int>& t_ids) {
 
 bool VertexSmoother::NewtonsUpdate(const std::vector<int>& t_ids, int v_id,
                                    double& energy, Eigen::Vector3d& J, Eigen::Matrix3d& H, Eigen::Vector3d& X0) {
+
     energy = 0;
     for (int i = 0; i < 3; i++) {
         J(i) = 0;
@@ -713,7 +726,8 @@ bool VertexSmoother::NewtonsUpdate(const std::vector<int>& t_ids, int v_id,
 
 
 int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std::vector<bool>& tmp_is_on_surface,
-                                      const std::vector<bool>& tmp_t_is_removed){
+                                      const std::vector<bool>& tmp_t_is_removed) {
+
     int cnt_suc = 0;
     double max_slim_evergy = 0;
     for (unsigned int i=0;i<tet_qualities.size();i++) {
@@ -741,7 +755,7 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
             }
             new_tets.push_back(tets[t_id]);
         }
-        for(int n_sf_v_id:tmp_n_sf_v_ids){
+        for (int n_sf_v_id:tmp_n_sf_v_ids) {
             std::vector<int> t_ids;
             setIntersection(tet_vertices[v_id].conn_tets, tet_vertices[n_sf_v_id].conn_tets, t_ids);
             bool has_removed = false;
@@ -752,7 +766,7 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
                 if (!tmp_t_is_removed[t_id])
                     has_unremoved=true;
             }
-            if(has_removed && has_unremoved)
+            if (has_removed && has_unremoved)
                 n_sf_v_ids.insert(n_sf_v_id);
         }
 //        for(int n_v_id:n_v_ids){
@@ -776,7 +790,7 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
         Point_3f old_pf = tet_vertices[v_id].posf;
         double a = 1;
         bool is_suc = false;
-        while(true) {
+        while (true) {
             //give stop condition
             bool is_stop = true;
             for (int j = 0; j < 3; j++)
@@ -798,7 +812,7 @@ int VertexSmoother::laplacianBoundary(const std::vector<int>& b_v_ids, const std
                 if (tet_qs[i].slim_energy > max_slim_evergy)
                     is_valid=false;
             }
-            if(!is_valid) {
+            if (!is_valid) {
                 a /= 2;
                 continue;
             }

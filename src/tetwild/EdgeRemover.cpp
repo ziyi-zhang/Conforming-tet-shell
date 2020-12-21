@@ -138,7 +138,7 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
     if (old_t_ids.size() != 3)
         return false;
 
-    //new_tets
+    // new_tets
     std::array<int, 2> v_ids;
     std::vector<std::array<int, 4>> new_tets;
     std::array<int, 2> t_ids;
@@ -183,6 +183,9 @@ bool EdgeRemover::removeAnEdge_32(int v1_id, int v2_id, const std::vector<int>& 
     }
 
     //real update
+    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end())
+        log_and_throw("Removed a frozen edge in removeAnEdge_32");
+
     std::vector<std::array<int, 3>> fs;
     std::vector<int> is_sf_fs;
     for (int i=0;i<old_t_ids.size();i++) {
@@ -382,6 +385,9 @@ bool EdgeRemover::removeAnEdge_44(int v1_id, int v2_id, const std::vector<int>& 
         return false;
 
     //real update
+    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end())
+        log_and_throw("Removed a frozen edge in removeAnEdge_44");
+
     std::vector<std::array<int, 3>> fs;
     std::vector<int> is_sf_fs;
     for (int i = 0; i < old_t_ids.size(); i++) {
@@ -607,6 +613,8 @@ bool EdgeRemover::removeAnEdge_56(int v1_id, int v2_id, const std::vector<int>& 
         return false;
 
     //real update
+    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end())
+        log_and_throw("Removed a frozen edge in removeAnEdge_56");
     //update on surface -- 1
     std::vector<std::array<int, 3>> fs;
     std::vector<int> is_sf_fs;
@@ -703,6 +711,11 @@ bool EdgeRemover::removeAnEdge_56(int v1_id, int v2_id, const std::vector<int>& 
 
 bool EdgeRemover::isSwappable_cd1(const std::array<int, 2>& v_ids){
 
+    // TetShell: Frozen edge
+    if (tet_vertices[v_ids[0]].frozen_edge.find(v_ids[1]) != tet_vertices[v_ids[0]].frozen_edge.end()) {
+        return false;
+    }
+
     std::vector<int> t_ids;
     setIntersection(tet_vertices[v_ids[0]].conn_tets, tet_vertices[v_ids[1]].conn_tets, t_ids);
 
@@ -716,6 +729,12 @@ bool EdgeRemover::isSwappable_cd1(const std::array<int, 2>& v_ids){
 
 
 bool EdgeRemover::isSwappable_cd1(const std::array<int, 2>& v_ids, std::vector<int>& t_ids, bool is_check_conn_tet_num){
+
+    // TetShell: Frozen edge
+    if (tet_vertices[v_ids[0]].frozen_edge.find(v_ids[1]) != tet_vertices[v_ids[0]].frozen_edge.end()) {
+        return false;
+    }
+
 //    std::vector<int> t_ids;
     setIntersection(tet_vertices[v_ids[0]].conn_tets, tet_vertices[v_ids[1]].conn_tets, t_ids);
 

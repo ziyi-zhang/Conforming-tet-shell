@@ -253,7 +253,7 @@ void EdgeCollapser::postProcess() {
 
 //        if (is_recal && isCollapsable_cd1(inf_es[i][0], inf_es[i][1]) && isCollapsable_cd2(inf_es[i][0], inf_es[i][1])) {
         if (is_recal && isCollapsable_cd1(inf_es[i][0], inf_es[i][1])) {
-            if(!isLocked_ui(inf_es[i])) {
+            if (!isLocked_ui(inf_es[i])) {
                 ElementInQueue_ec ele(inf_es[i], weight);
                 ec_queue.push(ele);
             }
@@ -440,8 +440,12 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
             logger().debug("1000 accepted!");
     }
 
+    /////////////////
+    // real update //
+    /////////////////
+    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end())
+        log_and_throw("Collapsed a frozen edge.");
 
-    // real update
 //    if(is_edge_too_short)
 //        logger().debug("success");
     if (tet_vertices[v1_id].is_on_boundary)
@@ -660,6 +664,11 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 
 
 bool EdgeCollapser::isCollapsable_cd1(int v1_id, int v2_id) {
+
+    // TetShell: Frozen edge
+    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end()) {
+        return false;
+    }
     //check the bbox tags //if the moved vertex is on the bbox
     bool is_movable = false;
     if (tet_vertices[v1_id].on_fixed_vertex < -1)

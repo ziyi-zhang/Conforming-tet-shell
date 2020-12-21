@@ -115,7 +115,7 @@ bool ShellCheck::FindexCheck() {
 bool PrismPositveTets(const std::vector<Point_3> &VI_cgal, const Eigen::Vector3i &tri1, const Eigen::Vector3i &tri2) {
 
     auto tets = tri1(1)>tri1(2) ? TETRA_SPLIT_A : TETRA_SPLIT_B;
-    Eigen::VectorXi verts(1, 6);
+    Eigen::VectorXi verts(6, 1);
     verts << tri1, tri2;
 
     for (int i = 0; i < 3; i++) {

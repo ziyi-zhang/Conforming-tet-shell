@@ -478,7 +478,7 @@ void tetwild_stage_two(const Args &args, State &state,
     std::vector<bool> &t_is_removed) {
 
     spdlog::level::level_enum verbose_level = logger().level();
-    logger().set_level(static_cast<spdlog::level::level_enum>(2));
+    logger().set_level(static_cast<spdlog::level::level_enum>(1));
     // init
     logger().info("Refinement initializing...");
     MeshRefinement MR(geo_sf_mesh, geo_b_mesh, args, state);

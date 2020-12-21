@@ -56,7 +56,8 @@ void EdgeSplitter::init() {
     std::sort(edges.begin(), edges.end());
     edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
 
-    for (unsigned int i = 0; i < edges.size(); i++) {
+    for (unsigned int i=0; i<edges.size(); i++) {
+
         double weight = calEdgeLength(edges[i][0], edges[i][1]);
         if (isSplittable_cd1(edges[i][0], edges[i][1], weight)) {
             ElementInQueue_es ele(edges[i], weight);
@@ -77,7 +78,7 @@ void EdgeSplitter::init() {
 
 void EdgeSplitter::split() {
 
-    if (budget >0) {
+    if (budget > 0) {
         int v_slots = std::count(v_is_removed.begin(), v_is_removed.end(), true);
         v_slots = budget - v_slots;
         if (v_slots > 0) {
@@ -99,12 +100,11 @@ void EdgeSplitter::split() {
         if (t_slot_size < es_queue.size() * 6 * 2)
             tets.reserve(es_queue.size() * 6 * 2 - t_slot_size + 1);
     }
-    logger().debug("{}", es_queue.size());
-    logger().debug("ideal_weight = {}", ideal_weight);
+    logger().debug("es_queue size={} ideal_weight={}", es_queue.size(), ideal_weight);
 
     while (!es_queue.empty()) {
-        const ElementInQueue_es &ele = es_queue.top();
 
+        const ElementInQueue_es &ele = es_queue.top();
         std::array<int, 2> v_ids = ele.v_ids;
 //        if (state.is_print_tmp)
 //            logger().debug("{}{}{} {} {} {} {}", v_ids[0], ' ', v_ids[1]
@@ -121,9 +121,11 @@ void EdgeSplitter::split() {
 
         if (budget > 0) {
             budget--;
-            if(budget == 0)
+            if (budget == 0)
                 break;
         }
+
+        std::cerr << es_queue.size() << std::endl;  // DEBUG
     }
 
     //cal the qualities in the very end
@@ -159,9 +161,9 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
     //add new vertex
     TetVertex v;//tet_vertices[v_id] is actually be reset
     bool is_found = false;
-    for(int i=v_empty_start;i<v_is_removed.size();i++){
+    for(int i=v_empty_start; i<v_is_removed.size(); i++) {
         v_empty_start = i;
-        if(v_is_removed[i]) {
+        if (v_is_removed[i]) {
             is_found = true;
             break;
         }
@@ -190,11 +192,11 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
 //        v_id = v_is_removed.size() - 1;
 //    }
 
-    //old_t_ids
+    // old_t_ids
     std::vector<int> old_t_ids;
     setIntersection(tet_vertices[v1_id].conn_tets, tet_vertices[v2_id].conn_tets, old_t_ids);
 
-    //new_tets
+    // new_tets
     std::vector<int> new_t_ids;
     std::vector<int> n12_v_ids;
     std::vector<std::array<int, 4>> new_tets;
@@ -214,7 +216,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
         new_tets.push_back(tet2);
     }
 
-    //check is_valid
+    // check is_valid
     tet_vertices[v_id].adaptive_scale = (tet_vertices[v1_id].adaptive_scale + tet_vertices[v2_id].adaptive_scale) / 2;
     if(tet_vertices[v1_id].is_locked && tet_vertices[v2_id].is_locked)
         tet_vertices[v_id].is_locked = true;
@@ -238,13 +240,17 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
 //    if(!is_cal_quality_end)
 //          calTetQualities(new_tets, tet_qs);
 
-    ////real update//
-    //update boundary tags
-    if(isEdgeOnBoundary(v1_id, v2_id)) {
+    /////////////////
+    // real update //
+    /////////////////
+    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end())
+        log_and_throw("Split a frozen edge");
+    // update boundary tags
+    if (isEdgeOnBoundary(v1_id, v2_id)) {
         tet_vertices[v_id].is_on_boundary = true;
     }
 
-    //update surface tags
+    // update surface tags
     if (state.eps != state.EPSILON_INFINITE) {
         if (isEdgeOnSurface(v1_id, v2_id)) {
             tet_vertices[v_id].is_on_surface = true;
@@ -256,7 +262,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
             tet_vertices[v_id].is_on_surface = false;
     }
 
-    //get new tet ids
+    // get new tet ids
     getNewTetSlots(old_t_ids.size(), new_t_ids);
     for (int i = 0; i < old_t_ids.size(); i++) {
         tets[old_t_ids[i]] = new_tets[i * 2];
@@ -269,7 +275,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
         is_surface_fs[new_t_ids[i]] = is_surface_fs[old_t_ids[i]];
     }
 
-    //track surface
+    // track surface
     for (int i = 0; i < new_t_ids.size(); i++) {
         for (int j = 0; j < 4; j++) {//v1->v
             if (tets[new_t_ids[i]][j] == v2_id)
@@ -285,7 +291,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
         }
     }
 
-    //update bbox tags //Note that no matter what the epsilon is, the bbox has to be preserved anyway
+    // update bbox tags //Note that no matter what the epsilon is, the bbox has to be preserved anyway
     if (tet_vertices[v1_id].is_on_bbox && tet_vertices[v2_id].is_on_bbox) {
         setIntersection(tet_vertices[v1_id].on_face, tet_vertices[v2_id].on_face, tet_vertices[v_id].on_face);
         if (tet_vertices[v_id].on_face.size() == 0)
@@ -296,7 +302,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
         }
     }
 
-    //update the connection
+    // update the connection
     for (int i = 0; i < old_t_ids.size(); i++) {
         tet_vertices[v2_id].conn_tets.erase(old_t_ids[i]);
         tet_vertices[v2_id].conn_tets.insert(new_t_ids[i]);
@@ -307,11 +313,11 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
     tet_vertices[v_id].conn_tets.insert(old_t_ids.begin(), old_t_ids.end());
     tet_vertices[v_id].conn_tets.insert(new_t_ids.begin(), new_t_ids.end());
 
-    //push new ele into queue
+    // push new ele into queue
     double weight = calEdgeLength(v1_id, v_id);
     if (isSplittable_cd1(v1_id, v_id, weight)) {
         std::array<int, 2> e={{v1_id, v_id}};
-        if(!isLocked_ui(e)) {
+        if (!isLocked_ui(e)) {
             ElementInQueue_es ele(e, weight);
             es_queue.push(ele);
         }
@@ -319,7 +325,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
 
     weight = calEdgeLength(v2_id, v_id);
     if (isSplittable_cd1(v2_id, v_id, weight)) {
-        std::array<int, 2> e={{v2_id, v_id}};
+        std::array<int, 2> e = {{v2_id, v_id}};
         if(!isLocked_ui(e)) {
             ElementInQueue_es ele(e, weight);
             es_queue.push(ele);
@@ -368,6 +374,7 @@ int EdgeSplitter::getOverRefineScale(int v1_id, int v2_id) {
 
 bool EdgeSplitter::isSplittable_cd1(double weight) {
 
+    logger().warn("Do not use this version. TetShell frozen edges may be skipped.");
     if (is_check_quality)
         return true;
 
@@ -378,6 +385,11 @@ bool EdgeSplitter::isSplittable_cd1(double weight) {
 
 
 bool EdgeSplitter::isSplittable_cd1(int v1_id, int v2_id, double weight) {
+
+    // TetShell: Frozen edge
+    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end()) {
+        return false;
+    }
 
     double adaptive_scale = (tet_vertices[v1_id].adaptive_scale + tet_vertices[v2_id].adaptive_scale) / 2.0;
 //    if(adaptive_scale==0){
