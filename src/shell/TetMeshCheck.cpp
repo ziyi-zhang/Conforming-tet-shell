@@ -85,7 +85,7 @@ bool TetMeshCheck::ConformityCheck() {
             idx1 = TO[i][(j+1) % 4];
             idx2 = TO[i][(j+2) % 4];
             idx3 = TO[i][(j+3) % 4];
-            if (VO[idx1].is_locked && VO[idx2].is_locked && VO[idx3].is_locked) {
+            if (VO[idx1].is_frozen && VO[idx2].is_frozen && VO[idx3].is_frozen) {
                 std::unordered_set<int> sharedInputFace;
                 UnorderedsetIntersection(VO[idx1].on_face, VO[idx2].on_face, VO[idx3].on_face, sharedInputFace);
 
@@ -117,7 +117,7 @@ bool TetMeshCheck::ConformityCheck() {
 
     if (count != 2 * (FI.rows()/4)) {
         result = false;
-        logger().warn("#[locked faces] after refinement is wrong: count={} FI/4={}", count, FI.rows()/4);
+        logger().warn("#[locked faces] after refinement is wrong: count={} FI/4*2={}", count, FI.rows()/2);
     }
 
     logger().info("======================================");

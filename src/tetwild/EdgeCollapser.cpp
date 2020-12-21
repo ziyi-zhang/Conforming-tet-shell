@@ -443,7 +443,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
     /////////////////
     // real update //
     /////////////////
-    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end())
+    if (tet_vertices[v1_id].is_frozen)
         log_and_throw("Collapsed a frozen edge.");
 
 //    if(is_edge_too_short)
@@ -460,7 +460,9 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
                     getFaceConnTets(tets[n12_t_ids[i]][(j + 1) % 4], tets[n12_t_ids[i]][(j + 2) % 4],
                                     tets[n12_t_ids[i]][(j + 3) % 4], ts);
 
-                    // TetShell: Make sure freeze TOP and BOTTOM shell faces
+                    if (ts.size() != 2) {
+                        log_and_throw("collapse boundary");
+                    }
                     /*
                     if (ts.size() != 2) {
                         logger().error("ts.size() != 2 but = {}", ts.size());
@@ -604,7 +606,6 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 //    }
 
 //    logger().debug("{}{}jt==tri.end()", n1_v_ids.size(), "->";
-    if (v1_id == 6537 && v2_id == 8584) printf("Before n1_v_ids_vec\n");
     std::vector<int> n1_v_ids_vec, n12_v_ids_vec;
     n1_v_ids_vec.reserve(n1_v_ids.size());
     n12_v_ids_vec.reserve(n12_v_ids.size());
@@ -644,7 +645,6 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
         }
     }
 
-    if (v1_id == 6537 && v2_id == 8584) printf("End of collapse an edge\n");
     if(is_envelop_suc)
         return ENVELOP_SUC;
     return SUCCESS;
@@ -666,7 +666,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 bool EdgeCollapser::isCollapsable_cd1(int v1_id, int v2_id) {
 
     // TetShell: Frozen edge
-    if (tet_vertices[v1_id].frozen_edge.find(v2_id) != tet_vertices[v1_id].frozen_edge.end()) {
+    if (tet_vertices[v1_id].is_frozen || tet_vertices[v2_id].is_frozen) {
         return false;
     }
     //check the bbox tags //if the moved vertex is on the bbox
