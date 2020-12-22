@@ -27,7 +27,9 @@ struct State {
     const int ENERGY_AMIPS=2;
     const int ENERGY_DIRICHLET=3;
     const double MAX_ENERGY = 1e50;
-    const int NOT_SURFACE = 1024;  // std::numeric_limits<int>::max();
+    // Search for this value, not all occurances use state.NOT_SURFACE
+    // FIXME
+    const int NOT_SURFACE = 1024;  // std::numeric_limits<int>::max();  
 
     const int NOT_SHELL = 0;
     const int SHELL_INNER = 1;

@@ -2,6 +2,7 @@
 #include <shell/Shell.h>
 #include <shell/Utils.h>
 #include <tetwild/Args.h>
+#include <tetwild/State.h>
 #include <tetwild/CGALTypes.h>
 #include <tetwild/Logger.h>
 #include <tetwild/TetmeshElements.h>
@@ -701,16 +702,22 @@ void GetMeshWithPseudoTets(const DualShell_t &dualShell, const std::vector<tetwi
 }
 
 
-void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const std::vector<std::array<int, 4>> &TO, std::vector<tetwild::TetVertex> &VO) {
+void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const std::vector<std::array<int, 4>> &TO, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &is_surface_facet) {
 
+    // set is_on_surface to be false
+    for (auto it=VO.begin(); it!=VO.end(); it++) {
+        it->is_on_surface = false;
+    }
+
+    // update
     for (int i=0; i<face_on_shell.size(); i++)
         for (int j=0; j<4; j++) {
+
+            int vIdx1 = TO[i][(j+1)%4];
+            int vIdx2 = TO[i][(j+2)%4];
+            int vIdx3 = TO[i][(j+3)%4];
             // Only lock vertices on SURFACE_BOTTOM and SURFACE_TOP
             if (face_on_shell[i][j] == SURFACE_BOTTOM || face_on_shell[i][j] == SURFACE_TOP) {
-
-                int vIdx1 = TO[i][(j+1)%4];
-                int vIdx2 = TO[i][(j+2)%4];
-                int vIdx3 = TO[i][(j+3)%4];
 
                 // VO[vIdx].is_locked = true;
                 // VO[vIdx].is_on_surface = true;
@@ -720,13 +727,16 @@ void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const 
                 VO[vIdx2].is_frozen = true;
                 VO[vIdx3].is_frozen = true;
 
-                // freeze edges
-                VO[vIdx1].frozen_edge.insert(vIdx2);
-                VO[vIdx1].frozen_edge.insert(vIdx3);
-                VO[vIdx2].frozen_edge.insert(vIdx1);
-                VO[vIdx2].frozen_edge.insert(vIdx3);
-                VO[vIdx3].frozen_edge.insert(vIdx1);
-                VO[vIdx3].frozen_edge.insert(vIdx2);
+                // update is_surface_facet
+                if (is_surface_facet[i][j] != 1 && is_surface_facet[i][j] != -1) {
+                    logger().warn("is_surface_facet[{}][{}] = {}", i, j, is_surface_facet[i][j]);
+                }
+                VO[vIdx1].is_on_surface = true;
+                VO[vIdx2].is_on_surface = true;
+                VO[vIdx3].is_on_surface = true;
+            } else {
+                // For other two surfaces and non-surface faces
+                is_surface_facet[i][j] = 1024;  // state.NOT_SURFACE;
             }
         }
 }

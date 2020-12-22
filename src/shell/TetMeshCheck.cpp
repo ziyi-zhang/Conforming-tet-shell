@@ -102,6 +102,7 @@ bool TetMeshCheck::ConformityCheck() {
                                       VO[idx2].posf.x(), VO[idx2].posf.y(), VO[idx2].posf.z(), 
                                       VO[idx3].posf.x(), VO[idx3].posf.y(), VO[idx3].posf.z();
                     if (SameUnorderedTriangle(inputTriangle, outputTriangle, 0.0)) {
+                        std::cerr << idx1 << " " << idx2 << " " << idx3 << std::endl;
                         count++;
                     } else {
                         result = false;

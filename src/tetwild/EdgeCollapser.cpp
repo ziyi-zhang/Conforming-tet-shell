@@ -74,7 +74,9 @@ void EdgeCollapser::collapse() {
     tet_tss.assign(tets.size(), 0);
     int cnt = 0;
     logger().debug("edge queue size = {}", ec_queue.size());
+    
     while (!ec_queue.empty()) {
+
         std::array<int, 2> v_ids = ec_queue.top().v_ids;
         double old_weight = ec_queue.top().weight;
         ec_queue.pop();
@@ -147,9 +149,9 @@ void EdgeCollapser::collapse() {
         }
 
         counter++;
-    }
-    logger().debug("{} {} {}", suc_counter, counter, inf_es.size());
-    logger().debug("envelop accept = {}", envelop_accept_cnt);
+    }  // while (!ec_queue.empty())
+    logger().debug("suc_counter={} counter={} inf_es.size={}", suc_counter, counter, inf_es.size());
+    // logger().debug("envelop accept = {}", envelop_accept_cnt);  // must be zero
 
     if (suc_counter == 0 || inf_es.size() == 0) {
 //        logger().debug("checking.......");
@@ -220,7 +222,7 @@ void EdgeCollapser::collapse() {
 
 void EdgeCollapser::postProcess() {
 
-    logger().debug("postProcess!");
+    // logger().debug("postProcess!");
     counter = 0;
     suc_counter = 0;
     envelop_accept_cnt = 0;
@@ -444,7 +446,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
     // real update //
     /////////////////
     if (tet_vertices[v1_id].is_frozen)
-        log_and_throw("Collapsed a frozen edge.");
+        log_and_throw("Collapsed a frozen vertex.");
 
 //    if(is_edge_too_short)
 //        logger().debug("success");
@@ -666,7 +668,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 bool EdgeCollapser::isCollapsable_cd1(int v1_id, int v2_id) {
 
     // TetShell: Frozen edge
-    if (tet_vertices[v1_id].is_frozen || tet_vertices[v2_id].is_frozen) {
+    if (tet_vertices[v1_id].is_frozen || tet_vertices[v2_id].is_frozen || isEdgeOnSurface(v1_id, v2_id)) {
         return false;
     }
     //check the bbox tags //if the moved vertex is on the bbox

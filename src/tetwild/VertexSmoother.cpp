@@ -259,7 +259,7 @@ void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
     int sf_suc_counter = 0;
     int sf_counter = 0;
 
-    for (int v_id = 0; v_id < tet_vertices.size(); v_id++) {
+    for (int v_id=0; v_id<tet_vertices.size(); v_id++) {
 
         // TetShell: Frozen vertex
         if (tet_vertices[v_id].is_frozen) {
@@ -345,7 +345,7 @@ void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
 
         Point_3f pf;
         Point_3 p;
-        if (state.use_onering_projection) {//we have to use exact construction here. Or the projecting points may be not exactly on the plane.
+        if (state.use_onering_projection) {  // we have to use exact construction here. Or the projecting points may be not exactly on the plane.
             std::vector<Triangle_3> tris;
             for (int i = 0; i < tri_ids.size(); i++) {
                 tris.push_back(Triangle_3(tet_vertices[tri_ids[i][0]].pos, tet_vertices[tri_ids[i][1]].pos,
@@ -414,7 +414,7 @@ void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
 #if TIMING_BREAKDOWN
         igl_timer.start();
 #endif
-        ///check if the boundary is sliding
+        // check if the boundary is sliding
         if (tet_vertices[v_id].is_on_boundary) {
             if (isBoundarySlide(v_id, -1, old_pf)) {
                 tet_vertices[v_id].pos = old_p;
@@ -453,7 +453,9 @@ void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
             continue;
         }
 
-        ///real update
+        /////////////////
+        // real update //
+        /////////////////
         ///update timestamps
         if (tet_vertices[v_id].is_frozen)
             log_and_throw("A frozen vertex is moved.");
@@ -477,8 +479,8 @@ void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
         sf_suc_counter++;
         if (sf_suc_counter % 1000 == 0)
             logger().debug("1000 accepted!");
-    }
-    logger().debug("Totally {}({}) vertices on surface are smoothed.", sf_suc_counter, sf_counter);
+    }  // v_id<tet_vertices.size() Main loop
+    logger().debug("{}({}) vertices on surface are smoothed.", sf_suc_counter, sf_counter);
 }
 
 

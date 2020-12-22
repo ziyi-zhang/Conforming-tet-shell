@@ -242,8 +242,6 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
     /////////////////
     // real update //
     /////////////////
-    if (tet_vertices[v1_id].is_frozen && tet_vertices[v2_id].is_frozen)
-        log_and_throw("Split a frozen edge");
     // update boundary tags
     if (isEdgeOnBoundary(v1_id, v2_id)) {
         tet_vertices[v_id].is_on_boundary = true;
@@ -391,7 +389,7 @@ bool EdgeSplitter::isSplittable_cd1(double weight) {
 bool EdgeSplitter::isSplittable_cd1(int v1_id, int v2_id, double weight) {
 
     // TetShell: Frozen edge
-    if (tet_vertices[v1_id].is_frozen && tet_vertices[v2_id].is_frozen) {
+    if (isEdgeOnSurface(v1_id, v2_id)) {
         return false;
     }
 
@@ -400,6 +398,7 @@ bool EdgeSplitter::isSplittable_cd1(int v1_id, int v2_id, double weight) {
 //        logger().debug("adaptive_scale==0!!!");
 //    }
     if (weight > ideal_weight * adaptive_scale * adaptive_scale) {
+        // logger().debug("weight={}  ideal_weight={}, adaptive_scale={}", weight, ideal_weight, adaptive_scale);
         return true;
     }
 //    if (tet_vertices[v1_id].is_on_surface || tet_vertices[v2_id].is_on_surface) {

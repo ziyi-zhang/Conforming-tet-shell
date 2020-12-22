@@ -346,14 +346,15 @@ void LocalOperations::check() {
 }
 
 void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
-    logger().debug("outputing info");
+
+    logger().debug("  >>> outputing info >>>");
     //update min/max dihedral angle infos
-    for (int i = 0; i < tets.size(); i++) {
+    for (int i=0; i<tets.size(); i++) {
         if (!t_is_removed[i])
             calTetQuality_AD(tets[i], tet_qualities[i]);
     }
 
-    if(args.is_quiet)
+    if (args.is_quiet)
         return;
 
     //some tmp checks for experiments
@@ -447,7 +448,7 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
 
     int cnt = 0;
     int r_cnt = 0;
-    for (int i = 0; i < tet_vertices.size(); i++) {
+    for (int i=0; i<tet_vertices.size(); i++) {
         if (!v_is_removed[i]) {
             cnt++;
             if (tet_vertices[i].is_rounded) {
@@ -521,12 +522,12 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
         }
     }
 
-    logger().debug("min_d_angle = {}, max_d_angle = {}, max_slim_energy = {}", min, max, max_slim_energy);
-    logger().debug("avg_min_d_angle = {}, avg_max_d_angle = {}, avg_slim_energy = {}", min_avg / cnt, max_avg / cnt, avg_slim_energy / cnt);
+    logger().debug("max_slim_energy = {}, min_d_angle = {}, max_d_angle = {}", max_slim_energy, min, max);
+    logger().debug("avg_slim_energy = {}, avg_min_d_angle = {}, avg_max_d_angle = {}", avg_slim_energy / cnt, min_avg / cnt, max_avg / cnt);
     logger().debug("min_d_angle: <6 {};   <12 {};  <18 {}", cmp_cnt[0] / cnt, cmp_cnt[1] / cnt, cmp_cnt[2] / cnt);
     logger().debug("max_d_angle: >174 {}; >168 {}; >162 {}", cmp_cnt[5] / cnt, cmp_cnt[4] / cnt, cmp_cnt[3] / cnt);
 
-    if(is_log) {
+    if (is_log) {
         addRecord(MeshRecord(op_type, time, std::count(v_is_removed.begin(), v_is_removed.end(), false), cnt,
                              min, min_avg / cnt, max, max_avg / cnt, max_slim_energy, avg_slim_energy / cnt), args, state);
     }
@@ -965,6 +966,7 @@ bool LocalOperations::isEdgeOnBoundary(int v1_id, int v2_id) {
 }
 
 bool LocalOperations::isFaceOutEnvelop(const Triangle_3f& tri) {
+return true;  // TetShell
 #if CHECK_ENVELOP
     if(state.use_sampling){
         return isFaceOutEnvelop_sampling(tri);

@@ -138,41 +138,41 @@ int MeshRefinement::doOperations(EdgeSplitter& splitter, EdgeCollapser& collapse
 
     if (ops[0]) {
         igl_timer.start();
-        logger().info("edge splitting...");
+        logger().info("[ edge splitting starts ]");
         splitter.init();
         splitter.split();
         tmp_time = igl_timer.getElapsedTime();
         splitter.outputInfo(MeshRecord::OpType::OP_SPLIT, tmp_time, is_log);
-        logger().info("edge splitting done in {}s", tmp_time);
+        logger().info("[ edge splitting done in {}s ]", tmp_time);
     }
 
     if (ops[1]) {
         igl_timer.start();
-        logger().info("edge collapsing...");
+        logger().info("[ edge collapsing starts ]");
         collapser.init();
         collapser.collapse();
         tmp_time = igl_timer.getElapsedTime();
         collapser.outputInfo(MeshRecord::OpType::OP_COLLAPSE, tmp_time, is_log);
-        logger().info("edge collasing done in {}s", tmp_time);
+        logger().info("[ edge collasing done in {}s ]", tmp_time);
     }
 
     if (ops[2]) {
         igl_timer.start();
-        logger().info("edge removing...");
+        logger().info("[ edge removing starts ]");
         edge_remover.init();
         edge_remover.swap();
         tmp_time = igl_timer.getElapsedTime();
         edge_remover.outputInfo(MeshRecord::OpType::OP_SWAP, tmp_time, is_log);
-        logger().info("edge removal done in {}s", tmp_time);
+        logger().info("[ edge removal done in {}s ]", tmp_time);
     }
 
     if (ops[3]) {
         igl_timer.start();
-        logger().info("vertex smoothing...");
+        logger().info("[ vertex smoothing starts ]");
         smoother.smooth();
         tmp_time = igl_timer.getElapsedTime();
         smoother.outputInfo(MeshRecord::OpType::OP_SMOOTH, tmp_time, is_log);
-        logger().info("vertex smooth done in {}s", tmp_time);
+        logger().info("[ vertex smooth done in {}s ]", tmp_time);
     }
 
     round();
@@ -474,7 +474,8 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
 
 
 void MeshRefinement::refine_pre(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
-                                VertexSmoother& smoother){
+                                VertexSmoother& smoother) {
+
     logger().info("////////////////// Pre-processing //////////////////");
     collapser.is_limit_length = false;
     doOperations(splitter, collapser, edge_remover, smoother, std::array<bool, 4>{{false, true, false, false}});
@@ -483,7 +484,8 @@ void MeshRefinement::refine_pre(EdgeSplitter& splitter, EdgeCollapser& collapser
 
 
 void MeshRefinement::refine_post(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
-                                 VertexSmoother& smoother){
+                                 VertexSmoother& smoother) {
+
     logger().info("////////////////// Post-processing //////////////////");
     collapser.is_limit_length = true;
     for (int i = 0; i < tet_vertices.size(); i++) {
@@ -807,7 +809,7 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
     //   in-between.
 
     igl_timer.start();
-    logger().debug("marking adaptive scales...");
+    logger().debug("[ marking adaptive scales ]");
     double tmp_time = 0;
 
     double radius0 = state.initial_edge_len * 1.8;//increasing the radius would increase the #v in output
@@ -901,6 +903,8 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
 
     // update scalars
     int cnt = 0;
+    int cntUpdatedVertices = 0;
+    double sumAdaptiveScale = 0;
     for (int i = 0; i < tet_vertices.size(); i++) {
         if (v_is_removed[i])
             continue;
@@ -909,23 +913,27 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
             cnt++;
         }
         double new_scale = tet_vertices[i].adaptive_scale * adap_tmp[i];
-        if (new_scale > 1)
+        if (new_scale > 1) {
             tet_vertices[i].adaptive_scale = 1;
-        else if (new_scale < min_adaptive_scale) {
+            sumAdaptiveScale += 1;
+        } else if (new_scale < min_adaptive_scale) {
             if (!is_clean_up_unrounded)
                 is_hit_min = true;
             tet_vertices[i].adaptive_scale = min_adaptive_scale;
-        } else
+            sumAdaptiveScale += min_adaptive_scale;
+        } else {
             tet_vertices[i].adaptive_scale = new_scale;
+            sumAdaptiveScale += new_scale;
+        }
+        cntUpdatedVertices++;
     }
     if (is_clean_up_unrounded && is_lock)
         logger().debug("{} vertices locked", cnt);
 
-    logger().debug("marked!");
+    logger().debug("Mean updated adaptive_scale = {}", sumAdaptiveScale / double(cntUpdatedVertices));
     tmp_time = igl_timer.getElapsedTime();
-    logger().debug("time = {}s", tmp_time);
+    logger().debug("[ marking adaptive scales done ] in {} s", tmp_time);
     addRecord(MeshRecord(MeshRecord::OpType::OP_ADAP_UPDATE, tmp_time, -1, -1), args, state);
-//    outputMidResult(true);
 }
 
 

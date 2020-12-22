@@ -453,7 +453,7 @@ void tetwild_stage_shell(
 
     // Freeze vertices on bottom and top surfaces
     tetshell::FreezeVertices(face_on_shell, TO,  // input
-                             VO);  // output
+                             VO, is_surface_facet);  // output
 
     // Report Euler number again (with the hallow region filled with pseudo-tets)
     std::vector<std::array<int, 4>> TO_with_pseudo_tets;
