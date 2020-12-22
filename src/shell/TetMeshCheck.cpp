@@ -79,7 +79,8 @@ bool TetMeshCheck::ConformityCheck() {
 
     int idx1, idx2, idx3;
     int count = 0;
-    for (int i=0; i<TO.size(); i++)
+    for (int i=0; i<TO.size(); i++) {
+        if (t_is_removed[i]) continue;
         for (int j=0; j<4; j++) {
 
             idx1 = TO[i][(j+1) % 4];
@@ -102,7 +103,7 @@ bool TetMeshCheck::ConformityCheck() {
                                       VO[idx2].posf.x(), VO[idx2].posf.y(), VO[idx2].posf.z(), 
                                       VO[idx3].posf.x(), VO[idx3].posf.y(), VO[idx3].posf.z();
                     if (SameUnorderedTriangle(inputTriangle, outputTriangle, 0.0)) {
-                        std::cerr << idx1 << " " << idx2 << " " << idx3 << std::endl;
+                        // std::cerr << idx1 << " " << idx2 << " " << idx3 << "  " << TO[i][(j) % 4] << std::endl;
                         count++;
                     } else {
                         result = false;
@@ -115,6 +116,7 @@ bool TetMeshCheck::ConformityCheck() {
                 }
             }
         }
+    }
 
     if (count != 2 * (FI.rows()/4)) {
         result = false;

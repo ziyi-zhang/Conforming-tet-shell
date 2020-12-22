@@ -704,11 +704,6 @@ void GetMeshWithPseudoTets(const DualShell_t &dualShell, const std::vector<tetwi
 
 void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const std::vector<std::array<int, 4>> &TO, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &is_surface_facet) {
 
-    // set is_on_surface to be false
-    for (auto it=VO.begin(); it!=VO.end(); it++) {
-        it->is_on_surface = false;
-    }
-
     // update
     for (int i=0; i<face_on_shell.size(); i++)
         for (int j=0; j<4; j++) {
@@ -734,9 +729,14 @@ void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const 
                 VO[vIdx1].is_on_surface = true;
                 VO[vIdx2].is_on_surface = true;
                 VO[vIdx3].is_on_surface = true;
-            } else {
-                // For other two surfaces and non-surface faces
+            } else if (face_on_shell[i][j] == SURFACE_INNER || face_on_shell[i][j] == SURFACE_OUTER) {
+                // For other two surfaces
+                VO[vIdx1].is_on_surface = false;
+                VO[vIdx2].is_on_surface = false;
+                VO[vIdx3].is_on_surface = false;
                 is_surface_facet[i][j] = 1024;  // state.NOT_SURFACE;
+            } else {
+                // pass
             }
         }
 }

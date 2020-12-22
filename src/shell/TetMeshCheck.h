@@ -33,8 +33,9 @@ public:
     const Eigen::MatrixXi &FI;
           std::vector<tetwild::TetVertex> &VO;  // not const b/c rational->double conversion
     const std::vector<std::array<int, 4>> &TO;
+    const std::vector<bool> t_is_removed;
     const Eigen::VectorXi &labels;
-    const std::vector<std::array<int, 4>> face_on_shell;
+    const std::vector<std::array<int, 4>> &face_on_shell;
 
     bool SanityCheck(int eulerNumber = std::numeric_limits<int>::max());
     bool ConformityCheck();
@@ -51,6 +52,9 @@ public:
     TetMeshCheck(const Eigen::MatrixXd &VI_, const Eigen::MatrixXi &FI_, std::vector<tetwild::TetVertex> &VO_, 
                  const std::vector<std::array<int, 4>> &TO_, const Eigen::VectorXi &labels_, 
                  const std::vector<std::array<int, 4>> &face_on_shell_, const TetMeshCheckArgs_t &args_) : args(args_), VI(VI_), FI(FI_), VO(VO_), TO(TO_), labels(labels_), face_on_shell(face_on_shell_) {}
+    TetMeshCheck(const Eigen::MatrixXd &VI_, const Eigen::MatrixXi &FI_, std::vector<tetwild::TetVertex> &VO_, 
+                 const std::vector<std::array<int, 4>> &TO_, const std::vector<bool> &t_is_removed_, const Eigen::VectorXi &labels_, 
+                 const std::vector<std::array<int, 4>> &face_on_shell_, const TetMeshCheckArgs_t &args_) : args(args_), VI(VI_), FI(FI_), VO(VO_), TO(TO_), t_is_removed(t_is_removed_), labels(labels_), face_on_shell(face_on_shell_) {}
 
     ~TetMeshCheck() {}
 };

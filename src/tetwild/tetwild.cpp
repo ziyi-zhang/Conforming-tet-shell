@@ -547,7 +547,7 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
         // Post-refinement check
         if (args.tet_mesh_sanity_check) {
             tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
-            tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, labels, face_on_shell, tetMeshCheckArgs);
+            tetshell::TetMeshCheck tetMeshCheck(VI, FI, tet_vertices, tet_indices, t_is_removed, labels, face_on_shell, tetMeshCheckArgs);
             tetMeshCheck.ConformityCheck();
         }
     }
