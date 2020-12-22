@@ -797,6 +797,8 @@ bool MeshRefinement::isRegionFullyRounded() {
 
 void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean_up_local, double filter_energy, bool is_lock) {
 
+    return;  // TetShell
+             // Temporary fix
     // Whenever the mesh energy cannot be optimized too much (delta of avg and
     // max energy is < `delta_energy_thres`), we update the scalar field of the
     // target edge length. The update is performed as follows:
