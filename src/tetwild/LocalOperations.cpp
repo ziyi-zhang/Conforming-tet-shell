@@ -347,8 +347,8 @@ void LocalOperations::check() {
 
 void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
 
-    logger().debug("  >>> outputing info >>>");
-    //update min/max dihedral angle infos
+    logger().debug("  >>>>>> statistics >>>>>>");
+    // update min/max dihedral angle infos
     for (int i=0; i<tets.size(); i++) {
         if (!t_is_removed[i])
             calTetQuality_AD(tets[i], tet_qualities[i]);
@@ -475,18 +475,15 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
 //            }
         }
     }
-
-
-    logger().debug("# vertices = {}({}) {}(r)", cnt, tet_vertices.size(), r_cnt);
+    logger().debug("  # vertices = {} / {}   {}(r)", cnt, tet_vertices.size(), r_cnt);
 
     cnt = 0;
     for (int i = 0; i < tets.size(); i++) {
         if (!t_is_removed[i])
             cnt++;
     }
-    logger().debug("# tets = {}({})", cnt, tets.size());
-    logger().debug("# total operations = {}", counter);
-    logger().debug("# accepted operations = {}", suc_counter);
+    logger().debug("  # tets = {} / {}", cnt, tets.size());
+    logger().debug("  # accepted operations = {} / {}", suc_counter, counter);
 
 
     double min = 10, max = 0;
@@ -496,6 +493,7 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
     cnt = 0;
 
     for (int i = 0; i < tet_qualities.size(); i++) {
+
         if (t_is_removed[i])
             continue;
         if (isTetLocked_ui(i))
@@ -522,10 +520,10 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
         }
     }
 
-    logger().debug("max_slim_energy = {}, min_d_angle = {}, max_d_angle = {}", max_slim_energy, min, max);
-    logger().debug("avg_slim_energy = {}, avg_min_d_angle = {}, avg_max_d_angle = {}", avg_slim_energy / cnt, min_avg / cnt, max_avg / cnt);
-    logger().debug("min_d_angle: <6 {};   <12 {};  <18 {}", cmp_cnt[0] / cnt, cmp_cnt[1] / cnt, cmp_cnt[2] / cnt);
-    logger().debug("max_d_angle: >174 {}; >168 {}; >162 {}", cmp_cnt[5] / cnt, cmp_cnt[4] / cnt, cmp_cnt[3] / cnt);
+    logger().debug("  max_slim_energy = {}, min_d_angle = {}, max_d_angle = {}", max_slim_energy, min, max);
+    logger().debug("  avg_slim_energy = {}, avg_min_d_angle = {}, avg_max_d_angle = {}", avg_slim_energy / cnt, min_avg / cnt, max_avg / cnt);
+    logger().debug("  min_d_angle: <6 {};   <12 {};  <18 {}", cmp_cnt[0] / cnt, cmp_cnt[1] / cnt, cmp_cnt[2] / cnt);
+    logger().debug("  max_d_angle: >174 {}; >168 {}; >162 {}", cmp_cnt[5] / cnt, cmp_cnt[4] / cnt, cmp_cnt[3] / cnt);
 
     if (is_log) {
         addRecord(MeshRecord(op_type, time, std::count(v_is_removed.begin(), v_is_removed.end(), false), cnt,
@@ -635,20 +633,22 @@ double LocalOperations::getMaxEnergy(){
     return max_tq;
 }
 
+
 double LocalOperations::getSecondMaxEnergy(double max_energy){
     double max_tq = 0;
     for (unsigned int i = 0; i < tet_qualities.size(); i++) {
         if (t_is_removed[i])
             continue;
-        if(tet_qualities[i].slim_energy == state.MAX_ENERGY)
+        if (tet_qualities[i].slim_energy == state.MAX_ENERGY)
             continue;
-        if(isTetLocked_ui(i))
+        if (isTetLocked_ui(i))
             continue;
         if (tet_qualities[i].slim_energy > max_tq)
             max_tq = tet_qualities[i].slim_energy;
     }
     return max_tq;
 }
+
 
 double LocalOperations::getFilterEnergy(bool& is_clean_up) {
     std::array<int, 11> buckets;
@@ -690,8 +690,9 @@ double LocalOperations::getFilterEnergy(bool& is_clean_up) {
         }
     }
 
-    return 8;//would never be execuate, it's fine
+    return 8;  // would never be execuate, it's fine
 }
+
 
 void LocalOperations::calTetQualities(const std::vector<std::array<int, 4>>& new_tets, std::vector<TetQuality>& tet_qs,
                                       bool all_measure) {
@@ -773,29 +774,34 @@ void LocalOperations::calTetQualities(const std::vector<std::array<int, 4>>& new
 #endif
 }
 
+
 double LocalOperations::calEdgeLength(const std::array<int, 2>& v_ids){
     return CGAL::squared_distance(tet_vertices[v_ids[0]].posf, tet_vertices[v_ids[1]].posf);
 }
+
 
 double LocalOperations::calEdgeLength(int v1_id,int v2_id, bool is_over_refine) {
     return CGAL::squared_distance(tet_vertices[v1_id].posf, tet_vertices[v2_id].posf);
 }
 
+
 void LocalOperations::calTetQuality_AD(const std::array<int, 4>& tet, TetQuality& t_quality) {
+
     std::array<Vector_3f, 4> nv;
     std::array<double, 4> nv_length;
     std::array<double, 4> heights;
+
     for (int i = 0; i < 4; i++) {
         Plane_3f pln(tet_vertices[tet[(i + 1) % 4]].posf,
                     tet_vertices[tet[(i + 2) % 4]].posf,
                     tet_vertices[tet[(i + 3) % 4]].posf);
-        if(pln.is_degenerate()){
+        if (pln.is_degenerate()) {
             t_quality.min_d_angle = 0;
             t_quality.max_d_angle = M_PI;
             return;
         }
         Point_3f tmp_p = pln.projection(tet_vertices[tet[i]].posf);
-        if(tmp_p == tet_vertices[tet[i]].posf){
+        if (tmp_p == tet_vertices[tet[i]].posf) {
             t_quality.min_d_angle = 0;
             t_quality.max_d_angle = M_PI;
             return;
@@ -816,10 +822,10 @@ void LocalOperations::calTetQuality_AD(const std::array<int, 4>& tet, TetQuality
 //            pausee();
 //        }
 
-        //re-scale
+        // re-scale
         std::array<double, 3> tmp_nv = {{CGAL::abs(nv[i][0]), CGAL::abs(nv[i][1]), CGAL::abs(nv[i][2])}};
         auto tmp = std::max_element(tmp_nv.begin(), tmp_nv.end());
-        if(*tmp == 0 || heights[i] == 0){
+        if (*tmp == 0 || heights[i] == 0) {
             t_quality.min_d_angle = 0;
             t_quality.max_d_angle = M_PI;
 //            t_quality.asp_ratio_2 = state.MAX_ENERGY;
@@ -833,12 +839,12 @@ void LocalOperations::calTetQuality_AD(const std::array<int, 4>& tet, TetQuality
     }
 
     std::vector<std::array<int, 2>> opp_edges;
-    for (int i = 0; i < 3; i++) {
+    for (int i=0; i<3; i++) {
         opp_edges.push_back(std::array<int, 2>({{0, i + 1}}));
         opp_edges.push_back(std::array<int, 2>({{i + 1, (i + 1) % 3 + 1}}));
     }
 
-    ////compute dihedral angles
+    // compute dihedral angles
     std::array<double, 6> dihedral_angles;
     for (int i = 0; i < (int) opp_edges.size(); i++) {
         double dihedral_angle = -nv[opp_edges[i][0]] * nv[opp_edges[i][1]] /
@@ -860,6 +866,7 @@ void LocalOperations::calTetQuality_AD(const std::array<int, 4>& tet, TetQuality
 //    t_quality.asp_ratio_2 = max_e_l / *h;
 }
 
+
 void LocalOperations::calTetQuality_AMIPS(const std::array<int, 4>& tet, TetQuality& t_quality) {
     if (energy_type == state.ENERGY_AMIPS) {
         CGAL::Orientation ori = CGAL::orientation(tet_vertices[tet[0]].posf,
@@ -880,9 +887,10 @@ void LocalOperations::calTetQuality_AMIPS(const std::array<int, 4>& tet, TetQual
                 t_quality.slim_energy = state.MAX_ENERGY;
         }
     }
-    if(std::isinf(t_quality.slim_energy) || std::isnan(t_quality.slim_energy) || t_quality.slim_energy <= 0)
+    if (std::isinf(t_quality.slim_energy) || std::isnan(t_quality.slim_energy) || t_quality.slim_energy <= 0)
         t_quality.slim_energy = state.MAX_ENERGY;
 }
+
 
 bool LocalOperations::isEdgeOnSurface(int v1_id, int v2_id) {
     if (!tet_vertices[v1_id].is_on_surface || !tet_vertices[v2_id].is_on_surface)
@@ -894,6 +902,7 @@ bool LocalOperations::isEdgeOnSurface(int v1_id, int v2_id) {
     return isEdgeOnSurface(v1_id, v2_id, t_ids);
 }
 
+
 bool LocalOperations::isEdgeOnBbox(int v1_id, int v2_id){
     if(!tet_vertices[v1_id].is_on_bbox || !tet_vertices[v2_id].is_on_bbox)
         return false;
@@ -902,6 +911,7 @@ bool LocalOperations::isEdgeOnBbox(int v1_id, int v2_id){
     setIntersection(tet_vertices[v1_id].conn_tets, tet_vertices[v2_id].conn_tets, t_ids);
     return isEdgeOnBbox(v1_id, v2_id, t_ids);
 }
+
 
 bool LocalOperations::isEdgeOnSurface(int v1_id, int v2_id, const std::vector<int>& t_ids){
     for (int i = 0; i < t_ids.size(); i++) {
@@ -914,6 +924,7 @@ bool LocalOperations::isEdgeOnSurface(int v1_id, int v2_id, const std::vector<in
     }
     return false;
 }
+
 
 bool LocalOperations::isEdgeOnBbox(int v1_id, int v2_id, const std::vector<int>& t_ids){
     std::unordered_set<int> v_ids;
@@ -928,6 +939,7 @@ bool LocalOperations::isEdgeOnBbox(int v1_id, int v2_id, const std::vector<int>&
         return true;
     return false;
 }
+
 
 bool LocalOperations::isEdgeOnBoundary(int v1_id, int v2_id) {
 //    if (boundary_points.size() == 0)//if it's a closed mesh, then there cannot be any boundary edges.
@@ -964,6 +976,7 @@ bool LocalOperations::isEdgeOnBoundary(int v1_id, int v2_id) {
 
     return false;
 }
+
 
 bool LocalOperations::isFaceOutEnvelop(const Triangle_3f& tri) {
 return true;  // TetShell
@@ -1033,6 +1046,7 @@ return true;  // TetShell
 //    }
 }
 
+
 bool LocalOperations::isPointOutEnvelop(const Point_3f& p) {
 return true;  // TetShell
 #if CHECK_ENVELOP
@@ -1045,6 +1059,7 @@ return true;  // TetShell
     return false;
 #endif
 }
+
 
 bool LocalOperations::isFaceOutEnvelop_sampling(const Triangle_3f& tri) {
 return true;  // TetShell
@@ -1124,6 +1139,7 @@ return true;  // TetShell
     return false;
 #endif
 }
+
 
 bool LocalOperations::isBoundarySlide(int v1_id, int v2_id, Point_3f& old_pf){
     return false;
@@ -1375,9 +1391,11 @@ void LocalOperations::checkUnrounded() {
     }
 }
 
+
 bool LocalOperations::isLocked_ui(const std::array<int, 2>& e){
     return (tet_vertices[e[0]].is_locked || tet_vertices[e[1]].is_locked);
 }
+
 
 bool LocalOperations::isTetLocked_ui(int tid){
 //    return false;
@@ -1387,6 +1405,7 @@ bool LocalOperations::isTetLocked_ui(int tid){
             return true;
     return false;
 }
+
 
 void LocalOperations::outputSurfaceColormap(const Eigen::MatrixXd& V_in, const Eigen::MatrixXi& F_in, double old_eps) {
     state.sampling_dist /= 2;
@@ -1526,4 +1545,4 @@ void LocalOperations::outputSurfaceColormap(const Eigen::MatrixXd& V_in, const E
     state.sampling_dist *= 2;
 }
 
-} // namespace tetwild
+}  // namespace tetwild

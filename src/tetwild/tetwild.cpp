@@ -425,6 +425,9 @@ void tetwild_stage_shell(
     Eigen::VectorXi &labels, 
     int &eulerNumber) {
 
+    igl::Timer igl_timer;
+    igl_timer.start();
+
     // the input mesh size
     logger().debug("VI size = {} x {}", VI.rows(), VI.cols());
     logger().debug("FI size = {} x {}", FI.rows(), FI.cols());
@@ -460,6 +463,9 @@ void tetwild_stage_shell(
     tetshell::GetMeshWithPseudoTets(dualShell, VO, TO,  // input
                                     TO_with_pseudo_tets);  // output
     eulerNumber = tetshell::EulerNumber(TO_with_pseudo_tets, "Post-shell with pseudo tets");
+
+    double stageTime = igl_timer.getElapsedTime();
+    logger().info("Total time for the shell stage = {}s", stageTime);
 }
 
 // -----------------------------------------------------------------------------
@@ -477,8 +483,11 @@ void tetwild_stage_two(const Args &args, State &state,
     std::vector<std::array<int, 4>> &is_surface_facet, 
     std::vector<bool> &t_is_removed) {
 
+    igl::Timer igl_timer;
+    igl_timer.start();
+
     spdlog::level::level_enum verbose_level = logger().level();
-    logger().set_level(static_cast<spdlog::level::level_enum>(1));
+    logger().set_level(static_cast<spdlog::level::level_enum>(spdlog::level::debug));
     // init
     logger().info("Refinement initializing...");
     MeshRefinement MR(geo_sf_mesh, geo_b_mesh, args, state);
@@ -496,6 +505,8 @@ void tetwild_stage_two(const Args &args, State &state,
     is_surface_facet = std::move(MR.is_surface_fs);
     t_is_removed = std::move(MR.t_is_removed);
 
+    double stageTime = igl_timer.getElapsedTime();
+    logger().info("Total time for the optimization stage = {}s", stageTime);
     logger().set_level(verbose_level);
 }
 

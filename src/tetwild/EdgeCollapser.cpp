@@ -211,7 +211,7 @@ void EdgeCollapser::collapse() {
 //            of.close();
 //        }
 
-        logger().debug("energy_time = {}", energy_time);
+        logger().trace("energy_time = {}", energy_time);
 
         return;
     }

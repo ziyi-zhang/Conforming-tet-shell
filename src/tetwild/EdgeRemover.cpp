@@ -116,7 +116,7 @@ void EdgeRemover::swap() {
     logger().debug("{}", cnt5);
     */
 
-    logger().debug("energy_time = {}", energy_time);
+    logger().trace("energy_time = {}", energy_time);
 }
 
 

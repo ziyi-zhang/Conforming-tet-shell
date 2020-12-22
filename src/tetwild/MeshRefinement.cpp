@@ -223,7 +223,8 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
         min_adaptive_scale = state.eps / state.initial_edge_len * 0.5;  // min to eps/2
     else
 //        min_adaptive_scale = state.eps_input / state.initial_edge_len; // state.eps_input / state.initial_edge_len * 0.5 is too small
-        min_adaptive_scale = (state.bbox_diag / 1000) / state.initial_edge_len; // set min_edge_length to diag / 1000 would be better
+        // TetShell: change 1000 to ? to avoid over splitting
+        min_adaptive_scale = (state.bbox_diag / 100) / state.initial_edge_len; // set min_edge_length to diag / 1000 would be better
 
     LocalOperations localOperation(tet_vertices, tets, is_surface_fs, v_is_removed, t_is_removed, tet_qualities,
                                    energy_type, geo_sf_mesh, geo_sf_tree, geo_b_tree, args, state);
@@ -797,8 +798,6 @@ bool MeshRefinement::isRegionFullyRounded() {
 
 void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean_up_local, double filter_energy, bool is_lock) {
 
-    return;  // TetShell
-             // Temporary fix
     // Whenever the mesh energy cannot be optimized too much (delta of avg and
     // max energy is < `delta_energy_thres`), we update the scalar field of the
     // target edge length. The update is performed as follows:
@@ -814,8 +813,8 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
     logger().debug("[ marking adaptive scales ]");
     double tmp_time = 0;
 
-    double radius0 = state.initial_edge_len * 1.8;//increasing the radius would increase the #v in output
-    if(is_hit_min)
+    double radius0 = state.initial_edge_len * 1.8;  // increasing the radius would increase the #v in output
+    if (is_hit_min)
         radius0 *= 2;
     if (is_clean_up_local)
         radius0 = state.initial_edge_len;
