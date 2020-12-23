@@ -446,6 +446,7 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
 //        std::cout, cnt);
 //    }
 
+    // vertices
     int cnt = 0;
     int r_cnt = 0;
     for (int i=0; i<tet_vertices.size(); i++) {
@@ -477,6 +478,7 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
     }
     logger().debug("  # vertices = {} / {}   {}(r)", cnt, tet_vertices.size(), r_cnt);
 
+    // tets
     cnt = 0;
     for (int i = 0; i < tets.size(); i++) {
         if (!t_is_removed[i])
@@ -485,14 +487,14 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
     logger().debug("  # tets = {} / {}", cnt, tets.size());
     logger().debug("  # accepted operations = {} / {}", suc_counter, counter);
 
-
+    // angle and energy
     double min = 10, max = 0;
     double min_avg = 0, max_avg = 0;
     double max_slim_energy = 0, avg_slim_energy = 0;
     std::array<double, 6> cmp_cnt = {{0, 0, 0, 0, 0, 0}};
     cnt = 0;
 
-    for (int i = 0; i < tet_qualities.size(); i++) {
+    for (int i=0; i<tet_qualities.size(); i++) {
 
         if (t_is_removed[i])
             continue;
@@ -510,26 +512,66 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
         max_avg += tet_qualities[i].max_d_angle;
         avg_slim_energy += tet_qualities[i].slim_energy;
 
-        for (int j = 0; j < 3; j++) {
+        for (int j=0; j<3; j++) {
             if (tet_qualities[i].min_d_angle < cmp_d_angles[j])
                 cmp_cnt[j]++;
         }
-        for (int j = 0; j < 3; j++) {
+        for (int j=0; j<3; j++) {
             if (tet_qualities[i].max_d_angle > cmp_d_angles[j + 3])
-                cmp_cnt[j + 3]++;
+                cmp_cnt[j+3]++;
         }
+    }
+
+    std::array<std::array<double, 3>, 7> energyHist;  // max, avg, min
+    std::array<int, 7> energyCnt;
+    for (int i=0; i<7; i++) {
+        energyHist[i][0] = 0;
+        energyHist[i][1] = 0;
+        energyHist[i][2] = 100;
+        energyCnt[i] = 0;
+    }
+    for (int i=0; i<tet_qualities.size(); i++) {
+
+        if (t_is_removed[i])
+            continue;
+
+        int frozenEdgeCnt = 0;
+        frozenEdgeCnt += isEdgeOnSurface(tets[i][0], tets[i][1]);
+        frozenEdgeCnt += isEdgeOnSurface(tets[i][0], tets[i][2]);
+        frozenEdgeCnt += isEdgeOnSurface(tets[i][0], tets[i][3]);
+        frozenEdgeCnt += isEdgeOnSurface(tets[i][1], tets[i][2]);
+        frozenEdgeCnt += isEdgeOnSurface(tets[i][1], tets[i][3]);
+        frozenEdgeCnt += isEdgeOnSurface(tets[i][2], tets[i][3]);
+
+        const double e = tet_qualities[i].slim_energy;
+        // cnt
+        energyCnt[frozenEdgeCnt]++;
+        // avg
+        energyHist[frozenEdgeCnt][1] += e;
+        // max
+        if (e>energyHist[frozenEdgeCnt][0]) energyHist[frozenEdgeCnt][0] = e;
+        // min
+        if (e<energyHist[frozenEdgeCnt][2]) energyHist[frozenEdgeCnt][2] = e;
     }
 
     logger().debug("  max_slim_energy = {}, min_d_angle = {}, max_d_angle = {}", max_slim_energy, min, max);
     logger().debug("  avg_slim_energy = {}, avg_min_d_angle = {}, avg_max_d_angle = {}", avg_slim_energy / cnt, min_avg / cnt, max_avg / cnt);
-    logger().debug("  min_d_angle: <6 {};   <12 {};  <18 {}", cmp_cnt[0] / cnt, cmp_cnt[1] / cnt, cmp_cnt[2] / cnt);
-    logger().debug("  max_d_angle: >174 {}; >168 {}; >162 {}", cmp_cnt[5] / cnt, cmp_cnt[4] / cnt, cmp_cnt[3] / cnt);
+    logger().trace("  min_d_angle: <6 {};   <12 {};  <18 {}", cmp_cnt[0] / cnt, cmp_cnt[1] / cnt, cmp_cnt[2] / cnt);
+    logger().trace("  max_d_angle: >174 {}; >168 {}; >162 {}", cmp_cnt[5] / cnt, cmp_cnt[4] / cnt, cmp_cnt[3] / cnt);
+    logger().debug("  frozen0 max_energy = {}, frozen0 avg_energy = {}, frozen0 min_energy = {}", energyHist[0][0], energyHist[0][1] / energyCnt[0], energyHist[0][2]);
+    logger().debug("  frozen1 max_energy = {}, frozen1 avg_energy = {}, frozen1 min_energy = {}", energyHist[1][0], energyHist[1][1] / energyCnt[1], energyHist[1][2]);
+    logger().debug("  frozen2 max_energy = {}, frozen2 avg_energy = {}, frozen2 min_energy = {}", energyHist[2][0], energyHist[2][1] / energyCnt[2], energyHist[2][2]);
+    logger().debug("  frozen3 max_energy = {}, frozen3 avg_energy = {}, frozen3 min_energy = {}", energyHist[3][0], energyHist[3][1] / energyCnt[3], energyHist[3][2]);
+    logger().debug("  frozen4 max_energy = {}, frozen4 avg_energy = {}, frozen4 min_energy = {}", energyHist[4][0], energyHist[4][1] / energyCnt[4], energyHist[4][2]);
+    logger().debug("  frozen5 max_energy = {}, frozen5 avg_energy = {}, frozen5 min_energy = {}", energyHist[5][0], energyHist[5][1] / energyCnt[5], energyHist[5][2]);
+    logger().debug("  frozen6 max_energy = {}, frozen6 avg_energy = {}, frozen6 min_energy = {}", energyHist[6][0], energyHist[6][1] / energyCnt[6], energyHist[6][2]);
 
     if (is_log) {
         addRecord(MeshRecord(op_type, time, std::count(v_is_removed.begin(), v_is_removed.end(), false), cnt,
                              min, min_avg / cnt, max, max_avg / cnt, max_slim_energy, avg_slim_energy / cnt), args, state);
     }
 }
+
 
 bool LocalOperations::isTetFlip(const std::array<int, 4>& t) {
     CGAL::Orientation ori;
@@ -551,9 +593,11 @@ bool LocalOperations::isTetFlip(const std::array<int, 4>& t) {
     return false;
 }
 
+
 bool LocalOperations::isTetFlip(int t_id){
     return isTetFlip(tets[t_id]);
 }
+
 
 bool LocalOperations::isFlip(const std::vector<std::array<int, 4>>& new_tets) {
     ////check orientation
@@ -571,6 +615,7 @@ bool LocalOperations::isFlip(const std::vector<std::array<int, 4>>& new_tets) {
     return false;
 }
 
+
 void LocalOperations::getCheckQuality(const std::vector<TetQuality>& tet_qs, TetQuality& tq) {
     double slim_sum = 0, slim_max = 0;
     for (int i = 0; i < tet_qs.size(); i++) {
@@ -586,6 +631,7 @@ void LocalOperations::getCheckQuality(const std::vector<TetQuality>& tet_qs, Tet
         tq.slim_energy = slim_sum;
 }
 
+
 void LocalOperations::getCheckQuality(const std::vector<int>& t_ids, TetQuality& tq){
     double slim_sum = 0, slim_max = 0;
     for (int i = 0; i < t_ids.size(); i++) {
@@ -600,6 +646,7 @@ void LocalOperations::getCheckQuality(const std::vector<int>& t_ids, TetQuality&
     else
         tq.slim_energy = slim_sum;
 }
+
 
 void LocalOperations::getAvgMaxEnergy(double& avg_tq, double& max_tq) {
     avg_tq = 0;
@@ -619,6 +666,7 @@ void LocalOperations::getAvgMaxEnergy(double& avg_tq, double& max_tq) {
     if(std::isinf(avg_tq))
         avg_tq = state.MAX_ENERGY;
 }
+
 
 double LocalOperations::getMaxEnergy(){
     double max_tq = 0;
@@ -857,7 +905,7 @@ void LocalOperations::calTetQuality_AD(const std::array<int, 4>& tet, TetQuality
             dihedral_angles[i] = std::acos(dihedral_angle);
     }
 //    std::sort(dihedral_angles.begin(), dihedral_angles.end());
-    auto it=std::minmax_element(dihedral_angles.begin(), dihedral_angles.end());
+    auto it = std::minmax_element(dihedral_angles.begin(), dihedral_angles.end());
     t_quality.min_d_angle = *(it.first);
     t_quality.max_d_angle = *(it.second);
 
@@ -868,12 +916,13 @@ void LocalOperations::calTetQuality_AD(const std::array<int, 4>& tet, TetQuality
 
 
 void LocalOperations::calTetQuality_AMIPS(const std::array<int, 4>& tet, TetQuality& t_quality) {
+
     if (energy_type == state.ENERGY_AMIPS) {
         CGAL::Orientation ori = CGAL::orientation(tet_vertices[tet[0]].posf,
                                                   tet_vertices[tet[1]].posf,
                                                   tet_vertices[tet[2]].posf,
                                                   tet_vertices[tet[3]].posf);
-        if (ori != CGAL::POSITIVE) {//degenerate in floats
+        if (ori != CGAL::POSITIVE) {  // degenerate in floats
             t_quality.slim_energy = state.MAX_ENERGY;
         } else {
             std::array<double, 12> T;
