@@ -481,7 +481,8 @@ void tetwild_stage_two(const Args &args, State &state,
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
     std::vector<std::array<int, 4>> &is_surface_facet, 
-    std::vector<bool> &t_is_removed) {
+    std::vector<bool> &t_is_removed, 
+    std::vector<TetQuality> &tetQuality) {
 
     igl::Timer igl_timer;
     igl_timer.start();
@@ -504,6 +505,7 @@ void tetwild_stage_two(const Args &args, State &state,
     tet_indices = std::move(MR.tets);
     is_surface_facet = std::move(MR.is_surface_fs);
     t_is_removed = std::move(MR.t_is_removed);
+    tetQuality = std::move(MR.tet_qualities);
 
     double stageTime = igl_timer.getElapsedTime();
     logger().info("Total time for the optimization stage = {}s", stageTime);
@@ -552,9 +554,10 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     }
     /// STAGE 2: Mesh refinement
     std::vector<bool> t_is_removed(tet_indices.size(), false);
+    std::vector<TetQuality> tetQuality;
     if (!args.skip_optim) {
         tetwild_stage_two(args, state, geo_sf_mesh, geo_b_mesh,
-                          tet_vertices, tet_indices, is_surface_facet, t_is_removed);
+                          tet_vertices, tet_indices, is_surface_facet, t_is_removed, tetQuality);
         // Post-refinement check
         if (args.tet_mesh_sanity_check) {
             tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
@@ -564,7 +567,7 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     }
 
     // Extract to VO TO LO
-    tetshell::ExtractMesh(args, tet_vertices, tet_indices, labels, t_is_removed, VO, TO, LO);
+    tetshell::ExtractMesh(args, tet_vertices, tet_indices, tetQuality, labels, t_is_removed, VO, TO, AO, LO);
 
     double total_time = igl_timer.getElapsedTime();
     logger().info("Total time for all stages = {}s", total_time);

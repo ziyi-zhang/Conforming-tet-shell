@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
         tetwild::tetrahedralization(VI, FI, VO, TO, AO, LO, args);
     }
 
-    tetshell::SaveToTetMsh(output_volume, VO, TO, LO);
+    tetshell::SaveToTetMsh(output_volume, VO, TO, AO, LO);
 
     spdlog::shutdown();
 

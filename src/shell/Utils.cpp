@@ -179,10 +179,12 @@ void ExtractMesh(
     const tetwild::Args &args,
     const std::vector<tetwild::TetVertex> &VI, 
     const std::vector<std::array<int, 4>> &TI, 
+    const std::vector<tetwild::TetQuality> &tetQuality,
     const Eigen::VectorXi &LI,
     const std::vector<bool> &t_is_removed,
     Eigen::MatrixXd &V_out, 
     Eigen::MatrixXi &T_out, 
+    Eigen::VectorXd &A_out,
     Eigen::VectorXi &L_out) {
 
     const int tetNum = std::count(t_is_removed.begin(), t_is_removed.end(), false);
@@ -208,6 +210,7 @@ void ExtractMesh(
     // Prepare V, T, L
     V_out.resize(v_ids.size(), 3);
     T_out.resize(tetNum, 4);
+    A_out.resize(tetNum);
     L_out.resize(tetNum);
     // Fill V
     for (int i = 0; i < v_ids.size(); i++) {
@@ -215,7 +218,7 @@ void ExtractMesh(
             V_out(i, j) = CGAL::to_double(VI[v_ids[i]].pos[j]);
         }
     }
-    // Fill T & L
+    // Fill T & A & L
     int cnt = 0;
     for (int i = 0; i < TI.size(); i++) {
         if (t_is_removed[i]) {
@@ -223,6 +226,11 @@ void ExtractMesh(
         }
         for (int j = 0; j < 4; j++) {
             T_out(cnt, j) = map_ids[TI[i][j]];  // the index is new as defined in map_ids
+        }
+        if (args.skip_optim) {
+            A_out(cnt) = 0;
+        } else {
+            A_out(cnt) = tetQuality[cnt].slim_energy;
         }
         if (args.skip_optim) {
             L_out(cnt) = LI(i);
@@ -238,7 +246,7 @@ void ExtractMesh(
 }
 
 
-void SaveToTetMsh(const std::string fileName, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::VectorXi &L) {
+void SaveToTetMsh(const std::string fileName, const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::VectorXd &A, const Eigen::VectorXi &L) {
 
     PyMesh::MshSaver mSaver(fileName, true);
     PyMesh::VectorF V_flat(V.size());
@@ -248,7 +256,7 @@ void SaveToTetMsh(const std::string fileName, const Eigen::MatrixXd &V, const Ei
     std::copy_n(VV.data(), V.size(), V_flat.data());
     std::copy_n(TT.data(), T.size(), T_flat.data());
     mSaver.save_mesh(V_flat, T_flat, 3, mSaver.TET);
-    // mSaver.save_elem_scalar_field("min_dihedral_angle", A);
+    mSaver.save_elem_scalar_field("slim_energy", A);
     mSaver.save_elem_scalar_field("label", L.cast<double>());
 
     logger().info("Result msh saved to {}", fileName);
