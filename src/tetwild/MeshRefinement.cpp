@@ -38,7 +38,7 @@ void MeshRefinement::prepareData(bool is_init) {
         v_is_removed = std::vector<bool>(tet_vertices.size(), false);
 
         // rational to float
-        for (int i = 0; i < tet_vertices.size(); i++) {
+        for (int i=0; i<tet_vertices.size(); i++) {
             if (tet_vertices[i].is_rounded)
                 continue;
             tet_vertices[i].round();
@@ -51,9 +51,9 @@ void MeshRefinement::prepareData(bool is_init) {
     GEO::MeshFacetsAABBWithEps simple_tree(simple_mesh);
     LocalOperations localOperation(tet_vertices, tets, is_surface_fs, v_is_removed, t_is_removed, tet_qualities,
                                    state.ENERGY_AMIPS, simple_mesh, simple_tree, simple_tree, args, state);
-    localOperation.calTetQualities(tets, tet_qualities, true);//cal all measure
+    localOperation.calTetQualities(tets, tet_qualities, true);  // cal all measure
     double tmp_time = igl_timer.getElapsedTime();
-    logger().debug("{}s", tmp_time);
+    logger().debug("prepareData done in {}s", tmp_time);
     localOperation.outputInfo(MeshRecord::OpType::OP_OPT_INIT, tmp_time);
 }
 
@@ -224,7 +224,7 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
     else
 //        min_adaptive_scale = state.eps_input / state.initial_edge_len; // state.eps_input / state.initial_edge_len * 0.5 is too small
         // TetShell: change 1000 to ? to avoid over splitting
-        min_adaptive_scale = (state.bbox_diag / 100) / state.initial_edge_len; // set min_edge_length to diag / 1000 would be better
+        min_adaptive_scale = (state.bbox_diag / 100) / state.initial_edge_len;  // set min_edge_length to diag / 1000 would be better
 
     LocalOperations localOperation(tet_vertices, tets, is_surface_fs, v_is_removed, t_is_removed, tet_qualities,
                                    energy_type, geo_sf_mesh, geo_sf_tree, geo_b_tree, args, state);
@@ -676,6 +676,7 @@ void MeshRefinement::applySizingField(EdgeSplitter& splitter, EdgeCollapser& col
 
     GEO::MeshCellsAABB bg_aabb(bg_mesh, false);
     for (int i = 0; i < tet_vertices.size(); i++) {
+
         if (v_is_removed[i])
             continue;
         GEO::vec3 p(tet_vertices[i].posf[0], tet_vertices[i].posf[1], tet_vertices[i].posf[2]);
@@ -683,10 +684,10 @@ void MeshRefinement::applySizingField(EdgeSplitter& splitter, EdgeCollapser& col
         if (bg_t_id == GEO::MeshCellsAABB::NO_TET)
             continue;
 
-        //compute barycenter
+        // compute barycenter
         double value = 0;
         std::array<Point_3f, 4> vs;
-        for (int j = 0; j < 4; j++)
+        for (int j=0; j<4; j++)
             vs[j] = Point_3f(V_in(T_in(bg_t_id * 4 + j) * 3), V_in(T_in(bg_t_id * 4 + j) * 3 + 1),
                              V_in(T_in(bg_t_id * 4 + j) * 3 + 2));
 
@@ -699,7 +700,7 @@ void MeshRefinement::applySizingField(EdgeSplitter& splitter, EdgeCollapser& col
             value += weight * values(T_in(bg_t_id * 4 + (j + 3) % 4));
         }
 
-        tet_vertices[i].adaptive_scale = value / state.initial_edge_len; //we allow .adaptive_scale > 1
+        tet_vertices[i].adaptive_scale = value / state.initial_edge_len;  // we allow .adaptive_scale > 1
     }
 
 //     for debugging
@@ -827,10 +828,10 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
 
     const int N = -int(std::log2(min_adaptive_scale) - 1);
     std::vector<std::vector<int>> v_ids(N, std::vector<int>());
-    for (int i = 0; i < tet_vertices.size(); i++) {
-        if (v_is_removed[i] || tet_vertices[i].is_locked)
-            continue;
+    for (int i=0; i<tet_vertices.size(); i++) {
 
+        if (v_is_removed[i] || tet_vertices[i].is_locked || tet_vertices[i].is_frozen)
+            continue;
         if (is_clean_up_unrounded) {
             if (tet_vertices[i].is_rounded)
                 continue;
@@ -851,19 +852,19 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
     }
 
     for (int n = 0; n < N; n++) {
-        if(v_ids[n].size() == 0)
+
+        if (v_ids[n].size() == 0)
             continue;
 
         double radius = radius0 / std::pow(2, n);
 //        double radius = radius0 / 1.5;
-
         std::unordered_set<int> is_visited;
         std::queue<int> v_queue;
 
         std::vector<double> pts;
         pts.reserve(v_ids[n].size() * 3);
-        for (int i = 0; i < v_ids[n].size(); i++) {
-            for (int j = 0; j < 3; j++)
+        for (int i=0; i<v_ids[n].size(); i++) {
+            for (int j=0; j<3; j++)
                 pts.push_back(tet_vertices[v_ids[n][i]].posf[j]);
 
             v_queue.push(v_ids[n][i]);

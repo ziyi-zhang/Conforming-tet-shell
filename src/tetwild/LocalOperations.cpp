@@ -1309,6 +1309,7 @@ bool LocalOperations::isBoundarySlide(int v1_id, int v2_id, Point_3f& old_pf){
 #endif
 }
 
+
 bool LocalOperations::isTetOnSurface(int t_id){
     for(int i=0;i<4;i++){
         if(is_surface_fs[t_id][i]!=state.NOT_SURFACE)
@@ -1317,6 +1318,7 @@ bool LocalOperations::isTetOnSurface(int t_id){
     return true;
 }
 
+
 bool LocalOperations::isTetRounded(int t_id){
     for(int i=0;i<4;i++){
         if(!tet_vertices[tets[t_id][i]].is_rounded)
@@ -1324,6 +1326,7 @@ bool LocalOperations::isTetRounded(int t_id){
     }
     return true;
 }
+
 
 void LocalOperations::getFaceConnTets(int v1_id, int v2_id, int v3_id, std::vector<int>& t_ids){
     std::vector<int> v1, v2, v3, tmp;
@@ -1345,6 +1348,7 @@ void LocalOperations::getFaceConnTets(int v1_id, int v2_id, int v3_id, std::vect
     std::set_intersection(v3.begin(), v3.end(), tmp.begin(), tmp.end(), std::back_inserter(t_ids));
 }
 
+
 bool LocalOperations::isIsolated(int v_id) {
     for (auto it = tet_vertices[v_id].conn_tets.begin(); it != tet_vertices[v_id].conn_tets.end(); it++) {
         for (int j = 0; j < 4; j++) {
@@ -1355,6 +1359,7 @@ bool LocalOperations::isIsolated(int v_id) {
 
     return true;
 }
+
 
 bool LocalOperations::isBoundaryPoint(int v_id) {
     if(state.is_mesh_closed)
@@ -1371,6 +1376,7 @@ bool LocalOperations::isBoundaryPoint(int v_id) {
     }
     return false;
 }
+
 
 void LocalOperations::checkUnrounded() {
     bool is_output = false;
@@ -1449,8 +1455,8 @@ bool LocalOperations::isLocked_ui(const std::array<int, 2>& e){
 bool LocalOperations::isTetLocked_ui(int tid){
 //    return false;
 
-    for(int j=0;j<4;j++)
-        if(tet_vertices[tets[tid][j]].is_locked)
+    for (int j=0;j<4;j++)
+        if (tet_vertices[tets[tid][j]].is_locked)
             return true;
     return false;
 }

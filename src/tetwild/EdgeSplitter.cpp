@@ -223,7 +223,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
     tet_vertices[v_id].posf = CGAL::midpoint(tet_vertices[v1_id].posf, tet_vertices[v2_id].posf);
     tet_vertices[v_id].pos = Point_3(tet_vertices[v_id].posf[0], tet_vertices[v_id].posf[1], tet_vertices[v_id].posf[2]);
     std::vector<TetQuality> tet_qs;
-    if(!is_cal_quality_end) {
+    if (!is_cal_quality_end) {
         calTetQualities(new_tets, tet_qs);
     }
 

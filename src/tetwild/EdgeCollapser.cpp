@@ -389,7 +389,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
     igl::Timer tmp_timer;
     tmp_timer.start();
     calTetQualities(new_tets, tet_qs);
-    energy_time+=tmp_timer.getElapsedTime();
+    energy_time += tmp_timer.getElapsedTime();
 
     if (energy_type != state.ENERGY_NA && is_check_quality) {
         TetQuality old_tq, new_tq;

@@ -230,7 +230,7 @@ void ExtractMesh(
         if (args.skip_optim) {
             A_out(cnt) = 0;
         } else {
-            A_out(cnt) = tetQuality[cnt].slim_energy;
+            A_out(cnt) = tetQuality[i].slim_energy;
         }
         if (args.skip_optim) {
             L_out(cnt) = LI(i);
