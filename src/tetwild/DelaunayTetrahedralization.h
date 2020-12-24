@@ -40,7 +40,7 @@ public:
 
     void getVoxelPoints(const Point_3& p_min, const Point_3& p_max, GEO::Mesh& geo_surface_mesh,
                         std::vector<Point_d>& voxel_points, const Args &args, const State &state);
-    void tetra(const std::vector<Point_3>& m_vertices, GEO::Mesh& geo_surface_mesh,
+    void tetra(const std::vector<Point_3>& m_vertices, const std::vector<std::array<int, 3>> &m_faces, GEO::Mesh& geo_surface_mesh,
                std::vector<Point_3>& bsp_vertices, std::vector<BSPEdge>& bsp_edges,
                std::vector<BSPFace>& bsp_faces, std::vector<BSPtreeNode>& bsp_nodes,
                const Args &args, const State &state);

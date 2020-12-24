@@ -254,7 +254,7 @@ double tetwild_stage_one_delaunay(
     bsp_edges.clear();
     bsp_faces.clear();
     bsp_nodes.clear();
-    DT.tetra(m_vertices, geo_sf_mesh, bsp_vertices, bsp_edges, bsp_faces, bsp_nodes, args, state);
+    DT.tetra(m_vertices, m_faces, geo_sf_mesh, bsp_vertices, bsp_edges, bsp_faces, bsp_nodes, args, state);
     logger().debug("# bsp_vertices = {}", bsp_vertices.size());
     logger().debug("# bsp_edges = {}", bsp_edges.size());
     logger().debug("# bsp_faces = {}", bsp_faces.size());

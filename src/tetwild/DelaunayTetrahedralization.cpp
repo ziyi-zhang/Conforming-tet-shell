@@ -105,8 +105,8 @@ void DelaunayTetrahedralization::getVoxelPoints(const Point_3& p_min, const Poin
 #endif
 }
 
-void DelaunayTetrahedralization::tetra(const std::vector<Point_3>& m_vertices, GEO::Mesh& geo_surface_mesh,
-                                       std::vector<Point_3>& bsp_vertices, std::vector<BSPEdge>& bsp_edges,
+void DelaunayTetrahedralization::tetra(const std::vector<Point_3>& m_vertices, const std::vector<std::array<int, 3>> &m_faces,
+                                       GEO::Mesh& geo_surface_mesh, std::vector<Point_3>& bsp_vertices, std::vector<BSPEdge>& bsp_edges,
                                        std::vector<BSPFace>& bsp_faces, std::vector<BSPtreeNode>& bsp_nodes,
                                        const Args &args, const State &state) {
 #if USE_GEOGRAM
@@ -132,7 +132,7 @@ void DelaunayTetrahedralization::tetra(const std::vector<Point_3>& m_vertices, G
     p_min = Point_3(p_min[0] - dis, p_min[1] - dis, p_min[2] - dis);
     p_max = Point_3(p_max[0] + dis, p_max[1] + dis, p_max[2] + dis);
 
-    for (int i = 0; i < 8; i++) {
+    for (int i=0; i<8; i++) {
         std::array<CGAL_FT, 3> p;
         std::bitset<sizeof(int) * 8> a(i);
         for (int j = 0; j < 3; j++) {
@@ -281,20 +281,53 @@ void DelaunayTetrahedralization::tetra(const std::vector<Point_3>& m_vertices, G
         points.push_back(std::make_pair(Point_d(m_vertices[i][0], m_vertices[i][1], m_vertices[i][2]), i));
     }
 
-    ///add 8 virtual vertices
+    // add 8 virtual vertices
     Bbox_3 bbox = CGAL::bounding_box(m_vertices.begin(), m_vertices.end());
     Point_3 p_min = bbox.min();
     Point_3 p_max = bbox.max();
 
-    double dis = state.eps * 2;//todo: use epsilon to determine the size of bbx
-    if (dis < state.bbox_diag / 20)
-        dis = state.bbox_diag / 20;
-    else
-        dis = state.eps * 1.1;
-    p_min = Point_3(p_min[0] - dis, p_min[1] - dis, p_min[2] - dis);
-    p_max = Point_3(p_max[0] + dis, p_max[1] + dis, p_max[2] + dis);
+    // TetShell: Enlarge the bbox to allow more freedom in optimization
+    double x_pos_gap = 0;
+    double x_neg_gap = 0;
+    double y_pos_gap = 0;
+    double y_neg_gap = 0;
+    double z_pos_gap = 0;
+    double z_neg_gap = 0;
+    double p_max_x = CGAL::to_double(p_max.x());
+    double p_max_y = CGAL::to_double(p_max.y());
+    double p_max_z = CGAL::to_double(p_max.z());
+    double p_min_x = CGAL::to_double(p_min.x());
+    double p_min_y = CGAL::to_double(p_min.y());
+    double p_min_z = CGAL::to_double(p_min.z());
+    for (int i=0; i<m_faces.size(); i++)
+        for (int j=0; j<3; j++) {
 
-    for (int i = 0; i < 8; i++) {
+            int vert1 = m_faces[i][(j+1) % 3];
+            int vert2 = m_faces[i][(j+2) % 3];
+            double squared_len = CGAL::to_double((m_vertices[vert1] - m_vertices[vert2]).squared_length());
+            double len = std::sqrt(squared_len);
+
+            if (CGAL::to_double(m_vertices[vert1].x()) + len - p_max_x > x_pos_gap) x_pos_gap = CGAL::to_double(m_vertices[vert1].x()) + len - p_max_x;
+            if (CGAL::to_double(m_vertices[vert2].x()) + len - p_max_x > x_pos_gap) x_pos_gap = CGAL::to_double(m_vertices[vert2].x()) + len - p_max_x;
+            if (CGAL::to_double(m_vertices[vert1].y()) + len - p_max_y > y_pos_gap) y_pos_gap = CGAL::to_double(m_vertices[vert1].y()) + len - p_max_y;
+            if (CGAL::to_double(m_vertices[vert2].y()) + len - p_max_y > y_pos_gap) y_pos_gap = CGAL::to_double(m_vertices[vert2].y()) + len - p_max_y;
+            if (CGAL::to_double(m_vertices[vert1].z()) + len - p_max_z > z_pos_gap) z_pos_gap = CGAL::to_double(m_vertices[vert1].z()) + len - p_max_z;
+            if (CGAL::to_double(m_vertices[vert2].z()) + len - p_max_z > z_pos_gap) z_pos_gap = CGAL::to_double(m_vertices[vert2].z()) + len - p_max_z;
+
+            if (p_min_x - (CGAL::to_double(m_vertices[vert1].x()) - len) > x_neg_gap) x_neg_gap = p_min_x - (CGAL::to_double(m_vertices[vert1].x()) - len);
+            if (p_min_x - (CGAL::to_double(m_vertices[vert2].x()) - len) > x_neg_gap) x_neg_gap = p_min_x - (CGAL::to_double(m_vertices[vert2].x()) - len);
+            if (p_min_y - (CGAL::to_double(m_vertices[vert1].y()) - len) > y_neg_gap) y_neg_gap = p_min_y - (CGAL::to_double(m_vertices[vert1].y()) - len);
+            if (p_min_y - (CGAL::to_double(m_vertices[vert2].y()) - len) > y_neg_gap) y_neg_gap = p_min_y - (CGAL::to_double(m_vertices[vert2].y()) - len);
+            if (p_min_z - (CGAL::to_double(m_vertices[vert1].z()) - len) > z_neg_gap) z_neg_gap = p_min_z - (CGAL::to_double(m_vertices[vert1].z()) - len);
+            if (p_min_z - (CGAL::to_double(m_vertices[vert2].z()) - len) > z_neg_gap) z_neg_gap = p_min_z - (CGAL::to_double(m_vertices[vert2].z()) - len);
+        }
+
+    logger().debug("Bbox x_neg_gap={} y_neg_gap={} z_neg_gap{}", x_neg_gap*1.1, y_neg_gap*1.1, z_neg_gap*1.1);
+    logger().debug("Bbox x_pos_gap={} y_pos_gap={} z_pos_gap{}", x_pos_gap*1.1, y_pos_gap*1.1, z_pos_gap*1.1);
+    p_min = Point_3(p_min[0] - x_neg_gap * 1.1, p_min[1] - y_neg_gap * 1.1, p_min[2] - z_neg_gap * 1.1);
+    p_max = Point_3(p_max[0] + x_pos_gap * 1.1, p_max[1] + y_pos_gap * 1.1, p_max[2] + z_pos_gap * 1.1);
+
+    for (int i=0; i<8; i++) {
         std::array<CGAL_FT, 3> p;
         std::bitset<sizeof(int) * 8> a(i);
         for (int j = 0; j < 3; j++) {
