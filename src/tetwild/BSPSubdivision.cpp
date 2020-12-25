@@ -54,7 +54,7 @@ void BSPSubdivision::subdivideBSPNodes() {
         std::vector<int> rm_df_ids;
         int on_df_id;
         bool is_divide=false;
-        for(auto it=nodes[old_n_id].div_faces.begin(); it!=nodes[old_n_id].div_faces.end();it++) {
+        for (auto it=nodes[old_n_id].div_faces.begin(); it!=nodes[old_n_id].div_faces.end();it++) {
             pln = Plane_3(div_vertices[div_faces[*it][0]],
                           div_vertices[div_faces[*it][1]],
                           div_vertices[div_faces[*it][2]]);
@@ -85,7 +85,7 @@ void BSPSubdivision::subdivideBSPNodes() {
                 break;
             }
         }
-        if(!is_divide)
+        if (!is_divide)
             continue;
         ///from here, the node would definitely be subdivided
         BSPtreeNode pos_node, neg_node;
@@ -234,9 +234,9 @@ void BSPSubdivision::subdivideBSPNodes() {
             faces.push_back(neg_face);//have to do push_back here!!! Otherwise would producing empty faces!!
 
             ///clean conn_faces for neg_face's edges//fixed
-            for(int j=0;j<neg_face.edges.size();j++){
+            for (int j=0;j<neg_face.edges.size();j++) {
                 auto it = std::find(edges[neg_face.edges[j]].conn_faces.begin(), edges[neg_face.edges[j]].conn_faces.end(), old_f_id);
-                if(it!=edges[neg_face.edges[j]].conn_faces.end()) {
+                if (it!=edges[neg_face.edges[j]].conn_faces.end()) {
                     edges[neg_face.edges[j]].conn_faces.erase(it);
                     edges[neg_face.edges[j]].conn_faces.insert(new_f_id);
                 }
@@ -264,7 +264,7 @@ void BSPSubdivision::subdivideBSPNodes() {
             }
             ///re-assign divfaces for pos_face & neg_face
             std::unordered_set<int> tmp_df_ids = faces[old_f_id].div_faces;
-            for(auto it=tmp_df_ids.begin(); it!=tmp_df_ids.end();it++) {
+            for (auto it=tmp_df_ids.begin(); it!=tmp_df_ids.end();it++) {
                 int side = divfaceSide(pln, div_faces[*it], div_vertices);
                 if (side == DIVFACE_POS)
                     pos_face.div_faces.insert(*it);
@@ -281,7 +281,7 @@ void BSPSubdivision::subdivideBSPNodes() {
             faces[new_f_ids[0]] = pos_face;
             faces[new_f_ids[1]] = neg_face;
 
-            for(int j=0;j<new_f_ids.size();j++){//fixed
+            for (int j=0;j<new_f_ids.size();j++){  // fixed
                 for(auto it=faces[new_f_ids[j]].edges.begin();it!=faces[new_f_ids[j]].edges.end();it++)///fixed
                     edges[*it].conn_faces.insert(new_f_ids[j]);
             }
@@ -293,7 +293,7 @@ void BSPSubdivision::subdivideBSPNodes() {
 
 
         ///clean conn_nodes for neg_node's faces//fixed //it must be done before adding on_face!! Otherwise, the on_face would be influenced.
-        for(int i=0;i<neg_node.faces.size();i++){
+        for (int i=0;i<neg_node.faces.size();i++) {
             auto it = std::find(faces[neg_node.faces[i]].conn_nodes.begin(), faces[neg_node.faces[i]].conn_nodes.end(), old_n_id);
             if(it!=faces[neg_node.faces[i]].conn_nodes.end()) {
                 faces[neg_node.faces[i]].conn_nodes.erase(it);
@@ -309,7 +309,7 @@ void BSPSubdivision::subdivideBSPNodes() {
         int on_f_id = faces.size() - 1;
         pos_node.faces.push_back(on_f_id);
         neg_node.faces.push_back(on_f_id);
-        for(auto it=faces[on_f_id].edges.begin();it!=faces[on_f_id].edges.end();it++)///fixed
+        for (auto it=faces[on_f_id].edges.begin();it!=faces[on_f_id].edges.end();it++)///fixed
             edges[*it].conn_faces.insert(on_f_id);
 
         ///add nodes
