@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # tetwild
 option(TETWILD_WITH_HUNTER "Use Hunter to download and configure Boost" OFF)
 option(TETWILD_WITH_ISPC   "Use ISPC"                                   OFF)
+option(TETWILD_WITH_ASAN   "Use ASAN" 									OFF)
 # libigl library
 option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
 option(LIBIGL_WITH_ANTTWEAKBAR      "Use AntTweakBar"    OFF)
@@ -156,10 +157,17 @@ target_link_libraries(libTetWild
 set_target_properties(libTetWild PROPERTIES OUTPUT_NAME "tetwild")
 
 # ispc
-if(TETWILD_WITH_ISPC)
+if (TETWILD_WITH_ISPC)
 	message(STATUS "Compiling energy with ISPC")
 	add_subdirectory(src/ispc)
 	ispc_add_energy(libTetWild)
+endif()
+
+# ASAN
+if (TETWILD_WITH_ASAN)
+	message(STATUS "Compiling with ASAN")
+	target_compile_options(libTetWild PUBLIC "-fsanitize=address")
+	target_link_options(libTetWild PUBLIC "-fsanitize=address")
 endif()
 
 # Building executable

@@ -50,6 +50,7 @@ public:
 
     // for adaptive refinement
     double adaptive_scale = 1.0;
+    double min_adaptive_scale = 1.0;  // TetShell added
 
     TetVertex() = default;
 

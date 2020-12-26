@@ -221,11 +221,21 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
 
     if (is_dealing_unrounded)
         min_adaptive_scale = state.eps / state.initial_edge_len * 0.5;  // min to eps/2
-    else
+    else {
 //        min_adaptive_scale = state.eps_input / state.initial_edge_len; // state.eps_input / state.initial_edge_len * 0.5 is too small
         // TetShell: change 1000 to ? to avoid over splitting
-        // min_adaptive_scale = (state.bbox_diag / 100) / state.initial_edge_len;  // set min_edge_length to diag / 1000 would be better
-        min_adaptive_scale = 0.5;
+        min_adaptive_scale = (state.bbox_diag / 100) / state.initial_edge_len;  // set min_edge_length to diag / 1000 would be better
+        for (int i=0; i<tet_vertices.size(); i++) {
+            if (v_is_removed[i])
+                continue;
+            
+            if (tet_vertices[i].is_frozen) {
+                tet_vertices[i].min_adaptive_scale = 1.0;
+            } else {
+                tet_vertices[i].min_adaptive_scale = min_adaptive_scale;
+            }
+        }
+    }
 
     LocalOperations localOperation(tet_vertices, tets, is_surface_fs, v_is_removed, t_is_removed, tet_qualities,
                                    energy_type, geo_sf_mesh, geo_sf_tree, geo_b_tree, args, state);
@@ -500,6 +510,7 @@ void MeshRefinement::refine_post(EdgeSplitter& splitter, EdgeCollapser& collapse
 
 void MeshRefinement::refine_local(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
                                   VertexSmoother& smoother, double target_energy) {
+// Never called
     EdgeSplitter &localOperation = splitter;
     double old_min_adaptive_scale = min_adaptive_scale;
     min_adaptive_scale = state.eps / state.initial_edge_len * 0.5;
@@ -537,6 +548,7 @@ void MeshRefinement::refine_local(EdgeSplitter& splitter, EdgeCollapser& collaps
 
 bool MeshRefinement::refine_unrounded(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
                                       VertexSmoother& smoother) {
+// Never called
     // EdgeSplitter &localOperation = splitter;
     int scalar_update = 3;
     double old_min_adaptive_scale = min_adaptive_scale;
@@ -567,7 +579,8 @@ bool MeshRefinement::refine_unrounded(EdgeSplitter& splitter, EdgeCollapser& col
 
 
 void MeshRefinement::refine_revert(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
-                                   VertexSmoother& smoother){
+                                   VertexSmoother& smoother) {
+// Never called
     // EdgeSplitter &localOperation = splitter;
     collapser.is_limit_length = false;
     collapser.is_soft = true;
@@ -908,7 +921,7 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
     int cnt = 0;
     int cntUpdatedVertices = 0;
     double sumAdaptiveScale = 0;
-    for (int i = 0; i < tet_vertices.size(); i++) {
+    for (int i=0; i<tet_vertices.size(); i++) {
         if (v_is_removed[i])
             continue;
         if (is_clean_up_unrounded && is_lock && adap_tmp[i] > 1) {
@@ -919,11 +932,11 @@ void MeshRefinement::updateScalarField(bool is_clean_up_unrounded, bool is_clean
         if (new_scale > 1) {
             tet_vertices[i].adaptive_scale = 1;
             sumAdaptiveScale += 1;
-        } else if (new_scale < min_adaptive_scale) {
+        } else if (new_scale < tet_vertices[i].min_adaptive_scale) {
             if (!is_clean_up_unrounded)
                 is_hit_min = true;
-            tet_vertices[i].adaptive_scale = min_adaptive_scale;
-            sumAdaptiveScale += min_adaptive_scale;
+            tet_vertices[i].adaptive_scale = tet_vertices[i].min_adaptive_scale;
+            sumAdaptiveScale += tet_vertices[i].min_adaptive_scale;
         } else {
             tet_vertices[i].adaptive_scale = new_scale;
             sumAdaptiveScale += new_scale;
