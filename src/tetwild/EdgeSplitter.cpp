@@ -217,7 +217,7 @@ bool EdgeSplitter::splitAnEdge(const std::array<int, 2>& edge) {
 
     // check is_valid
     tet_vertices[v_id].adaptive_scale = (tet_vertices[v1_id].adaptive_scale + tet_vertices[v2_id].adaptive_scale) / 2;
-    if(tet_vertices[v1_id].is_locked && tet_vertices[v2_id].is_locked)
+    if (tet_vertices[v1_id].is_locked && tet_vertices[v2_id].is_locked)
         tet_vertices[v_id].is_locked = true;
 
     tet_vertices[v_id].posf = CGAL::midpoint(tet_vertices[v1_id].posf, tet_vertices[v2_id].posf);

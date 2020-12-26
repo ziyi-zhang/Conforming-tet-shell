@@ -224,7 +224,8 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
     else
 //        min_adaptive_scale = state.eps_input / state.initial_edge_len; // state.eps_input / state.initial_edge_len * 0.5 is too small
         // TetShell: change 1000 to ? to avoid over splitting
-        min_adaptive_scale = (state.bbox_diag / 100) / state.initial_edge_len;  // set min_edge_length to diag / 1000 would be better
+        // min_adaptive_scale = (state.bbox_diag / 100) / state.initial_edge_len;  // set min_edge_length to diag / 1000 would be better
+        min_adaptive_scale = 0.5;
 
     LocalOperations localOperation(tet_vertices, tets, is_surface_fs, v_is_removed, t_is_removed, tet_qualities,
                                    energy_type, geo_sf_mesh, geo_sf_tree, geo_b_tree, args, state);
