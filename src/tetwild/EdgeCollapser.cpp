@@ -28,11 +28,12 @@ void EdgeCollapser::init() {
     const unsigned int tets_size = tets.size();
     std::vector<std::array<int, 2>> edges;
     edges.reserve(tets_size*6);
+    const int tet2edge[2][6] = {{0, 0, 0, 1, 1, 2}, {1, 2, 3, 2, 3, 3}};
     for (unsigned int i = 0; i < tets_size; i++) {
         if (t_is_removed[i])
             continue;
-        for (int j = 0; j < 4; j++) {
-            std::array<int, 2> e = {{tets[i][j], tets[i][(j + 1) % 4]}};
+        for (int j=0; j<6; j++) {
+            std::array<int, 2> e = {{tets[i][tet2edge[0][j]], tets[i][tet2edge[1][j]]}};
             if (e[0] > e[1]) e = {{e[1], e[0]}};
             if (!isLocked_ui(e))
                 edges.push_back(e);
@@ -42,7 +43,7 @@ void EdgeCollapser::init() {
     edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
 
     const unsigned int edges_size = edges.size();
-    for (unsigned int i = 0; i < edges_size; i++) {
+    for (unsigned int i=0; i<edges_size; i++) {
         double weight = -1;
 //        if (isCollapsable_cd1(edges[i][0], edges[i][1]) && isCollapsable_cd2(edges[i][0], edges[i][1])) {
         if (isCollapsable_cd1(edges[i][0], edges[i][1])) {
@@ -74,7 +75,7 @@ void EdgeCollapser::collapse() {
     tet_tss.assign(tets.size(), 0);
     int cnt = 0;
     logger().debug("edge queue size = {}", ec_queue.size());
-    
+
     while (!ec_queue.empty()) {
 
         std::array<int, 2> v_ids = ec_queue.top().v_ids;
@@ -445,8 +446,6 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
     /////////////////
     // real update //
     /////////////////
-    if (tet_vertices[v1_id].is_frozen)
-        log_and_throw("Collapsed a frozen vertex.");
 
 //    if(is_edge_too_short)
 //        logger().debug("success");
