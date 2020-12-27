@@ -195,9 +195,9 @@ void EdgeCollapser::collapse() {
 //        }
 //        logger().debug("{} {} {} {}", cnt_flip, cnt_quality, cnt_envelop, cnt_suc);
 
-        logger().debug("{}: {}s", breakdown_name0[id_sampling], breakdown_timing0[id_sampling]);
-        logger().debug("{}: {}s", breakdown_name0[id_aabb], breakdown_timing0[id_aabb]);
-        logger().debug("----");
+        // logger().debug("{}: {}s", breakdown_name0[id_sampling], breakdown_timing0[id_sampling]);
+        // logger().debug("{}: {}s", breakdown_name0[id_aabb], breakdown_timing0[id_aabb]);
+        // logger().debug("----");
         for (int i = 0; i < breakdown_timing.size(); i++)
             logger().debug("{}: {}s", breakdown_name[i], breakdown_timing[i]);
 
