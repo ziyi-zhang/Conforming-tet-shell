@@ -60,7 +60,7 @@ struct Args {
     // Energy threshold
     // If the max tet energy is below this threshold, the mesh optimization process is stopped.
     // Also used to determine where to resize the scalar field (if a tet incident to a vertex has larger energy than this threshold, then resize around this vertex).
-    double filter_energy_thres = 10;
+    double filter_energy_thres = 100;
 
     // Threshold on the energy delta (avg and max) below which to rescale the target edge length scalar field
     double delta_energy_thres = 0.1;
