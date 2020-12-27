@@ -326,26 +326,29 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
         }
     }
 
-    // old_t_ids
+    // old_t_ids: the ones connected with v1_id
     std::vector<int> old_t_ids;
     old_t_ids.reserve(tet_vertices[v1_id].conn_tets.size());
     for (auto it = tet_vertices[v1_id].conn_tets.begin(); it != tet_vertices[v1_id].conn_tets.end(); it++)
         old_t_ids.push_back(*it);
     std::vector<bool> is_removed(old_t_ids.size(), false);
 
-    // new_tets
+    // new_tets: 
     std::vector<std::array<int, 4>> new_tets;
     new_tets.reserve(old_t_ids.size());
-    std::unordered_set<int> n12_v_ids;
-    std::vector<int> n12_t_ids;
-    for (int i = 0; i < old_t_ids.size(); i++) {
+    std::unordered_set<int> n12_v_ids;  // vertex id in "n12_t_ids" excluding v1_id and v2_id
+    std::vector<int> n12_t_ids;  // tet id with both vertices v1_id and v2_id
+    for (int i=0; i<old_t_ids.size(); i++) {
         auto it = std::find(tets[old_t_ids[i]].begin(), tets[old_t_ids[i]].end(), v2_id);
         if (it == tets[old_t_ids[i]].end()) {
+            // if v2_id is not in this old_tet
+            // replace v1_id with v2_id
             std::array<int, 4> t = tets[old_t_ids[i]];
             auto jt = std::find(t.begin(), t.end(), v1_id);
             *jt = v2_id;
             new_tets.push_back(t);
         } else {
+            // if v2_id is in this old_tet
             is_removed[i] = true;
             for (int j = 0; j < 4; j++)
                 if (tets[old_t_ids[i]][j] != v1_id && tets[old_t_ids[i]][j] != v2_id)
@@ -381,9 +384,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 //    }
 
     // check 2
-    if (isFlip(new_tets)) {
-//        if(is_edge_too_short)
-//            logger().debug("flip");
+    if (isFlip(new_tets)) {  // flip check
         return FLIP;
     }
     std::vector<TetQuality> tet_qs;
@@ -403,12 +404,10 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 //        }
         if (is_soft)
             old_tq.slim_energy = soft_energy;
-        if (!tet_vertices[v1_id].is_rounded) //remove an unroundable vertex anyway
+        if (!tet_vertices[v1_id].is_rounded)  // remove an unroundable vertex anyway
             new_tq.slim_energy = 0;
         if (!is_edge_degenerate && !new_tq.isBetterOrEqualThan(old_tq, energy_type, state)) {
-//            if (is_edge_too_short)
-//                logger().debug("quality");
-            return QUALITY;
+            return QUALITY;  // quality check
         }
     }
 
@@ -446,23 +445,30 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
     /////////////////
     // real update //
     /////////////////
-
-//    if(is_edge_too_short)
-//        logger().debug("success");
     if (tet_vertices[v1_id].is_on_boundary)
         tet_vertices[v2_id].is_on_boundary = true;
 
+    // update_sf_t_ids
     std::vector<std::array<int, 2>> update_sf_t_ids(n12_t_ids.size(), std::array<int, 2>());
     if (tet_vertices[v1_id].is_on_surface || tet_vertices[v2_id].is_on_surface) {
-        for (int i = 0; i < n12_t_ids.size(); i++) {
-            for (int j = 0; j < 4; j++) {
-                if (tets[n12_t_ids[i]][j] == v1_id || tets[n12_t_ids[i]][j] == v2_id) {
+        for (int i=0; i<n12_t_ids.size(); i++) {
+            // for the i-th tet with both vertices v1_id and v2_id
+            int tetIdx = n12_t_ids[i];
+            for (int j=0; j<4; j++) {
+                if (tets[tetIdx][j] == v1_id || tets[tetIdx][j] == v2_id) {
                     std::vector<int> ts;
-                    getFaceConnTets(tets[n12_t_ids[i]][(j + 1) % 4], tets[n12_t_ids[i]][(j + 2) % 4],
-                                    tets[n12_t_ids[i]][(j + 3) % 4], ts);
+                    getFaceConnTets(tets[tetIdx][(j + 1) % 4], tets[tetIdx][(j + 2) % 4],
+                                    tets[tetIdx][(j + 3) % 4], ts);
 
                     if (ts.size() != 2) {
-                        log_and_throw("collapse boundary");
+                        // in TetShell, we have void region. Just ignore this.
+                        // nothing needs to be updated
+                        if (tets[tetIdx][j] == v1_id) {
+                            update_sf_t_ids[i][1] = -1;
+                        } else {
+                            update_sf_t_ids[i][0] = -1;
+                        }
+                        continue;
                     }
                     /*
                     if (ts.size() != 2) {
@@ -479,22 +485,28 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
                     }
                     */
 
-                    if (tets[n12_t_ids[i]][j] == v1_id) {
-                        update_sf_t_ids[i][1] = ts[0] != n12_t_ids[i] ? ts[0] : ts[1];
+                    // update_sf_t_ids[i][x] stores the adjacent tet index
+                    //      for i-th tet with both v1 and v2
+                    //      x==1 for v1, x==0 for v2
+                    if (tets[tetIdx][j] == v1_id) {
+                        update_sf_t_ids[i][1] = (ts[0] != tetIdx) ? ts[0] : ts[1];
                     } else {
-                        update_sf_t_ids[i][0] = ts[0] != n12_t_ids[i] ? ts[0] : ts[1];
+                        update_sf_t_ids[i][0] = (ts[0] != tetIdx) ? ts[0] : ts[1];
                     }
                 }
             }
         }
     }
 
+    // remove tets, update "conn_tets" & calculate n1_v_ids
     std::unordered_set<int> n1_v_ids;
     int cnt = 0;
-    for (int i = 0; i < old_t_ids.size(); i++) {
+    for (int i=0; i<old_t_ids.size(); i++) {
         if (is_removed[i]) {
+            // erase tets marked as is_removed
             t_is_removed[old_t_ids[i]] = true;
-            for (int j = 0; j < 4; j++)
+            // update conn_tets
+            for (int j=0; j<4; j++)
                 if (tets[old_t_ids[i]][j] != v1_id && tets[old_t_ids[i]][j] != v2_id) {
                     tet_vertices[tets[old_t_ids[i]][j]].conn_tets.erase(
                             std::find(tet_vertices[tets[old_t_ids[i]][j]].conn_tets.begin(),
@@ -503,9 +515,10 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
             tet_vertices[v2_id].conn_tets.erase(std::find(tet_vertices[v2_id].conn_tets.begin(),
                                                           tet_vertices[v2_id].conn_tets.end(), old_t_ids[i]));
         } else {
+            // !is_removed: v2_id not in this tet
             tet_vertices[v2_id].conn_tets.insert(old_t_ids[i]);
             tet_qualities[old_t_ids[i]] = tet_qs[cnt];
-            for (int j = 0; j < 4; j++) {
+            for (int j=0; j<4; j++) {
                 if (tets[old_t_ids[i]][j] != v1_id)
                     n1_v_ids.insert(tets[old_t_ids[i]][j]);  // n12_v_ids would still be inserted
             }
@@ -514,21 +527,25 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
         }
     }
 
+    // Update "is_surface_fs"
     if (tet_vertices[v1_id].is_on_surface || tet_vertices[v2_id].is_on_surface) {
 
         tet_vertices[v2_id].is_on_surface = true;
 
-//        bool is_check_isolated = false;
-        for (int i = 0; i < n12_t_ids.size(); i++) {
-            std::array<int, 2> is_sf_fs;
-            std::vector<int> es;
-            for (int j = 0; j < 4; j++) {
-                if (tets[n12_t_ids[i]][j] != v1_id && tets[n12_t_ids[i]][j] != v2_id)
-                    es.push_back(tets[n12_t_ids[i]][j]);
-                else if (tets[n12_t_ids[i]][j] == v1_id)
-                    is_sf_fs[0] = is_surface_fs[n12_t_ids[i]][j];
+        // traversing tets with both vertices v1_id and v2_id
+        for (int i=0; i<n12_t_ids.size(); i++) {
+
+            int tetIdx = n12_t_ids[i];
+            std::array<int, 2> is_sf_fs;  // stores "is_surface_fs" value for v1_id and v2_id
+            std::vector<int> es;  // stores the other two vertices
+            for (int j=0; j<4; j++) {
+
+                if (tets[tetIdx][j] != v1_id && tets[tetIdx][j] != v2_id)
+                    es.push_back(tets[tetIdx][j]);
+                else if (tets[tetIdx][j] == v1_id)
+                    is_sf_fs[0] = is_surface_fs[tetIdx][j];
                 else
-                    is_sf_fs[1] = is_surface_fs[n12_t_ids[i]][j];
+                    is_sf_fs[1] = is_surface_fs[tetIdx][j];
             }
             //be careful about the order!!
 
@@ -557,14 +574,21 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
             is_sf_fs[0] += -tmp1;
             is_sf_fs[1] += -tmp0;
 
-            for (int j = 0; j < 4; j++) {
-                int v_id0 = tets[update_sf_t_ids[i][0]][j];
-                if (v_id0 != v2_id && v_id0 != es[0] && v_id0 != es[1])
-                    is_surface_fs[update_sf_t_ids[i][0]][j] = is_sf_fs[0];
+            int v1_adj_tet = update_sf_t_ids[i][1];
+            int v2_adj_tet = update_sf_t_ids[i][0];
+            for (int j=0; j<4; j++) {
 
-                int v_id1 = tets[update_sf_t_ids[i][1]][j];
-                if (v_id1 != v2_id && v_id1 != es[0] && v_id1 != es[1])
-                    is_surface_fs[update_sf_t_ids[i][1]][j] = is_sf_fs[1];
+                if (v2_adj_tet != -1) {
+                    int v_id0 = tets[v2_adj_tet][j];
+                    if (v_id0 != v2_id && v_id0 != es[0] && v_id0 != es[1])
+                        is_surface_fs[v2_adj_tet][j] = is_sf_fs[0];
+                }
+
+                if (v1_adj_tet != -1) {
+                    int v_id1 = tets[v1_adj_tet][j];
+                    if (v_id1 != v2_id && v_id1 != es[0] && v_id1 != es[1])
+                        is_surface_fs[v1_adj_tet][j] = is_sf_fs[1];
+                }
             }
         }
     }
@@ -583,7 +607,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 
     v_is_removed[v1_id] = true;
 
-    //update time stamps
+    // update time stamps
     ts++;
     for (int i = 0; i < old_t_ids.size(); i++) {
         tet_tss[old_t_ids[i]] = ts;
@@ -620,20 +644,20 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
     std::set_difference(n1_v_ids_vec.begin(), n1_v_ids_vec.end(),n12_v_ids_vec.begin(), n12_v_ids_vec.end(),
                         std::inserter(n1_v_ids, n1_v_ids.end()));
 
+    // more edges could be collaspsed
     for (auto it = n1_v_ids.begin(); it != n1_v_ids.end(); it++) {
+
         double weight = -1;
-//        if (isCollapsable_cd1(v2_id, *it) && isCollapsable_cd2(v2_id, *it)) {
         if (isCollapsable_cd1(v2_id, *it)) {
             weight = calEdgeLength(v2_id, *it);
             if (isCollapsable_cd3(v2_id, *it, weight)) {
                 std::array<int, 2> e={{v2_id, *it}};
-                if(!isLocked_ui(e)) {
+                if (!isLocked_ui(e)) {
                     ElementInQueue_ec ele(e, weight);
                     ec_queue.push(ele);
                 }
             }
         }
-//        if (isCollapsable_cd1(*it, v2_id) && isCollapsable_cd2(v2_id, *it)) {
         if (isCollapsable_cd1(*it, v2_id)) {
             weight = weight == -1 ? calEdgeLength(*it, v2_id) : weight;
             if (isCollapsable_cd3(*it, v2_id, weight)) {
@@ -646,7 +670,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
         }
     }
 
-    if(is_envelop_suc)
+    if (is_envelop_suc)
         return ENVELOP_SUC;
     return SUCCESS;
 }
@@ -667,7 +691,7 @@ int EdgeCollapser::collapseAnEdge(int v1_id, int v2_id) {
 bool EdgeCollapser::isCollapsable_cd1(int v1_id, int v2_id) {
 
     // TetShell: Frozen edge
-    if (tet_vertices[v1_id].is_frozen || tet_vertices[v2_id].is_frozen || isEdgeOnSurface(v1_id, v2_id)) {
+    if (tet_vertices[v1_id].is_frozen || isEdgeOnSurface(v1_id, v2_id)) {
         return false;
     }
     //check the bbox tags //if the moved vertex is on the bbox
@@ -742,6 +766,7 @@ bool EdgeCollapser::isCollapsable_cd3(int v1_id, int v2_id, double weight) {
 
 
 bool EdgeCollapser::isCollapsable_epsilon(int v1_id, int v2_id) {
+    return true;  // TetShell
 //    std::vector<Triangle_3f> tris;
 //    for (auto it = tet_vertices[v1_id].conn_tets.begin(); it != tet_vertices[v1_id].conn_tets.end(); it++) {
 //        for (int j = 0; j < 4; j++) {
