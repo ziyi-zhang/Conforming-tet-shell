@@ -8,6 +8,8 @@
 
 #include <CGAL/Tetrahedron_3.h>
 #include <CGAL/Simple_cartesian.h>
+#include <geogram/mesh/mesh_AABB.h>
+#include <geogram/points/kd_tree.h>
 #include <igl/copyleft/cgal/orient3D.h>
 #include <Eigen/Dense>
 #include <map>
@@ -192,6 +194,29 @@ int TetRegion(
 }
 
 
+/*
+// attempt to use AABB to determine the region
+// pending, not exact
+int TetRegion(
+    const Point_3 &point,
+    const std::vector<Point_3> &VI, 
+    const DualShell_t &dualShell) {
+    
+    GEO::Mesh mesh;
+    mesh.vertices.clear();
+    mesh.vertices.create_vertices(VI.size());
+    for (int i=0; i<VI.size(); i++) {
+        GEO::vec3 &pt = mesh.vertices.point(i);
+        pt[0] = CGAL::to_double(VI[i].x());
+        pt[1] = CGAL::to_double(VI[i].y());
+        pt[2] = CGAL::to_double(VI[i].z());
+    }
+
+    return 0;  // default zero, not in any layer of the shell
+}
+*/
+
+
 int GetRegionType(int oldRegionType, int surfaceType) {
 
     // do not change region type unless met a shell surface
@@ -284,10 +309,32 @@ void LabelTet(
         std::vector<bool> visited(Ntet, false);  // whether this tet has been visited and labeled
 
         // first element
+        /*
+        // brute force to label one tet
         int regionTet0 = TetRegion(VO, TO, VI, dualShell, 0);
         Q.push(std::make_pair(0, regionTet0));
         labels[0] = regionTet0;
         visited[0] = true;
+        */
+        // We can also find a tet adjacent to the bbox and label it as 0. This is faster
+        // Note: we enlarged the bbox by a lot, so that tet must be outside all shells
+        int bboxIdx = -1;
+        for (int i=0; i<TO.size(); i++) {
+
+            int cntOnBbox = int(VO[TO[i][0]].is_on_bbox) + int(VO[TO[i][1]].is_on_bbox) + 
+                            int(VO[TO[i][2]].is_on_bbox) + int(VO[TO[i][3]].is_on_bbox);
+            if (cntOnBbox > 1) {
+                bboxIdx = i;
+                break;
+            }
+        }
+        if (bboxIdx == -1) {
+            tetwild::log_and_throw("Label first element not found on bbox");
+        } else {
+            Q.push(std::make_pair(bboxIdx, 0));
+            labels[bboxIdx] = 0;
+            visited[bboxIdx] = true;
+        }
 
         // DEBUG PURPOSE
         /*

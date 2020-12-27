@@ -34,7 +34,7 @@ void EdgeCollapser::init() {
         for (int j = 0; j < 4; j++) {
             std::array<int, 2> e = {{tets[i][j], tets[i][(j + 1) % 4]}};
             if (e[0] > e[1]) e = {{e[1], e[0]}};
-            if(!isLocked_ui(e))
+            if (!isLocked_ui(e))
                 edges.push_back(e);
         }
     }
