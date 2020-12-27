@@ -229,10 +229,24 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
             if (v_is_removed[i])
                 continue;
             
-            if (tet_vertices[i].is_frozen) {
+            if (tet_vertices[i].is_frozen) {  // i is frozen
                 tet_vertices[i].min_adaptive_scale = 1.0;
-            } else {
-                tet_vertices[i].min_adaptive_scale = min_adaptive_scale;
+            } else {  // whether i is adjacent to a frozen vertex
+                bool adjVertFrozen = false;
+                for (int t : tet_vertices[i].conn_tets) {
+                    for (int j=0; j<4; j++) {
+                        if (tet_vertices[tets[t][j]].is_frozen) {
+                            adjVertFrozen = true;
+                            break;
+                        }
+                    }
+                    if (adjVertFrozen) break;
+                }
+                if (adjVertFrozen) {  // i is adjacent to a frozen vertex
+                    tet_vertices[i].min_adaptive_scale = 0.5;
+                } else {  // otherwise
+                    tet_vertices[i].min_adaptive_scale = min_adaptive_scale;
+                }
             }
         }
     }
