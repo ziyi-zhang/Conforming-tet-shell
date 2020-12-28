@@ -204,7 +204,7 @@ void VertexSmoother::smoothSingle() {
             tet_vertices[v_id].pos = p;
             tet_vertices[v_id].posf = pf;
             tet_vertices[v_id].is_rounded = true;
-            if (isFlip(new_tets)) {//TODO: why it happens?
+            if (isFlip(new_tets)) {  // TODO: why it happens?
                 logger().debug("flip in the end");
                 tet_vertices[v_id].pos = old_p;
                 tet_vertices[v_id].posf = old_pf;
@@ -225,6 +225,7 @@ void VertexSmoother::smoothSingle() {
     }
 
     // calculate the quality for all tets
+    // Re-calculate for all!
     std::vector<std::array<int, 4>> new_tets;//todo: can be improve
     new_tets.reserve(std::count(t_is_removed.begin(), t_is_removed.end(), false));
     for (int i = 0; i < tets.size(); i++) {
@@ -486,7 +487,7 @@ void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
 
 bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vector<std::array<int, 4>>& new_tets,
                                    int v_id, Point_3f& p) {
-//    bool is_moved=true;
+
     bool is_moved = false;
     const int MAX_STEP = 15;
     const int MAX_IT = 20;
@@ -497,19 +498,21 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
     Eigen::Vector3d J;
     Eigen::Matrix3d H;
     Eigen::Vector3d X0;
-    for (int step = 0; step < MAX_STEP; step++) {
+
+    // start iterations
+    for (int step=0; step<MAX_STEP; step++) {
+
         if (NewtonsUpdate(t_ids, v_id, old_energy, J, H, X0) == false)
             break;
         Point_3f old_pf = tet_vertices[v_id].posf;
         Point_3 old_p = tet_vertices[v_id].pos;
-        double a = 1;
+        double a = 1.0;
         bool step_taken = false;
         double new_energy;
 
-        for (int it = 0; it < MAX_IT; it++) {
-            //solve linear system
-            //check flip
-            //check energy
+        // find the correct step length
+        for (int it=0; it<MAX_IT; it++) {
+            // solve linear system
             igl_timer.start();
             Eigen::Vector3d X = H.colPivHouseholderQr().solve(H * X0 - a * J);
             breakdown_timing[id_solve] += igl_timer.getElapsedTime();
@@ -517,12 +520,11 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
                 a /= 2.0;
                 continue;
             }
-
             tet_vertices[v_id].posf = Point_3f(X(0), X(1), X(2));
             tet_vertices[v_id].pos = Point_3(X(0), X(1), X(2));
 //            tet_vertices[v_id].is_rounded=true;//need to remember old value?
 
-            //check flipping
+            // check flipping
             if (isFlip(new_tets)) {
                 tet_vertices[v_id].posf = old_pf;
                 tet_vertices[v_id].pos = old_p;
@@ -530,7 +532,7 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
                 continue;
             }
 
-            //check quality
+            // check quality
             igl_timer.start();
             new_energy = getNewEnergy(t_ids);
             breakdown_timing[id_value_e] += igl_timer.getElapsedTime();
@@ -543,7 +545,8 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
 
             step_taken = true;
             break;
-        }
+        }  // for (int it = 0; it < MAX_IT; it++)
+
         if (std::abs(new_energy - old_energy) < 1e-5)
             step_taken = false;
 
@@ -553,9 +556,11 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
             else
                 is_moved = true;
             break;
-        } else
+        } else {
             is_moved = true;
-    }
+        }
+    }  // for (int step=0; step<MAX_STEP; step++)
+
     p = tet_vertices[v_id].posf;
     tet_vertices[v_id].posf = pf0;
     tet_vertices[v_id].pos = p0;
@@ -648,29 +653,37 @@ double VertexSmoother::getNewEnergy(const std::vector<int>& t_ids) {
 }
 
 
-bool VertexSmoother::NewtonsUpdate(const std::vector<int>& t_ids, int v_id,
-                                   double& energy, Eigen::Vector3d& J, Eigen::Matrix3d& H, Eigen::Vector3d& X0) {
+bool VertexSmoother::NewtonsUpdate(
+    const std::vector<int>& t_ids, int v_id,
+    double& energy, 
+    Eigen::Vector3d& J, 
+    Eigen::Matrix3d& H, 
+    Eigen::Vector3d& X0) {
 
+    // initialize
     energy = 0;
-    for (int i = 0; i < 3; i++) {
+    for (int i=0; i<3; i++) {
         J(i) = 0;
-        for (int j = 0; j < 3; j++) {
+        for (int j=0; j<3; j++) {
             H(i, j) = 0;
         }
         X0(i) = tet_vertices[v_id].posf[i];
     }
 
-    for (int i = 0; i < t_ids.size(); i++) {
-        std::array<double, 12> t;
+    // iterate over all tets
+    for (int i=0; i<t_ids.size(); i++) {
+        // for i-th tet
+
+        std::array<double, 12> t;  // stores the coordinates of 4 3D-vertices
         int start = 0;
-        for (int j = 0; j < 4; j++) {
+        for (int j=0; j<4; j++) {
             if (tets[t_ids[i]][j] == v_id) {
                 start = j;
                 break;
             }
         }
-        for (int j = 0; j < 4; j++) {
-            for (int k = 0; k < 3; k++) {
+        for (int j=0; j<4; j++) {
+            for (int k=0; k<3; k++) {
                 t[j*3+k] = tet_vertices[tets[t_ids[i]][(start + j) % 4]].posf[k];
             }
         }
