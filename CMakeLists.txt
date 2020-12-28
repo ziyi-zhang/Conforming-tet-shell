@@ -138,6 +138,8 @@ add_library(libTetWild
 		src/shell/ShellCheck.h
 		src/shell/TetMeshCheck.cpp
 		src/shell/TetMeshCheck.h
+		src/shell/OptimalEnergy.cpp
+		src/shell/OptimalEnergy.h
 )
 target_include_directories(libTetWild
 	PUBLIC

@@ -1,4 +1,4 @@
-#include <tetshell/Utils.h>
+#include <shell/Utils.h>
 #include <tetwild/CGALTypes.h>
 #include <tetwild/Logger.h>
 #include <tetwild/TetmeshElements.h>
@@ -8,9 +8,8 @@
 
 namespace tetshell {
 
-using namespace std;
 using tetwild::Point_3;
-using tetwild::Segment_3;
+using tetwild::Point_3f;
 using tetwild::logger;
 
 namespace {
@@ -284,7 +283,7 @@ void tetwild_comformalAMIPSHessian_new(const double * T, double *result_0) {
 
 
 bool NewtonsUpdate(
-    const std::array<std::array<double, 3>, 4> &pts,
+    const std::array<Point_3f, 4> &pts,
     const int idx,
     double& energy, 
     Eigen::Vector3d &J, 
@@ -312,7 +311,7 @@ bool NewtonsUpdate(
     double H_1[9];
     tetwild_comformalAMIPSJacobian_new(pos.data(), J_1);
     tetwild_comformalAMIPSHessian_new(pos.data(), H_1);
-    energy = tetwild_comformalAMIPSEnergy_new(pos);
+    energy = tetwild_comformalAMIPSEnergy_new(pos.data());
 
     for (int j=0; j<3; j++) {
         J(j) += J_1[j];
@@ -342,113 +341,111 @@ bool NewtonsUpdate(
 }
 
 
-bool NewtonsMethod(std::array<std::array<double, 3>, 4> &pts, int idx) {
+bool NewtonsMethod(std::array<Point_3, 4> &pts_rational, int idx, double &energy) {
 
     bool is_moved = false;
     const int MAX_IT = 20;
 
-    double oldEnergy = 0.0;
     Eigen::Vector3d J;
     Eigen::Matrix3d H;
     Eigen::Vector3d X0;
 
+    // to double
+    std::array<Point_3f, 4> pts;
+    for (int i=0; i<4; i++)
+        pts[i] = Point_3f(CGAL::to_double(pts_rational[i][0]), CGAL::to_double(pts_rational[i][1]), CGAL::to_double(pts_rational[i][2]));
 
+    // jacobian and hessian
+    double oldEnergy = 0.0;
     if (NewtonsUpdate(pts, idx, oldEnergy, J, H, X0) == false)
         return false;
-    Point_3f old_pf = tet_vertices[v_id].posf;
-    Point_3 old_p = tet_vertices[v_id].pos;
-    double a = 1.0;
+    
+    // find the correct step length
+    Point_3f old_pf = pts[idx];
+    Point_3 old_p = pts_rational[idx];
     bool step_taken = false;
-    double new_energy;
+    double a = 1.0;
+    double newEnergy;
+    for (int it=0; it<MAX_IT; it++) {
 
-        // find the correct step length
-        for (int it=0; it<MAX_IT; it++) {
-            // solve linear system
-            igl_timer.start();
-            Eigen::Vector3d X = H.colPivHouseholderQr().solve(H * X0 - a * J);
-            breakdown_timing[id_solve] += igl_timer.getElapsedTime();
-            if (!X.allFinite()) {
-                a /= 2.0;
-                continue;
-            }
-            tet_vertices[v_id].posf = Point_3f(X(0), X(1), X(2));
-            tet_vertices[v_id].pos = Point_3(X(0), X(1), X(2));
-//            tet_vertices[v_id].is_rounded=true;//need to remember old value?
+        // solve linear system
+        Eigen::Vector3d X = H.colPivHouseholderQr().solve(H * X0 - a * J);
+        if (!X.allFinite()) {
+            a /= 2.0;
+            continue;
+        }
+        pts[idx] = Point_3f(X(0), X(1), X(2));
+        pts_rational[idx] = Point_3(X(0), X(1), X(2));
 
-            // check flipping
-            if (isFlip(new_tets)) {
-                tet_vertices[v_id].posf = old_pf;
-                tet_vertices[v_id].pos = old_p;
-                a /= 2.0;
-                continue;
-            }
-
-            // check quality
-            igl_timer.start();
-            new_energy = getNewEnergy(t_ids);
-            breakdown_timing[id_value_e] += igl_timer.getElapsedTime();
-            if (new_energy >= old_energy || std::isinf(new_energy) || std::isnan(new_energy)) {
-                tet_vertices[v_id].posf = old_pf;
-                tet_vertices[v_id].pos = old_p;
-                a /= 2.0;
-                continue;
-            }
-
-            step_taken = true;
-            break;
-        }  // for (int it = 0; it < MAX_IT; it++)
-
-        if (std::abs(new_energy - old_energy) < 1e-5)
-            step_taken = false;
-
-        if (!step_taken) {
-            if (step == 0)
-                is_moved = false;
-            else
-                is_moved = true;
-            break;
-        } else {
-            is_moved = true;
+        // check flipping
+        if (!IsTetPositive(pts_rational[0], pts_rational[1], pts_rational[2], pts_rational[3])) {
+            pts[idx] = old_pf;
+            pts_rational[idx] = old_p;
+            a /= 2.0;
+            continue;
         }
 
-    p = tet_vertices[v_id].posf;
-    tet_vertices[v_id].posf = pf0;
-    tet_vertices[v_id].pos = p0;
+        // check energy
+        // stores the coordinates of 4 3D-vertices to pos
+        std::array<double, 12> pos;
+        for (int j=0; j<4; j++) {
+            for (int k=0; k<3; k++) {
+                pos[j*3+k] = pts[j][k];
+            }
+        }
+        newEnergy = tetwild_comformalAMIPSEnergy_new(pos.data());
+        if (newEnergy >= oldEnergy || std::isinf(newEnergy) || std::isnan(newEnergy)) {
+            pts[idx] = old_pf;
+            pts_rational[idx] = old_p;
+            a /= 2.0;
+            continue;
+        }
 
-    return true;
+        step_taken = true;
+        energy = newEnergy;
+        break;
+    }  // for (int it=0; it<MAX_IT; it++)
+
+    if (std::abs(newEnergy - oldEnergy) < 1e-8)
+        step_taken = false;
+
+    if (!step_taken) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1_, const tetwild::Point_3 &pt2_, const tetwild::Point_3 &pt3_, const tetwild::Point_3 &pt4_, 
+bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &pt2, const tetwild::Point_3 &pt3, const tetwild::Point_3 &pt4, 
                            bool pt1Frozen, bool pt2Frozen, bool pt3Frozen, bool pt4Frozen, double &energy) {
-
-    Point_3 pt1 = pt1_;
-    Point_3 pt2 = pt2_;
-    Point_3 pt3 = pt3_;
-    Point_3 pt4 = pt4_;
 
     // Valid input?
     if (!IsTetPositive(pt1, pt2, pt3, pt4)) {
-        
+
         logger().warn("EstimateOptimalEnergy: Input tetrahedron not positive.");
         return false;
     }
 
     // Newton's
+    double old_energy = energy;  // debug
+    std::array<Point_3, 4> pts_rational{pt1, pt2, pt3, pt4};
     std::array<bool, 4> frozenArray{pt1Frozen, pt2Frozen, pt3Frozen, pt4Frozen};
     const int roundMax = 100;
-
-    for (int round=0; round<roundMax; round++) {
+    bool moved = false;
+    int roundCnt;
+    for (roundCnt=0; roundCnt<roundMax; roundCnt++) {
 
         bool optimizedInRound = false;
         for (int pt=0; pt<4; pt++) {
 
             if (frozenArray[pt]) continue;
-            if (NewtonsMethod()) {
+            if (NewtonsMethod(pts_rational, pt, energy)) {
                 optimizedInRound = true;
+                moved = true;
             }
         }
 
@@ -456,10 +453,14 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1_, const tetwild::Point_3 
             break;
         }
     }
-    std::cerr << round << " " << std::endl;
+
+    int cntFrozen = int(pt1Frozen == true) + int(pt2Frozen == true) + int(pt3Frozen == true) + int(pt4Frozen == true);
+    logger().critical("{} round={} frozen={} energy={} old_e={}", moved, roundCnt, cntFrozen, energy, old_energy);
+
+    if (moved)
+        return true;
+    else
+        return false;
 }
-
-
-
 
 }  // namespace tetshell

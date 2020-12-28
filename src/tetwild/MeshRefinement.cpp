@@ -125,7 +125,7 @@ void MeshRefinement::clear() {
 
 
 int MeshRefinement::doOperations(EdgeSplitter& splitter, EdgeCollapser& collapser, EdgeRemover& edge_remover,
-                                 VertexSmoother& smoother, const std::array<bool, 4>& ops){
+                                 VertexSmoother& smoother, const std::array<bool, 4>& ops) {
 
     int cnt0 = 0;
     for (int i=0; i<tet_vertices.size(); i++) {
@@ -290,7 +290,8 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
 //    state.eps_2 *= eps_s*eps_s;
     bool is_split = true;
 
-    for (int pass = old_pass; pass < old_pass + args.max_num_passes; pass++) {
+    for (int pass=old_pass; pass<old_pass+args.max_num_passes; pass++) {
+
         if (is_dealing_unrounded && pass == old_pass) {
             updateScalarField(false, false, args.filter_energy_thres);
         }
@@ -514,11 +515,13 @@ void MeshRefinement::refine_post(EdgeSplitter& splitter, EdgeCollapser& collapse
 
     logger().info("////////////////// Post-processing //////////////////");
     collapser.is_limit_length = true;
-    for (int i = 0; i < tet_vertices.size(); i++) {
+    for (int i=0; i<tet_vertices.size(); i++) {
         tet_vertices[i].adaptive_scale = 1;
     }
 
+    collapser.optimalEnergyInfo = true;  // also output ratio statistics
     doOperations(splitter, collapser, edge_remover, smoother, std::array<bool, 4>{{false, true, false, false}});
+    collapser.optimalEnergyInfo = false;
 }
 
 

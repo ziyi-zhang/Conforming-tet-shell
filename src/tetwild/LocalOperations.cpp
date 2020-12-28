@@ -14,6 +14,7 @@
 #include <tetwild/Args.h>
 #include <tetwild/Logger.h>
 #include <tetwild/DistanceQuery.h>
+#include <shell/OptimalEnergy.h>
 #include <pymesh/MshSaver.h>
 #include <igl/svd3x3.h>
 #include <igl/Timer.h>
@@ -523,11 +524,13 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
     }
 
     std::array<std::array<double, 3>, 7> energyHist;  // max, avg, min
+    std::array<double, 7> energyMaxOptimRatio;  // only used when "optimalEnergyInfo" enabled
     std::array<int, 7> energyCnt;
     for (int i=0; i<7; i++) {
-        energyHist[i][0] = 0;
-        energyHist[i][1] = 0;
-        energyHist[i][2] = 100;
+        energyHist[i][0] = 0.0;
+        energyHist[i][1] = 0.0;
+        energyHist[i][2] = 1000.0;
+        energyMaxOptimRatio[i] = -1.0;
         energyCnt[i] = 0;
     }
     for (int i=0; i<tet_qualities.size(); i++) {
@@ -552,6 +555,16 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
         if (e>energyHist[frozenEdgeCnt][0]) energyHist[frozenEdgeCnt][0] = e;
         // min
         if (e<energyHist[frozenEdgeCnt][2]) energyHist[frozenEdgeCnt][2] = e;
+
+        // optimal energy
+        if (optimalEnergyInfo) {
+            double optim_e = e;  // pass in e for debugging purpose
+            if (!tetshell::EstimateOptimalEnergy(tet_vertices[tets[i][0]].pos, tet_vertices[tets[i][1]].pos, tet_vertices[tets[i][2]].pos, tet_vertices[tets[i][3]].pos, 
+                                                 tet_vertices[tets[i][0]].is_frozen, tet_vertices[tets[i][1]].is_frozen, tet_vertices[tets[i][2]].is_frozen, tet_vertices[tets[i][3]].is_frozen, optim_e)) {
+                 optim_e = -1.0;                               
+            }
+            if (e / optim_e > energyMaxOptimRatio[frozenEdgeCnt]) energyMaxOptimRatio[frozenEdgeCnt] = e / optim_e;
+        }
     }
 
     logger().debug("  max_slim_energy = {}, min_d_angle = {}, max_d_angle = {}", max_slim_energy, min, max);
@@ -565,6 +578,10 @@ void LocalOperations::outputInfo(int op_type, double time, bool is_log) {
     logger().debug("  frozen4 max_energy = {}, frozen4 avg_energy = {}, frozen4 min_energy = {}", energyHist[4][0], energyHist[4][1] / energyCnt[4], energyHist[4][2]);
     logger().debug("  frozen5 max_energy = {}, frozen5 avg_energy = {}, frozen5 min_energy = {}", energyHist[5][0], energyHist[5][1] / energyCnt[5], energyHist[5][2]);
     logger().debug("  frozen6 max_energy = {}, frozen6 avg_energy = {}, frozen6 min_energy = {}", energyHist[6][0], energyHist[6][1] / energyCnt[6], energyHist[6][2]);
+    if (optimalEnergyInfo) {
+        logger().debug("  frozen0 ratio = {}, frozen1 ratio = {}, frozen2 ratio = {}, frozen3 ratio = {}, frozen4 ratio = {}, frozen5 ratio = {}, frozen6 ratio = {}", 
+                        energyMaxOptimRatio[0], energyMaxOptimRatio[1], energyMaxOptimRatio[2], energyMaxOptimRatio[3], energyMaxOptimRatio[4], energyMaxOptimRatio[5], energyMaxOptimRatio[6]);
+    }
 
     if (is_log) {
         addRecord(MeshRecord(op_type, time, std::count(v_is_removed.begin(), v_is_removed.end(), false), cnt,

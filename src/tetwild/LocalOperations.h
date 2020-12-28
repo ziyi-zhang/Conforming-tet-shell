@@ -51,6 +51,8 @@ public:
     int counter=0;
     int suc_counter=0;
 
+    bool optimalEnergyInfo = false;  // TetShell
+
     std::array<double, 6> cmp_d_angles = {{6/180.0*M_PI, 12/180.0*M_PI, 18/180.0*M_PI, 162/180.0*M_PI, 168/180.0*M_PI, 174/180.0*M_PI}};
 
     LocalOperations(std::vector<TetVertex>& t_vs, std::vector<std::array<int, 4>>& ts, std::vector<std::array<int, 4>>& is_sf_fs,

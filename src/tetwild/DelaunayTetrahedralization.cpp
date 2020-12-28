@@ -322,8 +322,8 @@ void DelaunayTetrahedralization::tetra(const std::vector<Point_3>& m_vertices, c
             if (p_min_z - (CGAL::to_double(m_vertices[vert2].z()) - len) > z_neg_gap) z_neg_gap = p_min_z - (CGAL::to_double(m_vertices[vert2].z()) - len);
         }
 
-    logger().debug("Bbox x_neg_gap={} y_neg_gap={} z_neg_gap{}", x_neg_gap, y_neg_gap, z_neg_gap);
-    logger().debug("Bbox x_pos_gap={} y_pos_gap={} z_pos_gap{}", x_pos_gap, y_pos_gap, z_pos_gap);
+    logger().debug("Bbox x_neg_gap={} y_neg_gap={} z_neg_gap={}", x_neg_gap, y_neg_gap, z_neg_gap);
+    logger().debug("Bbox x_pos_gap={} y_pos_gap={} z_pos_gap={}", x_pos_gap, y_pos_gap, z_pos_gap);
     p_min = Point_3(p_min[0] - x_neg_gap, p_min[1] - y_neg_gap, p_min[2] - z_neg_gap);
     p_max = Point_3(p_max[0] + x_pos_gap, p_max[1] + y_pos_gap, p_max[2] + z_pos_gap);
 
