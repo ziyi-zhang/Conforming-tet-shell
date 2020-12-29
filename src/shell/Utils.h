@@ -15,6 +15,7 @@ namespace tetshell {
 
 bool IsTetPositive(const tetwild::Point_3 &p1, const tetwild::Point_3 &p2, const tetwild::Point_3 &p3, const tetwild::Point_3 &p4);
 bool IsTetPositive(const std::array<tetwild::Point_3, 4> verts);
+bool AreTetsPositive(const std::vector<tetwild::Point_3> &V, const std::vector<std::array<int, 4> > &tets);
 /// TODO
 
 bool MakeTetPositive(const std::vector<tetwild::TetVertex> &VO, std::array<int, 4> &T);

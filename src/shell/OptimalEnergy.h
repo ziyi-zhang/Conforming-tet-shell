@@ -20,5 +20,7 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
 //                           bool pt1Frozen, bool pt2Frozen, bool pt3Frozen, bool pt4Frozen, double &energy);
 /// TODO
 
+void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const int tetIdx, const int vertIdx);
+/// TODO
 
 }  // namespace tetshell

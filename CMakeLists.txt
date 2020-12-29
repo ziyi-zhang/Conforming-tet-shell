@@ -183,6 +183,17 @@ target_link_libraries(TetWild
 target_include_directories(TetWild PRIVATE src)
 igl_copy_cgal_dll(TetWild)
 
+# Building executable test
+add_executable(TetWildTest src/shell/main_test.cpp)
+target_link_libraries(TetWildTest
+		libTetWild
+		CLI11::CLI11
+		igl::cgal
+		warnings::all
+)
+target_include_directories(TetWildTest PRIVATE src)
+igl_copy_cgal_dll(TetWildTest)
+
 # Install
 install(TARGETS TetWild RUNTIME DESTINATION bin)
 

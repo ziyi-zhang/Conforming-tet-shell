@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
     relative->excludes(absolute);
     app.add_option("-e,--epsilon", args.eps_rel, "epsilon = diag_of_bbox * EPS. (double, optional, default: 1e-3)");
     app.add_option("--stage", args.stage, "Run pipeline in stage STAGE. (integer, optional, default: 1)");
-    app.add_option("--filter-energy", args.filter_energy_thres, "Stop mesh improvement when the maximum energy is smaller than ENERGY. (double, optional, default: 100)");
+    app.add_option("--filter-energy", args.filter_energy_thres, "Stop mesh improvement when the maximum energy is smaller than ENERGY. (double, optional, default: 20)");
     app.add_option("--max-pass", args.max_num_passes, "Do PASS mesh improvement passes in maximum. (integer, optional, default: 80)");
     app.add_option("--targeted-num-v", args.target_num_vertices, "Output tetmesh that contains TV vertices. (integer, optional, tolerance: 5%)");
     app.add_option("--bg-mesh", args.background_mesh, "Background tetmesh BGMESH in .msh format for applying sizing field. (string, optional)");

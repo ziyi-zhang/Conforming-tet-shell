@@ -40,6 +40,17 @@ bool IsTetPositive(const std::array<Point_3, 4> verts) {
 }
 
 
+bool AreTetsPositive(const std::vector<Point_3> &V, const std::vector<std::array<int, 4> > &tets) {
+
+    for (int i=0; i<tets.size(); i++) {
+        if (!IsTetPositive(V[tets[i][0]], V[tets[i][1]], V[tets[i][2]], V[tets[i][3]])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 bool MakeTetPositive(const std::vector<tetwild::TetVertex> &VO, std::array<int, 4> &T) {
 
     if (!IsTetPositive(VO[T[0]].pos, VO[T[1]].pos, VO[T[2]].pos, VO[T[3]].pos)) {

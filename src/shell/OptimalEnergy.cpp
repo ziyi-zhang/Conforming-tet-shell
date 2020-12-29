@@ -4,6 +4,7 @@
 #include <tetwild/TetmeshElements.h>
 
 #include <Eigen/Dense>
+#include <algorithm>
 
 
 namespace tetshell {
@@ -341,9 +342,76 @@ bool NewtonsUpdate(
 }
 
 
+bool NewtonsUpdateBatch(
+    const std::vector<Point_3f> &pts, 
+    const std::vector<std::array<int, 4> > &tets, 
+    const int targetTetIdx,  // only used to track the interested tet's energy
+    const int targetVertIdx, 
+    double &energy, 
+    Eigen::Vector3d &J, 
+    Eigen::Matrix3d &H, 
+    Eigen::Vector3d &X0) {
+
+    // initialize
+    for (int i=0; i<3; i++) {
+        J(i) = 0.0;
+        for (int j=0; j<3; j++)
+            H(i, j) = 0.0;
+        X0(i) = pts[targetVertIdx][i];
+    }
+
+    for (int i=0; i<tets.size(); i++) {
+
+        // stores the coordinates of 4 3D-vertices to pos
+        std::array<double, 12> pos;
+        for (int j=0; j<4; j++) {
+            for (int k=0; k<3; k++) {
+                pos[j*3+k] = pts[tets[i][j]][k];
+            }
+        }
+
+        double J_1[3];
+        double H_1[9];
+        tetwild_comformalAMIPSJacobian_new(pos.data(), J_1);
+        tetwild_comformalAMIPSHessian_new(pos.data(), H_1);
+        if (i == targetTetIdx)
+            energy = tetwild_comformalAMIPSEnergy_new(pos.data());
+
+        for (int j=0; j<3; j++) {
+            J(j) += J_1[j];
+            H(j, 0) += H_1[j * 3 + 0];
+            H(j, 1) += H_1[j * 3 + 1];
+            H(j, 2) += H_1[j * 3 + 2];
+        }
+    }
+
+    if (std::isinf(energy)) {
+        logger().debug("NewtonsUpdateBatch: std::isinf(energy)");
+        energy = 1e50;
+    }
+    if (std::isnan(energy)) {
+        logger().debug("NewtonsUpdateBatch: std::isnan(energy)");
+        return false;
+    }
+    if (energy <= 0) {
+        logger().debug("NewtonsUpdateBatch: energy <= 0");
+        return false;
+    }
+    if (!J.allFinite()) {
+        logger().debug("NewtonsUpdateBatch: !J.allFinite()");
+        return false;
+    }
+    if (!H.allFinite()) {
+        logger().debug("NewtonsUpdateBatch: !H.allFinite()");
+        return false;
+    }
+
+    return true;
+}
+
+
 bool NewtonsMethod(std::array<Point_3, 4> &pts_rational, int idx, double &energy) {
 
-    bool is_moved = false;
     const int MAX_IT = 20;
 
     Eigen::Vector3d J;
@@ -461,6 +529,109 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
         return true;
     else
         return false;
+}
+
+
+void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const int tetIdx, const int vertIdx) {
+
+    logger().set_level(spdlog::level::level_enum::trace);
+    // delete unused V & create rational copy
+    std::vector<Point_3f> pts;
+    std::vector<Point_3>  pts_rational;
+    std::vector<std::array<int, 4> > tets;
+    int targetVertIdx = -1;
+    for (int i=0; i<T.rows(); i++) {
+
+        std::array<int, 4> newTetIdx;
+
+        // for the j-th tet
+        for (int j=0; j<4; j++) {
+            Point_3f pt{V(T(i, j), 0), V(T(i, j), 1), V(T(i, j), 2)};
+            auto it = find(pts.begin(), pts.end(), pt);
+            if (it == pts.end()) {
+                // a new vertex
+                pts.push_back(pt);
+                pts_rational.push_back( Point_3(pt[0], pt[1], pt[2]) );
+                newTetIdx[j] = pts.size() - 1;
+            } else {
+                // already exist
+                newTetIdx[j] = it - pts.begin();
+            }
+            if (i==tetIdx && j==vertIdx) targetVertIdx = newTetIdx[j];
+        }
+        // insert the updated T
+        tets.push_back(newTetIdx);
+    }
+
+
+    // Start optimization
+    const int itMax = 20;
+    const int stepMax = 100;
+    Eigen::Vector3d J;
+    Eigen::Matrix3d H;
+    Eigen::Vector3d X0;
+    double oldEnergy = -1.0;
+    for (int it=0; it<itMax; it++) {
+
+        // jacobian and hessian
+        if (!NewtonsUpdateBatch(pts, tets, tetIdx, targetVertIdx, oldEnergy, J, H, X0)) {
+            logger().warn("NewtonsUpdateBatch returned false with it={}. Now exit optimization.", it);
+            break;
+        }
+        logger().debug("@Start of it={} energy={}", it, oldEnergy);
+
+        // line search
+        Point_3f old_pf = pts[targetVertIdx];
+        Point_3 old_p = pts_rational[targetVertIdx];
+        bool step_taken = false;
+        double a = 1.0;
+        double newEnergy;
+        for (int step=0; step<stepMax; step++) {
+
+            // solve linear system
+            Eigen::Vector3d X = H.colPivHouseholderQr().solve(H * X0 - a * J);
+            std::cout << "a = " << a << "   " <<  X.transpose() << std::endl;
+            if (!X.allFinite()) {
+                a /= 2.0;
+                continue;
+            }
+            pts[targetVertIdx] = Point_3f(X(0), X(1), X(2));
+            pts_rational[targetVertIdx] = Point_3(X(0), X(1), X(2));
+
+            // check flipping
+            if (!AreTetsPositive(pts_rational, tets)) {
+                pts[targetVertIdx] = old_pf;
+                pts_rational[targetVertIdx] = old_p;
+                a /= 2.0;
+                continue;
+            }
+
+            // check energy
+            // stores the coordinates of 4 3D-vertices to pos
+            std::array<double, 12> pos;
+            for (int j=0; j<4; j++) {
+                for (int k=0; k<3; k++) {
+                    pos[j*3+k] = pts[tets[tetIdx][j]][k];
+                }
+            }
+            newEnergy = tetwild_comformalAMIPSEnergy_new(pos.data());
+            if (newEnergy >= oldEnergy || std::isinf(newEnergy) || std::isnan(newEnergy)) {
+                pts[targetVertIdx] = old_pf;
+                pts_rational[targetVertIdx] = old_p;
+                a /= 2.0;
+                continue;
+            }
+
+            step_taken = true;
+            break;
+        }  // for (int step=0; step<stepMax; step++)
+
+        if (std::abs(newEnergy - oldEnergy) < 1e-8)
+            step_taken = false;
+        if (!step_taken) {
+            break;
+        }
+    }
 }
 
 }  // namespace tetshell
