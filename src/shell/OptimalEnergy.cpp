@@ -364,9 +364,16 @@ bool NewtonsUpdateBatch(
 
         // stores the coordinates of 4 3D-vertices to pos
         std::array<double, 12> pos;
+        int start = -1;  // this is necessary to get the correct sign of J
+        for (int j=0; j<4; j++) {
+            if (tets[i][j] == targetVertIdx) {
+                start = j;
+                break;
+            }
+        }
         for (int j=0; j<4; j++) {
             for (int k=0; k<3; k++) {
-                pos[j*3+k] = pts[tets[i][j]][k];
+                pos[j*3+k] = pts[tets[i][(start+j) % 4]][k];
             }
         }
 
@@ -523,7 +530,7 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
     }
 
     int cntFrozen = int(pt1Frozen == true) + int(pt2Frozen == true) + int(pt3Frozen == true) + int(pt4Frozen == true);
-    logger().critical("{} round={} frozen={} energy={} old_e={}", moved, roundCnt, cntFrozen, energy, old_energy);
+    // logger().critical("{} round={} frozen={} energy={} old_e={}", moved, roundCnt, cntFrozen, energy, old_energy);
 
     if (moved)
         return true;
@@ -580,7 +587,7 @@ void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, con
         }
         logger().debug("@Start of it={} energy={}", it, oldEnergy);
 
-        // line search
+        // initialize
         Point_3f old_pf = pts[targetVertIdx];
         Point_3 old_p = pts_rational[targetVertIdx];
         bool step_taken = false;
@@ -612,9 +619,9 @@ void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, con
         double a = 1.0;
         for (int step=0; step<stepMax; step++) {
 
-            // try to update location to be [ X0 + a * optimDirection ]  // Why plus???? J negative???
-            pts[targetVertIdx] = Point_3f(X_old(0) + a*optimDirection(0), X_old(1) + a*optimDirection(1), X_old(2) + a*optimDirection(2));
-            pts_rational[targetVertIdx] = Point_3(X_old(0) + a*optimDirection(0), X_old(1) + a*optimDirection(1), X_old(2) + a*optimDirection(2));
+            // try to update location to be [ X0 - a * optimDirection ]
+            pts[targetVertIdx] = Point_3f(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
+            pts_rational[targetVertIdx] = Point_3(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
 
             // check flipping
             if (!AreTetsPositive(pts_rational, tets)) {

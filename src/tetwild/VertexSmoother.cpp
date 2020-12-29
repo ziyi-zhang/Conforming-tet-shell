@@ -95,7 +95,7 @@ bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy) {
         tet_vertices[v_id].pos = p;
         tet_vertices[v_id].posf = pf;
         tet_vertices[v_id].is_rounded = true;
-        if (isFlip(new_tets)) {  //TODO: why it happens?
+        if (isFlip(new_tets)) {  // TODO: why it happens?
             logger().debug("flip in the end");
             tet_vertices[v_id].pos = old_p;
             tet_vertices[v_id].posf = old_pf;
@@ -103,7 +103,7 @@ bool VertexSmoother::smoothSingleVertex(int v_id, bool is_cal_energy) {
         }
     }
 
-    if (is_cal_energy){
+    if (is_cal_energy) {
         std::vector<TetQuality> tet_qs;
         calTetQualities(new_tets, tet_qs);
         int cnt = 0;
@@ -488,44 +488,62 @@ void VertexSmoother::smoothSurface() {  // smoothing surface using two methods
 bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vector<std::array<int, 4>>& new_tets,
                                    int v_id, Point_3f& p) {
 
-    bool is_moved = false;
-    const int MAX_STEP = 15;
-    const int MAX_IT = 20;
-    Point_3f pf0 = tet_vertices[v_id].posf;
-    Point_3 p0 = tet_vertices[v_id].pos;
+    Point_3f pf_unmodified = tet_vertices[v_id].posf;
+    Point_3 p_unmodified = tet_vertices[v_id].pos;
 
-    double old_energy = 0;
+    bool is_moved = false;
+    const int itMax = 30;  // newton's iteration
+    const int stepMax = 100;  // line search iteration
     Eigen::Vector3d J;
     Eigen::Matrix3d H;
-    Eigen::Vector3d X0;
+    Eigen::Vector3d X_old;
+    double oldEnergy = -1.0, newEnergy;
 
-    // start iterations
-    for (int step=0; step<MAX_STEP; step++) {
+    // Start optimization
+    for (int it=0; it<itMax; it++) {
 
-        if (NewtonsUpdate(t_ids, v_id, old_energy, J, H, X0) == false)
+        // update jacobian, hessian and X_old
+        if (!NewtonsUpdate(t_ids, v_id, oldEnergy, J, H, X_old))
             break;
+        
+        // Initialize line search
         Point_3f old_pf = tet_vertices[v_id].posf;
         Point_3 old_p = tet_vertices[v_id].pos;
-        double a = 1.0;
         bool step_taken = false;
-        double new_energy;
 
-        // find the correct step length
-        for (int it=0; it<MAX_IT; it++) {
-            // solve linear system
-            igl_timer.start();
-            Eigen::Vector3d X = H.colPivHouseholderQr().solve(H * X0 - a * J);
-            breakdown_timing[id_solve] += igl_timer.getElapsedTime();
-            if (!X.allFinite()) {
-                a /= 2.0;
-                continue;
-            }
-            tet_vertices[v_id].posf = Point_3f(X(0), X(1), X(2));
-            tet_vertices[v_id].pos = Point_3(X(0), X(1), X(2));
-//            tet_vertices[v_id].is_rounded=true;//need to remember old value?
+        // solve linear system
+        Eigen::Vector3d delta_X = H.colPivHouseholderQr().solve(J);
+
+        // whether the solution is valid
+        bool newtons = true;
+        if (!delta_X.allFinite()) {
+            newtons = false;
+            logger().debug("delta_X.allFinite() not satisfied. Will use gradient instead.");
+        } else if (!J.isApprox(H * delta_X, 1e-10)) {
+            newtons = false;
+            logger().debug("J.isApprox(H * delta_X, 1e-10) not satisfied. Will use gradient instead.");
+        }
+
+        // use newton's or gradient descent
+        Eigen::Vector3d optimDirection;
+        if (newtons) {
+            optimDirection = delta_X.stableNormalized();
+        } else {
+            optimDirection = J.stableNormalized();
+        }
+
+        // naive line search
+        double a = 1.0;
+        for (int step=0; step<stepMax; step++) {
+
+            // try to update location to be [ X0 - a * optimDirection ]  
+            tet_vertices[v_id].posf = Point_3f(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
+            tet_vertices[v_id].pos = Point_3(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
 
             // check flipping
             if (isFlip(new_tets)) {
+                // abort change
+                // logger().debug("   it={} step={} a={} rejected due to flipped tet", it, step, a);
                 tet_vertices[v_id].posf = old_pf;
                 tet_vertices[v_id].pos = old_p;
                 a /= 2.0;
@@ -533,10 +551,10 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
             }
 
             // check quality
-            igl_timer.start();
-            new_energy = getNewEnergy(t_ids);
-            breakdown_timing[id_value_e] += igl_timer.getElapsedTime();
-            if (new_energy >= old_energy || std::isinf(new_energy) || std::isnan(new_energy)) {
+            newEnergy = getNewEnergy(t_ids);
+            if (newEnergy >= oldEnergy || std::isinf(newEnergy) || std::isnan(newEnergy)) {
+                // abort change
+                // logger().debug("   it={} step={} a={} newE={} oldE={} rejected due to energy", it, step, a, newEnergy, oldEnergy);
                 tet_vertices[v_id].posf = old_pf;
                 tet_vertices[v_id].pos = old_p;
                 a /= 2.0;
@@ -545,25 +563,26 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
 
             step_taken = true;
             break;
-        }  // for (int it = 0; it < MAX_IT; it++)
+        }  // for (int step=0; step<stepMax; step++)  line search loop
+        
+        // DEBUG PURPOSE
+        // if (step_taken == false) logger().debug("  newtons={} it={}", newtons, it);
+        if (!newtons) logger().debug("  newtons={} it={}", newtons, it);
 
-        if (std::abs(new_energy - old_energy) < 1e-5)
-            step_taken = false;
+        if (J.norm() < 1e-9 && std::abs(newEnergy - oldEnergy) < 1e-5)
+            step_taken = false;  // break if there is hardly anything left can be done
 
         if (!step_taken) {
-            if (step == 0)
-                is_moved = false;
-            else
-                is_moved = true;
             break;
         } else {
             is_moved = true;
         }
-    }  // for (int step=0; step<MAX_STEP; step++)
+    }  // for (int it=0; it<itMax; it++)  optimization iter loop
 
+    // revert all changes and save the new location to "p"
     p = tet_vertices[v_id].posf;
-    tet_vertices[v_id].posf = pf0;
-    tet_vertices[v_id].pos = p0;
+    tet_vertices[v_id].posf = pf_unmodified;
+    tet_vertices[v_id].pos = p_unmodified;
 
     return is_moved;
 }
@@ -658,24 +677,25 @@ bool VertexSmoother::NewtonsUpdate(
     double& energy, 
     Eigen::Vector3d& J, 
     Eigen::Matrix3d& H, 
-    Eigen::Vector3d& X0) {
+    Eigen::Vector3d& X_old) {
 
-    // initialize
-    energy = 0;
+    // initialize and update x_old
+    energy = -1.0;
     for (int i=0; i<3; i++) {
         J(i) = 0;
         for (int j=0; j<3; j++) {
             H(i, j) = 0;
         }
-        X0(i) = tet_vertices[v_id].posf[i];
+        X_old(i) = tet_vertices[v_id].posf[i];
     }
 
     // iterate over all tets
     for (int i=0; i<t_ids.size(); i++) {
-        // for i-th tet
+        // for the i-th tet
 
-        std::array<double, 12> t;  // stores the coordinates of 4 3D-vertices
-        int start = 0;
+        // stores the coordinates of 4 3D-vertices
+        std::array<double, 12> pos;
+        int start = -1;
         for (int j=0; j<4; j++) {
             if (tets[t_ids[i]][j] == v_id) {
                 start = j;
@@ -684,22 +704,22 @@ bool VertexSmoother::NewtonsUpdate(
         }
         for (int j=0; j<4; j++) {
             for (int k=0; k<3; k++) {
-                t[j*3+k] = tet_vertices[tets[t_ids[i]][(start + j) % 4]].posf[k];
+                pos[j*3+k] = tet_vertices[ tets[t_ids[i]][(start + j) % 4] ].posf[k];
             }
         }
 #ifndef TETWILD_WITH_ISPC
         igl_timer.start();
-        energy += comformalAMIPSEnergy_new(t.data());
+        energy += comformalAMIPSEnergy_new(pos.data());
         breakdown_timing[id_value_e] += igl_timer.getElapsedTime();
 #endif
 
         double J_1[3];
         double H_1[9];
         igl_timer.start();
-        comformalAMIPSJacobian_new(t.data(), J_1);
+        comformalAMIPSJacobian_new(pos.data(), J_1);
         breakdown_timing[id_value_j] += igl_timer.getElapsedTime();
         igl_timer.start();
-        comformalAMIPSHessian_new(t.data(), H_1);
+        comformalAMIPSHessian_new(pos.data(), H_1);
         breakdown_timing[id_value_h] += igl_timer.getElapsedTime();
 
         for (int j = 0; j < 3; j++) {
@@ -716,23 +736,23 @@ bool VertexSmoother::NewtonsUpdate(
 #endif
 
     if (std::isinf(energy)) {
-        logger().debug("{} E inf", v_id);
+        logger().debug("NewtonsUpdate v_id={} E inf", v_id);
         energy = state.MAX_ENERGY;
     }
     if (std::isnan(energy)) {
-        logger().debug("{} E nan", v_id);
+        logger().debug("NewtonsUpdate v_id={} E nan", v_id);
         return false;
     }
     if (energy <= 0) {
-        logger().debug("{} E < 0", v_id);
+        logger().debug("NewtonsUpdate v_id={} E < 0", v_id);
         return false;
     }
     if (!J.allFinite()) {
-        logger().debug("{} J inf/nan", v_id);
+        logger().debug("NewtonsUpdate v_id={} J inf/nan", v_id);
         return false;
     }
     if (!H.allFinite()) {
-        logger().debug("{} H inf/nan", v_id);
+        logger().debug("NewtonsUpdate v_id={} H inf/nan", v_id);
         return false;
     }
 
