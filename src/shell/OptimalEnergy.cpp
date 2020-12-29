@@ -350,14 +350,14 @@ bool NewtonsUpdateBatch(
     double &energy, 
     Eigen::Vector3d &J, 
     Eigen::Matrix3d &H, 
-    Eigen::Vector3d &X0) {
+    Eigen::Vector3d &X_old) {
 
     // initialize
     for (int i=0; i<3; i++) {
         J(i) = 0.0;
         for (int j=0; j<3; j++)
             H(i, j) = 0.0;
-        X0(i) = pts[targetVertIdx][i];
+        X_old(i) = pts[targetVertIdx][i];
     }
 
     for (int i=0; i<tets.size(); i++) {
@@ -532,7 +532,7 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
 }
 
 
-void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const int tetIdx, const int vertIdx) {
+void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const int targetTetIdx, const int vertIdx) {
 
     logger().set_level(spdlog::level::level_enum::trace);
     // delete unused V & create rational copy
@@ -557,7 +557,7 @@ void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, con
                 // already exist
                 newTetIdx[j] = it - pts.begin();
             }
-            if (i==tetIdx && j==vertIdx) targetVertIdx = newTetIdx[j];
+            if (i==targetTetIdx && j==vertIdx) targetVertIdx = newTetIdx[j];
         }
         // insert the updated T
         tets.push_back(newTetIdx);
@@ -565,16 +565,16 @@ void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, con
 
 
     // Start optimization
-    const int itMax = 20;
-    const int stepMax = 100;
+    const int itMax = 20;  // newton's iteration
+    const int stepMax = 100;  // line search iteration
     Eigen::Vector3d J;
     Eigen::Matrix3d H;
-    Eigen::Vector3d X0;
-    double oldEnergy = -1.0;
+    Eigen::Vector3d X_old;
+    double oldEnergy = -1.0, newEnergy;
     for (int it=0; it<itMax; it++) {
 
-        // jacobian and hessian
-        if (!NewtonsUpdateBatch(pts, tets, tetIdx, targetVertIdx, oldEnergy, J, H, X0)) {
+        // update jacobian, hessian and X_old
+        if (!NewtonsUpdateBatch(pts, tets, targetTetIdx, targetVertIdx, oldEnergy, J, H, X_old)) {
             logger().warn("NewtonsUpdateBatch returned false with it={}. Now exit optimization.", it);
             break;
         }
@@ -584,22 +584,42 @@ void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, con
         Point_3f old_pf = pts[targetVertIdx];
         Point_3 old_p = pts_rational[targetVertIdx];
         bool step_taken = false;
+
+        // solve linear system
+        Eigen::Vector3d delta_X = H.colPivHouseholderQr().solve(J);
+        logger().debug("it={}  delta_X=[{} {} {}]", it, delta_X[0], delta_X[1], delta_X[2]);  // DEBUG PURPOSE
+
+        // whether the solution is valid
+        bool newtons = true;
+        if (!delta_X.allFinite()) {
+            newtons = false;
+            logger().debug("delta_X.allFinite() not satisfied. Will use gradient instead.");
+        } else if (!J.isApprox(H * delta_X, 1e-10)) {
+            newtons = false;
+            logger().debug("J.isApprox(H * delta_X, 1e-10) not satisfied. Will use gradient instead.");
+        }
+
+        // use newton's or gradient descent
+        Eigen::Vector3d optimDirection;
+        if (newtons) {
+            optimDirection = delta_X.stableNormalized();
+        } else {
+            optimDirection = J.stableNormalized();
+            logger().debug("J=[{} {} {}]", J[0], J[1], J[2]);
+        }
+
+        // naive line search
         double a = 1.0;
-        double newEnergy;
         for (int step=0; step<stepMax; step++) {
 
-            // solve linear system
-            Eigen::Vector3d X = H.colPivHouseholderQr().solve(H * X0 - a * J);
-            std::cout << "a = " << a << "   " <<  X.transpose() << std::endl;
-            if (!X.allFinite()) {
-                a /= 2.0;
-                continue;
-            }
-            pts[targetVertIdx] = Point_3f(X(0), X(1), X(2));
-            pts_rational[targetVertIdx] = Point_3(X(0), X(1), X(2));
+            // try to update location to be [ X0 + a * optimDirection ]  // Why plus???? J negative???
+            pts[targetVertIdx] = Point_3f(X_old(0) + a*optimDirection(0), X_old(1) + a*optimDirection(1), X_old(2) + a*optimDirection(2));
+            pts_rational[targetVertIdx] = Point_3(X_old(0) + a*optimDirection(0), X_old(1) + a*optimDirection(1), X_old(2) + a*optimDirection(2));
 
             // check flipping
             if (!AreTetsPositive(pts_rational, tets)) {
+                // abort change
+                logger().debug("   it={} step={} a={} rejected due to flipped tet", it, step, a);
                 pts[targetVertIdx] = old_pf;
                 pts_rational[targetVertIdx] = old_p;
                 a /= 2.0;
@@ -611,11 +631,13 @@ void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, con
             std::array<double, 12> pos;
             for (int j=0; j<4; j++) {
                 for (int k=0; k<3; k++) {
-                    pos[j*3+k] = pts[tets[tetIdx][j]][k];
+                    pos[j*3+k] = pts[tets[targetTetIdx][j]][k];
                 }
             }
             newEnergy = tetwild_comformalAMIPSEnergy_new(pos.data());
             if (newEnergy >= oldEnergy || std::isinf(newEnergy) || std::isnan(newEnergy)) {
+                // abort change
+                logger().debug("   it={} step={} a={} newE={} oldE={} rejected due to energy", it, step, a, newEnergy, oldEnergy);
                 pts[targetVertIdx] = old_pf;
                 pts_rational[targetVertIdx] = old_p;
                 a /= 2.0;
@@ -624,14 +646,17 @@ void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, con
 
             step_taken = true;
             break;
-        }  // for (int step=0; step<stepMax; step++)
+        }  // for (int step=0; step<stepMax; step++)  line search loop
+        if (!step_taken)
+            logger().debug("Line search failed to find a valid step length @ it={}", it);
 
-        if (std::abs(newEnergy - oldEnergy) < 1e-8)
-            step_taken = false;
+        // if (std::abs(newEnergy - oldEnergy) < 1e-8)
+        //    step_taken = false;
         if (!step_taken) {
             break;
         }
-    }
+    }  // for (int it=0; it<itMax; it++)  optimization iter loop
+    logger().debug("Final energy = {}", newEnergy);
 }
 
 }  // namespace tetshell
