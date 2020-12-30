@@ -492,20 +492,22 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
     Point_3 p_unmodified = tet_vertices[v_id].pos;
 
     bool is_moved = false;
-    const int itMax = 30;  // newton's iteration
+    const int itMax = 50;  // newton's iteration
     const int stepMax = 100;  // line search iteration
     Eigen::Vector3d J;
     Eigen::Matrix3d H;
     Eigen::Vector3d X_old;
-    double oldEnergy = -1.0, newEnergy;
+    double oldEnergy = -1.0, newEnergy, archiveEnergy;
 
     // Start optimization
     for (int it=0; it<itMax; it++) {
 
         // update jacobian, hessian and X_old
-        if (!NewtonsUpdate(t_ids, v_id, oldEnergy, J, H, X_old))
+        if (!NewtonsUpdate(t_ids, v_id, oldEnergy, J, H, X_old)) {
+            if (it == 0) archiveEnergy = oldEnergy;  // log purpose
             break;
-        
+        }
+
         // Initialize line search
         Point_3f old_pf = tet_vertices[v_id].posf;
         Point_3 old_p = tet_vertices[v_id].pos;
@@ -536,7 +538,7 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
         double a = 1.0;
         for (int step=0; step<stepMax; step++) {
 
-            // try to update location to be [ X0 - a * optimDirection ]  
+            // try to update location to be [ X_old - a * optimDirection ]
             tet_vertices[v_id].posf = Point_3f(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
             tet_vertices[v_id].pos = Point_3(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
 
@@ -576,6 +578,11 @@ bool VertexSmoother::NewtonsMethod(const std::vector<int>& t_ids, const std::vec
             break;
         } else {
             is_moved = true;
+        }
+
+        if (it == itMax) {
+            // reached optimization max iter
+            logger().debug("Optimization max iter reached. v_id={} energy_before_optim={} energy_now={}", v_id, archiveEnergy, newEnergy);
         }
     }  // for (int it=0; it<itMax; it++)  optimization iter loop
 

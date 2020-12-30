@@ -289,22 +289,22 @@ bool NewtonsUpdate(
     double& energy, 
     Eigen::Vector3d &J, 
     Eigen::Matrix3d &H, 
-    Eigen::Vector3d &X0) {
+    Eigen::Vector3d &X_old) {
 // Adapted from VertexSmoother
 
-    // initialize
+    // initialize and update x_old
     for (int i=0; i<3; i++) {
         J(i) = 0.0;
         for (int j=0; j<3; j++)
             H(i, j) = 0.0;
-        X0(i) = pts[idx][i];
+        X_old(i) = pts[idx][i];
     }
 
     // stores the coordinates of 4 3D-vertices to pos
     std::array<double, 12> pos;
     for (int j=0; j<4; j++) {
         for (int k=0; k<3; k++) {
-            pos[j*3+k] = pts[j][k];
+            pos[j*3+k] = pts[(idx+j) % 4][k];
         }
     }
 
@@ -320,7 +320,6 @@ bool NewtonsUpdate(
         H(j, 1) += H_1[j * 3 + 1];
         H(j, 2) += H_1[j * 3 + 2];
     }
-
 
     if (std::isinf(energy)) {
         energy = 1e50;
@@ -417,13 +416,13 @@ bool NewtonsUpdateBatch(
 }
 
 
-bool NewtonsMethod(std::array<Point_3, 4> &pts_rational, int idx, double &energy) {
+bool OneStepNewtonOptim(std::array<Point_3, 4> &pts_rational, int idx, double &energy) {
 
-    const int MAX_IT = 20;
-
+    const int stepMax = 100;  // line search iteration
     Eigen::Vector3d J;
     Eigen::Matrix3d H;
-    Eigen::Vector3d X0;
+    Eigen::Vector3d X_old;
+    double oldEnergy, newEnergy;
 
     // to double
     std::array<Point_3f, 4> pts;
@@ -431,29 +430,44 @@ bool NewtonsMethod(std::array<Point_3, 4> &pts_rational, int idx, double &energy
         pts[i] = Point_3f(CGAL::to_double(pts_rational[i][0]), CGAL::to_double(pts_rational[i][1]), CGAL::to_double(pts_rational[i][2]));
 
     // jacobian and hessian
-    double oldEnergy = 0.0;
-    if (NewtonsUpdate(pts, idx, oldEnergy, J, H, X0) == false)
+    if (NewtonsUpdate(pts, idx, oldEnergy, J, H, X_old) == false)
         return false;
-    
-    // find the correct step length
+
+    // Initialize line search
     Point_3f old_pf = pts[idx];
     Point_3 old_p = pts_rational[idx];
     bool step_taken = false;
-    double a = 1.0;
-    double newEnergy;
-    for (int it=0; it<MAX_IT; it++) {
 
-        // solve linear system
-        Eigen::Vector3d X = H.colPivHouseholderQr().solve(H * X0 - a * J);
-        if (!X.allFinite()) {
-            a /= 2.0;
-            continue;
-        }
-        pts[idx] = Point_3f(X(0), X(1), X(2));
-        pts_rational[idx] = Point_3(X(0), X(1), X(2));
+    // solve linear system
+    Eigen::Vector3d delta_X = H.colPivHouseholderQr().solve(J);
+
+    // whether the solution is valid
+    bool newtons = true;
+    if (!delta_X.allFinite()) {
+        newtons = false;
+    } else if (!J.isApprox(H * delta_X, 1e-10)) {
+        newtons = false;
+    }
+
+    // use newton's or gradient descent
+    Eigen::Vector3d optimDirection;
+    if (newtons) {
+        optimDirection = delta_X.stableNormalized();
+    } else {
+        optimDirection = J.stableNormalized();
+    }
+
+    // naive line search
+    double a = 1.0;
+    for (int step=0; step<stepMax; step++) {
+
+        // try to update location to be [ X_old - a * optimDirection ]  
+        pts[idx] = Point_3f(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
+        pts_rational[idx] = Point_3(X_old(0) - a*optimDirection(0), X_old(1) - a*optimDirection(1), X_old(2) - a*optimDirection(2));
 
         // check flipping
         if (!IsTetPositive(pts_rational[0], pts_rational[1], pts_rational[2], pts_rational[3])) {
+            // abort change
             pts[idx] = old_pf;
             pts_rational[idx] = old_p;
             a /= 2.0;
@@ -470,6 +484,7 @@ bool NewtonsMethod(std::array<Point_3, 4> &pts_rational, int idx, double &energy
         }
         newEnergy = tetwild_comformalAMIPSEnergy_new(pos.data());
         if (newEnergy >= oldEnergy || std::isinf(newEnergy) || std::isnan(newEnergy)) {
+            // abort change
             pts[idx] = old_pf;
             pts_rational[idx] = old_p;
             a /= 2.0;
@@ -481,14 +496,10 @@ bool NewtonsMethod(std::array<Point_3, 4> &pts_rational, int idx, double &energy
         break;
     }  // for (int it=0; it<MAX_IT; it++)
 
-    if (std::abs(newEnergy - oldEnergy) < 1e-8)
-        step_taken = false;
+    if (J.norm() < 1e-9 && std::abs(newEnergy - oldEnergy) < 1e-5)
+        step_taken = false;  // break if there is hardly anything left can be done
 
-    if (!step_taken) {
-        return false;
-    } else {
-        return true;
-    }
+    return step_taken;
 }
 
 }  // anonymous namespace
@@ -500,7 +511,6 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
 
     // Valid input?
     if (!IsTetPositive(pt1, pt2, pt3, pt4)) {
-
         logger().warn("EstimateOptimalEnergy: Input tetrahedron not positive.");
         return false;
     }
@@ -509,16 +519,16 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
     double old_energy = energy;  // debug
     std::array<Point_3, 4> pts_rational{pt1, pt2, pt3, pt4};
     std::array<bool, 4> frozenArray{pt1Frozen, pt2Frozen, pt3Frozen, pt4Frozen};
-    const int roundMax = 100;
+    const int roundMax = 300;
     bool moved = false;
     int roundCnt;
     for (roundCnt=0; roundCnt<roundMax; roundCnt++) {
 
         bool optimizedInRound = false;
-        for (int pt=0; pt<4; pt++) {
+        for (int vIdx=0; vIdx<4; vIdx++) {
 
-            if (frozenArray[pt]) continue;
-            if (NewtonsMethod(pts_rational, pt, energy)) {
+            if (frozenArray[vIdx]) continue;  // the only constrain is the locked vertices
+            if (OneStepNewtonOptim(pts_rational, vIdx, energy)) {
                 optimizedInRound = true;
                 moved = true;
             }
@@ -532,10 +542,7 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
     int cntFrozen = int(pt1Frozen == true) + int(pt2Frozen == true) + int(pt3Frozen == true) + int(pt4Frozen == true);
     // logger().critical("{} round={} frozen={} energy={} old_e={}", moved, roundCnt, cntFrozen, energy, old_energy);
 
-    if (moved)
-        return true;
-    else
-        return false;
+    return moved;
 }
 
 
