@@ -172,30 +172,39 @@ if (TETWILD_WITH_ASAN)
 	target_link_options(libTetWild PUBLIC "-fsanitize=address")
 endif()
 
-# Building executable
-add_executable(TetWild src/main.cpp)
-target_link_libraries(TetWild
-		libTetWild
-		CLI11::CLI11
-		igl::cgal
-		warnings::all
-)
-target_include_directories(TetWild PRIVATE src)
-igl_copy_cgal_dll(TetWild)
-
 # Building executable test
-add_executable(TetWildTest src/shell/main_test.cpp)
-target_link_libraries(TetWildTest
+add_executable(TetShellTest EXCLUDE_FROM_ALL src/test/main_test.cpp)
+target_link_libraries(TetShellTest
 		libTetWild
 		CLI11::CLI11
 		igl::cgal
 		warnings::all
 )
-target_include_directories(TetWildTest PRIVATE src)
-igl_copy_cgal_dll(TetWildTest)
+target_include_directories(TetShellTest PRIVATE src)
+igl_copy_cgal_dll(TetShellTest)
+
+# Building executable tetgen
+add_executable(TetGen EXCLUDE_FROM_ALL src/test/main_tetgen.cpp)
+target_link_libraries(TetGen
+		igl::core
+		igl::tetgen
+		warnings::all
+)
+target_include_directories(TetGen PRIVATE src)
+
+# Building main executable
+add_executable(TetShell src/main.cpp)
+target_link_libraries(TetShell
+		libTetWild
+		CLI11::CLI11
+		igl::cgal
+		warnings::all
+)
+target_include_directories(TetShell PRIVATE src)
+igl_copy_cgal_dll(TetShell)
 
 # Install
-install(TARGETS TetWild RUNTIME DESTINATION bin)
+install(TARGETS TetShell RUNTIME DESTINATION bin)
 
 ################################################################################
 # Folders for Visual Studio/XCode IDEs
