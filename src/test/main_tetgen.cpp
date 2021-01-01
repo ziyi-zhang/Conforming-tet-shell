@@ -1,8 +1,11 @@
 // This file compares the result with TetGen
 #include <igl/copyleft/tetgen/tetrahedralize.h>
 #include <igl/readPLY.h>
+#include <igl/boundary_facets.h>
 
 #include <string>
+#include <set>
+#include <pymesh/MshSaver.h>
 
 
 double tetwild_comformalAMIPSEnergy_new(const double * T) {
@@ -159,19 +162,34 @@ void AddBbox(Eigen::MatrixXd &Vin, Eigen::MatrixXi &Fin) {
 
 int main(int argc, char *argv[]) {
 
-    Eigen::MatrixXd Vin;
-    Eigen::MatrixXi Fin;
+    Eigen::MatrixXd Vin, V;
+    Eigen::MatrixXi Fin, F;
 
     if (argc > 1) {
         std::string filePath(argv[1]);
         std::cout << filePath << std::endl;
 
-        igl::readPLY(filePath, Vin, Fin);
+        igl::readPLY(filePath, V, F);
     }
-    if (Vin.size() == 0 || Fin.size() == 0) {
+    if (V.size() == 0 || F.size() == 0) {
         std::cout << "File read error" << std::endl;
         return 0;
     }
+
+    // process Fin
+    /*
+    int facesPerSurface = F.rows();
+    int Nv = Vin.rows() / 4;
+    Fin.resize(facesPerSurface * 2, 3);
+    Eigen::MatrixXi bottom = F.array() + Nv;
+    Eigen::MatrixXi top = F.array() + Nv * 2;
+    Fin << bottom, top;
+    */
+    int facesPerSurface = F.rows();
+    int Nv = V.rows() / 4;
+    Fin = F;
+    // Vin = V.block(Nv, 0, Nv, 3);
+    Vin = V;
 
     // add bounding box
     // AddBbox(Vin, Fin);
@@ -180,8 +198,9 @@ int main(int argc, char *argv[]) {
     Eigen::MatrixXd Vout;
     Eigen::MatrixXi Tout;
     Eigen::MatrixXi Fout;
-    const std::string switches = "pYT1e-15M";
-    int returnCode = igl::copyleft::tetgen::tetrahedralize(Vin, Fin, switches, Vout, Tout, Fout);
+    const std::string switches = "pYT1e-15MqO5V";
+    int returnCode = 99;
+    returnCode = igl::copyleft::tetgen::tetrahedralize(Vin, Fin, switches, Vout, Tout, Fout);
     std::cout << "switches = " << switches << std::endl;
     std::cout << "tetgen returnCode = " << returnCode << std::endl;
 
@@ -198,6 +217,54 @@ int main(int argc, char *argv[]) {
     printf("maxE  = %.1f\n", maxE);
     printf("minE  = %.1f\n", minE);
     printf("meanE = %.1f\n", sumE / double(Tout.rows()));
+
+    // conformity check
+    Eigen::MatrixXi F_boundary;
+    Eigen::VectorXi F_index, tet_local_idx;
+    igl::boundary_facets(Tout, F_boundary, F_index, tet_local_idx);
+    if (F_boundary.rows() != Fin.rows()) {
+        printf("Warning: F_boundary.rows() = %ld <-> Fin.rows() = %ld\n", F_boundary.rows(), Fin.rows());
+    }
+    std::set<int> boundaryVerts;
+    for (int i=0; i<F_boundary.rows(); i++) {
+        for (int j=0; j<3; j++) {
+            boundaryVerts.insert(F_boundary(i, j));
+        }
+    }
+    if (boundaryVerts.size() != Vin.rows()) {
+        printf("Warning: boundaryVerts.size() = %ld <-> Vin.rows() = %ld\n", boundaryVerts.size(), Vin.rows());
+    }
+    // vertex location
+    const int N = boundaryVerts.size();
+    std::vector<bool> matched(N, false);
+    for (auto it=boundaryVerts.begin(); it!=boundaryVerts.end(); it++) {
+        // for the i-th vertex in Vout
+        int vout_id = *it;
+        for (int k=0; k<N; k++) {
+            if (matched[k]) continue;
+            if (Vout(vout_id, 0)==Vin(k, 0) && Vout(vout_id, 1)==Vin(k, 1) && Vout(vout_id, 2)==Vin(k, 2)) {
+                matched[k] = true;
+                break;
+            }
+        }
+    }
+    int matchedNum = 0;
+    for (int i=0; i<matched.size(); i++)
+        matchedNum += int(matched[i]);
+    if (matchedNum != Vin.rows()) {
+        printf("Warning: matchedNum = %d <-> Vin.rows() = %ld\n", matchedNum, Vin.rows());
+    }
+    printf("Check done\n");
+
+    // export
+    PyMesh::MshSaver mSaver("./tetgen_result.msh", true);
+    PyMesh::VectorF V_flat(Vout.size());
+    PyMesh::VectorI T_flat(Tout.size());
+    Eigen::MatrixXd VV = Vout.transpose();
+    Eigen::MatrixXi TT = Tout.transpose();
+    std::copy_n(VV.data(), Vout.size(), V_flat.data());
+    std::copy_n(TT.data(), Tout.size(), T_flat.data());
+    mSaver.save_mesh(V_flat, T_flat, 3, mSaver.TET);
 
     return 0;
 }

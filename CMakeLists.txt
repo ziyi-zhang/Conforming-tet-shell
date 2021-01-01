@@ -186,6 +186,7 @@ igl_copy_cgal_dll(TetShellTest)
 # Building executable tetgen
 add_executable(TetGen EXCLUDE_FROM_ALL src/test/main_tetgen.cpp)
 target_link_libraries(TetGen
+		libTetWild
 		igl::core
 		igl::tetgen
 		warnings::all
