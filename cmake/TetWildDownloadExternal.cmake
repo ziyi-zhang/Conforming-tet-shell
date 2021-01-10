@@ -52,3 +52,11 @@ function(tetwild_download_cli11)
         URL_MD5 48ef97262adb0b47a2f0a7edbda6e2aa
     )
 endfunction()
+
+## highfive
+function(tetwild_download_HighFive)
+    tetwild_download_project(HighFive
+        GIT_REPOSITORY https://github.com/BlueBrain/HighFive.git
+        GIT_TAG        v2.2.2
+    )
+endfunction()

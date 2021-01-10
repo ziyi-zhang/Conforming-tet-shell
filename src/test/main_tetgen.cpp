@@ -188,8 +188,8 @@ int main(int argc, char *argv[]) {
     int facesPerSurface = F.rows();
     int Nv = V.rows() / 4;
     Fin = F;
-    // Vin = V.block(Nv, 0, Nv, 3);
-    Vin = V;
+    Vin = V.block(Nv, 0, Nv, 3);
+    // Vin = V;
 
     // add bounding box
     // AddBbox(Vin, Fin);
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
     Eigen::MatrixXd Vout;
     Eigen::MatrixXi Tout;
     Eigen::MatrixXi Fout;
-    const std::string switches = "pYT1e-15MqO5V";
+    const std::string switches = "pYT1e-15MqO9V";
     int returnCode = 99;
     returnCode = igl::copyleft::tetgen::tetrahedralize(Vin, Fin, switches, Vout, Tout, Fout);
     std::cout << "switches = " << switches << std::endl;
@@ -257,6 +257,7 @@ int main(int argc, char *argv[]) {
     printf("Check done\n");
 
     // export
+    /*
     PyMesh::MshSaver mSaver("./tetgen_result.msh", true);
     PyMesh::VectorF V_flat(Vout.size());
     PyMesh::VectorI T_flat(Tout.size());
@@ -265,6 +266,7 @@ int main(int argc, char *argv[]) {
     std::copy_n(VV.data(), Vout.size(), V_flat.data());
     std::copy_n(TT.data(), Tout.size(), T_flat.data());
     mSaver.save_mesh(V_flat, T_flat, 3, mSaver.TET);
+    */
 
     return 0;
 }

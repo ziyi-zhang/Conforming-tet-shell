@@ -18,7 +18,10 @@
 #include <pymesh/MshSaver.h>
 #include <tetwild/DisableWarnings.h>
 #include <CLI/CLI.hpp>
+#include <highfive/H5Easy.hpp>
 #include <tetwild/EnableWarnings.h>
+#include <geogram/mesh/mesh_io.h>
+#include <geogram/mesh/mesh.h>
 
 using namespace tetwild;
 
@@ -91,9 +94,41 @@ void gtet_new_slz(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI, const st
 }
 
 
+bool ReadFromGEOMeshLoader(std::string filename, Eigen::MatrixXd &VI, Eigen::MatrixXi &FI) {
 
-#include <geogram/mesh/mesh_io.h>
-#include <geogram/mesh/mesh.h>
+    GEO::Mesh input;
+    if (!GEO::mesh_load(filename, input)) {
+        logger().error("Failed to load the input mesh.");
+        return false;
+    }
+    int oneShellVertices = input.vertices.nb() / 4;
+    VI.resize(oneShellVertices * 4, 3);
+    for (int i=0; i<VI.rows(); i++)
+        VI.row(i) << (input.vertices.point(i))[0], (input.vertices.point(i))[1], (input.vertices.point(i))[2];
+    int oneShellFaces = input.facets.nb();
+    FI.resize(oneShellFaces * 4, 3);  // Four shells
+    for (int i=0; i<4; i++)
+        for (int j=0; j<oneShellFaces; j++)
+            FI.row(i*oneShellFaces+j) << input.facets.vertex(j, 0)+i*oneShellVertices, input.facets.vertex(j, 1)+i*oneShellVertices, input.facets.vertex(j, 2)+i*oneShellVertices;
+    return true;
+}
+
+
+bool ReadFromHDF5(std::string filename, Eigen::MatrixXd &VI, Eigen::MatrixXi &FI) {
+
+    H5Easy::File file(filename, H5Easy::File::ReadWrite);
+    auto shell_base = H5Easy::load<Eigen::MatrixXd>(file, "shell_base");
+    auto shell_top  = H5Easy::load<Eigen::MatrixXd>(file, "shell_top");
+    auto ext_top    = H5Easy::load<Eigen::MatrixXd>(file, "ext_top");
+    auto ext_base   = H5Easy::load<Eigen::MatrixXd>(file, "ext_base");
+
+    VI.resize(shell_base.rows() + shell_top.rows() + ext_top.rows() + ext_base.rows(), 3);
+    VI << ext_base, shell_base, shell_top, ext_top;
+
+    return true;
+}
+
+
 int main(int argc, char *argv[]) {
     int log_level = 1;  // debug
     std::string log_filename;
@@ -170,20 +205,12 @@ int main(int argc, char *argv[]) {
     Eigen::MatrixXi FI, TO;
     Eigen::VectorXd AO;  // tet quality
     Eigen::VectorXi LO;  // tet label
-    GEO::Mesh input;
-    if (!GEO::mesh_load(input_surface, input)) {
-        logger().error("Failed to load the input mesh.");
-        return 0;
-    }
-    int oneShellVertices = input.vertices.nb() / 4;
-    VI.resize(oneShellVertices * 4, 3);
-    for (int i=0; i<VI.rows(); i++)
-        VI.row(i) << (input.vertices.point(i))[0], (input.vertices.point(i))[1], (input.vertices.point(i))[2];
-    int oneShellFaces = input.facets.nb();
-    FI.resize(oneShellFaces * 4, 3);  // Four shells
-    for (int i=0; i<4; i++)
-        for (int j=0; j<oneShellFaces; j++)
-            FI.row(i*oneShellFaces+j) << input.facets.vertex(j, 0)+i*oneShellVertices, input.facets.vertex(j, 1)+i*oneShellVertices, input.facets.vertex(j, 2)+i*oneShellVertices;
+    bool successRead = false;
+    if (input_surface.substr(input_surface.find_last_of(".")+1) == "h5") 
+        successRead = ReadFromHDF5(input_surface, VI, FI);
+    else
+        successRead = ReadFromGEOMeshLoader(input_surface, VI, FI);
+
     // Sanity check for input shell
     tetshell::ShellCheckArgs_t ShellCheckArgs;  // default on
     tetshell::ShellCheck shellCheck(VI, FI, ShellCheckArgs);

@@ -22,7 +22,7 @@ option(LIBIGL_WITH_MATLAB           "Use Matlab"         OFF)
 option(LIBIGL_WITH_MOSEK            "Use MOSEK"          OFF)
 option(LIBIGL_WITH_PNG              "Use PNG"            OFF)
 option(LIBIGL_WITH_PYTHON           "Use Python"         OFF)
-option(LIBIGL_WITH_TETGEN           "Use Tetgen"         OFF)
+option(LIBIGL_WITH_TETGEN           "Use Tetgen"         ON)
 option(LIBIGL_WITH_TRIANGLE         "Use Triangle"       OFF)
 option(LIBIGL_WITH_XML              "Use XML"            OFF)
 # gui
@@ -152,6 +152,7 @@ target_link_libraries(libTetWild
 		igl::core
 		pymesh::pymesh
 		spdlog::spdlog
+		highfive
 	PRIVATE
 		igl::cgal
 		warnings::all
