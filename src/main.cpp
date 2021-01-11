@@ -121,9 +121,17 @@ bool ReadFromHDF5(std::string filename, Eigen::MatrixXd &VI, Eigen::MatrixXi &FI
     auto shell_top  = H5Easy::load<Eigen::MatrixXd>(file, "shell_top");
     auto ext_top    = H5Easy::load<Eigen::MatrixXd>(file, "ext_top");
     auto ext_base   = H5Easy::load<Eigen::MatrixXd>(file, "ext_base");
+    auto F          = H5Easy::load<Eigen::MatrixXi>(file, "F");
 
     VI.resize(shell_base.rows() + shell_top.rows() + ext_top.rows() + ext_base.rows(), 3);
     VI << ext_base, shell_base, shell_top, ext_top;
+
+    int oneShellVertices = VI.rows() / 4;
+    int oneShellFaces = F.rows();
+    FI.resize(oneShellFaces * 4, 3);  // Four shells
+    for (int i=0; i<4; i++)
+        for (int j=0; j<oneShellFaces; j++)
+            FI.row(i*oneShellFaces+j) << F(j, 0)+i*oneShellVertices, F(j, 1)+i*oneShellVertices, F(j, 2)+i*oneShellVertices;
 
     return true;
 }

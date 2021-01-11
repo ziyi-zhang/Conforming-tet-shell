@@ -141,10 +141,10 @@ bool ShellCheck::PositiveTetCheck() {
             logger().warn("Input prism not consisted of positive tets: INNER-BOTTOM with row = {}", i);
             return false;
         }
-        if (!PrismPositveTets(VI_cgal, FI.row(i+Nf), FI.row(i+Nf*2))) {
-            logger().warn("Input prism not consisted of positive tets: BOTTOM-TOP with row = {}", i);
-            return false;
-        }
+        // if (!PrismPositveTets(VI_cgal, FI.row(i+Nf), FI.row(i+Nf*2))) {
+        //    logger().warn("Input prism not consisted of positive tets: BOTTOM-TOP with row = {}", i);
+        //    return false;
+        // }
         if (!PrismPositveTets(VI_cgal, FI.row(i+Nf*2), FI.row(i+Nf*3))) {
             logger().warn("Input prism not consisted of positive tets: TOP_OUTER with row = {}", i);
             return false;

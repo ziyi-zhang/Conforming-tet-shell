@@ -6,6 +6,7 @@
 #include <string>
 #include <set>
 #include <pymesh/MshSaver.h>
+#include <highfive/H5Easy.hpp>
 
 
 double tetwild_comformalAMIPSEnergy_new(const double * T) {
@@ -169,7 +170,17 @@ int main(int argc, char *argv[]) {
         std::string filePath(argv[1]);
         std::cout << filePath << std::endl;
 
-        igl::readPLY(filePath, V, F);
+        // igl::readPLY(filePath, V, F);
+        H5Easy::File file(filePath, H5Easy::File::ReadWrite);
+        auto shell_base = H5Easy::load<Eigen::MatrixXd>(file, "shell_base");
+        auto shell_top  = H5Easy::load<Eigen::MatrixXd>(file, "shell_top");
+        auto ext_top    = H5Easy::load<Eigen::MatrixXd>(file, "ext_top");
+        auto ext_base   = H5Easy::load<Eigen::MatrixXd>(file, "ext_base");
+        auto Fin        = H5Easy::load<Eigen::MatrixXi>(file, "F");
+
+        V.resize(shell_base.rows() + shell_top.rows() + ext_top.rows() + ext_base.rows(), 3);
+        V << ext_base, shell_base, shell_top, ext_top;
+        F = Fin;
     }
     if (V.size() == 0 || F.size() == 0) {
         std::cout << "File read error" << std::endl;
@@ -189,7 +200,6 @@ int main(int argc, char *argv[]) {
     int Nv = V.rows() / 4;
     Fin = F;
     Vin = V.block(Nv, 0, Nv, 3);
-    // Vin = V;
 
     // add bounding box
     // AddBbox(Vin, Fin);
@@ -198,7 +208,7 @@ int main(int argc, char *argv[]) {
     Eigen::MatrixXd Vout;
     Eigen::MatrixXi Tout;
     Eigen::MatrixXi Fout;
-    const std::string switches = "pYT1e-15MqO9V";
+    const std::string switches = "pYT1e-15MqO9Vc";
     int returnCode = 99;
     returnCode = igl::copyleft::tetgen::tetrahedralize(Vin, Fin, switches, Vout, Tout, Fout);
     std::cout << "switches = " << switches << std::endl;
@@ -218,6 +228,7 @@ int main(int argc, char *argv[]) {
     printf("minE  = %.1f\n", minE);
     printf("meanE = %.1f\n", sumE / double(Tout.rows()));
 
+    /*
     // conformity check
     Eigen::MatrixXi F_boundary;
     Eigen::VectorXi F_index, tet_local_idx;
@@ -253,6 +264,19 @@ int main(int argc, char *argv[]) {
         matchedNum += int(matched[i]);
     if (matchedNum != Vin.rows()) {
         printf("Warning: matchedNum = %d <-> Vin.rows() = %ld\n", matchedNum, Vin.rows());
+    }
+    */
+    // assuming preserving the index
+    int cntIndexMatch = 0;
+    for (int i=0; i<Vin.rows(); i++) {
+        if (Vout(i, 0)==Vin(i, 0) && Vout(i, 1)==Vin(i, 1) && Vout(i, 2)==Vin(i, 2)) {
+            cntIndexMatch++;
+        }
+    }
+    if (cntIndexMatch != Vin.rows()) {
+        printf("Warning: cntIndexMatch = %d <-> Vin.rows() = %ld\n", cntIndexMatch, Vin.rows());
+    } else {
+        printf("cntIndexMatch = Vin.rows() = %ld\n", Vin.rows());
     }
     printf("Check done\n");
 
