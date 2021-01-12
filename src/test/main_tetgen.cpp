@@ -2,6 +2,7 @@
 #include <igl/copyleft/tetgen/tetrahedralize.h>
 #include <igl/readPLY.h>
 #include <igl/boundary_facets.h>
+#include <igl/facet_components.h>
 
 #include <string>
 #include <set>
@@ -161,10 +162,85 @@ void AddBbox(Eigen::MatrixXd &Vin, Eigen::MatrixXi &Fin) {
 }
 
 
+auto vec2eigen = [](const auto& vec, auto& mat) {
+  mat.resize(vec.size(), vec[0].size());
+  for (int i = 0; i < mat.rows(); i++) {
+    for (int j = 0; j < mat.cols(); j++) mat(i, j) = vec[i][j];
+  }
+};
+
+auto eigen2vecd = [](const Eigen::MatrixXd& mat, std::vector<std::vector<double> >& vec) {
+  vec.resize(mat.rows());
+  for (int i = 0; i < vec.size(); i++) {
+    std::vector<double> row;
+    row.resize(mat.cols());
+    for (int j = 0; j < mat.cols(); j++) row[j] = mat(i, j);
+    vec[i] = row;
+  }
+};
+auto eigen2veci = [](const Eigen::MatrixXi& mat, std::vector<std::vector<int> >& vec) {
+  vec.resize(mat.rows());
+  for (int i = 0; i < vec.size(); i++) {
+    std::vector<int> row;
+    row.resize(mat.cols());
+    for (int j = 0; j < mat.cols(); j++) row[j] = mat(i, j);
+    vec[i] = row;
+  }
+};
+
+
+void GetSamplePoint(const Eigen::MatrixXd &shell_base, const Eigen::MatrixXd &shell_top, const Eigen::MatrixXi &Fin, const int idx, std::vector<double> &samplePt) {
+
+    samplePt.resize(3);
+    samplePt[0] = 0;
+    samplePt[1] = 0;
+    samplePt[2] = 0;
+    for (int i=0; i<3; i++) {
+        for (int xyz=0; xyz<3; xyz++) {
+            samplePt[xyz] += shell_base(Fin(idx, i), xyz);
+            samplePt[xyz] += shell_top(Fin(idx, i), xyz);
+        }
+    }
+    for (int xyz=0; xyz<3; xyz++)
+        samplePt[xyz] /= 6.0;
+}
+
+
+void CavitySamples(const Eigen::MatrixXd &shell_base, const Eigen::MatrixXd &shell_top, const Eigen::MatrixXi &Fin, std::vector<std::vector<double> > &Hin) {
+
+    Eigen::VectorXi components;
+    igl::facet_components(Fin, components);
+
+    const int N = components.maxCoeff();
+    printf("Components = %d\n", N+1);
+
+    std::vector<double> samplePt;
+    Hin.clear();
+    for (int i=0; i<N+1; i++) {
+        for (int j=0; j<components.size(); j++) {
+        
+            if (components(j) == i) {
+                GetSamplePoint(shell_base, shell_top, Fin, j, samplePt);
+                Hin.push_back(samplePt);
+                break;
+            }
+        }
+    }
+}
+
+
 int main(int argc, char *argv[]) {
 
     Eigen::MatrixXd Vin, V;
     Eigen::MatrixXi Fin, F;
+    // cavities related
+    std::vector<std::vector<double> > Hin;
+    std::vector<std::vector<double> > Rin;
+    std::vector<std::vector<double > > TR;
+    std::vector<std::vector<int > > TN;
+    std::vector<std::vector<int > > PT;
+    std::vector<std::vector<int > > FT; 
+    unsigned long numRegions;
 
     if (argc > 1) {
         std::string filePath(argv[1]);
@@ -181,6 +257,11 @@ int main(int argc, char *argv[]) {
         V.resize(shell_base.rows() + shell_top.rows() + ext_top.rows() + ext_base.rows(), 3);
         V << ext_base, shell_base, shell_top, ext_top;
         F = Fin;
+        CavitySamples(shell_base, shell_top, Fin, Hin);
+        // region
+        std::vector<double> Rin_row(5);
+        Rin_row[0]=shell_base(0, 0); Rin_row[1]=shell_base(0, 1); Rin_row[2]=shell_base(0, 2); Rin_row[3]=0; Rin_row[4]=0; 
+        Rin.push_back(Rin_row);  // bypass a bug in libigl, the R info is useless
     }
     if (V.size() == 0 || F.size() == 0) {
         std::cout << "File read error" << std::endl;
@@ -208,9 +289,20 @@ int main(int argc, char *argv[]) {
     Eigen::MatrixXd Vout;
     Eigen::MatrixXi Tout;
     Eigen::MatrixXi Fout;
-    const std::string switches = "pYT1e-15MqO9Vc";
+    std::vector<std::vector<double> > Vout_vec;
+    std::vector<std::vector<int   > > Tout_vec;
+    std::vector<std::vector<int   > > Fout_vec;
+    std::vector<std::vector<double> > Vin_vec;
+    std::vector<std::vector<int   > > Fin_vec;
+    const std::string switches = "pYT1e-15MqO9VA";
     int returnCode = 99;
-    returnCode = igl::copyleft::tetgen::tetrahedralize(Vin, Fin, switches, Vout, Tout, Fout);
+    eigen2vecd(Vin, Vin_vec);
+    eigen2veci(Fin, Fin_vec);
+    returnCode = igl::copyleft::tetgen::tetrahedralize(Vin_vec, Fin_vec, Hin, Rin, switches, Vout_vec, Tout_vec, Fout_vec, TR, TN, PT, FT, numRegions);
+    vec2eigen(Vout_vec, Vout);
+    vec2eigen(Tout_vec, Tout);
+    vec2eigen(Fout_vec, Fout);
+    // returnCode = igl::copyleft::tetgen::tetrahedralize(Vin, Fin, switches, Vout, Tout, Fout);
     std::cout << "switches = " << switches << std::endl;
     std::cout << "tetgen returnCode = " << returnCode << std::endl;
 
