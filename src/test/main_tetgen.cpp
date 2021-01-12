@@ -138,7 +138,7 @@ void AddBbox(Eigen::MatrixXd &Vin, Eigen::MatrixXi &Fin) {
     Vin.row(oldRowsV+5) << pmax[0], pmax[1], pmin[2];
     Vin.row(oldRowsV+6) << pmax[0], pmax[1], pmax[2];
     Vin.row(oldRowsV+7) << pmin[0], pmax[1], pmax[2];
-    /*
+
     int oldRowsF = Fin.rows();
     Fin.conservativeResize(Fin.rows()+12, Fin.cols());
     Fin.row(oldRowsF   ) << 4, 7, 8;
@@ -158,7 +158,6 @@ void AddBbox(Eigen::MatrixXd &Vin, Eigen::MatrixXi &Fin) {
             Fin(i, j) += oldRowsV - 1;
         }
     }
-    */
 }
 
 
@@ -195,6 +194,13 @@ void GetSamplePoint(const Eigen::MatrixXd &shell_base, const Eigen::MatrixXd &sh
     samplePt[0] = 0;
     samplePt[1] = 0;
     samplePt[2] = 0;
+    std::cout << shell_base.row(Fin(idx, 0)) << std::endl;
+    std::cout << shell_base.row(Fin(idx, 1)) << std::endl;
+    std::cout << shell_base.row(Fin(idx, 2)) << std::endl;
+    std::cout << shell_top.row(Fin(idx, 0)) << std::endl;
+    std::cout << shell_top.row(Fin(idx, 1)) << std::endl;
+    std::cout << shell_top.row(Fin(idx, 2)) << std::endl;
+
     for (int i=0; i<3; i++) {
         for (int xyz=0; xyz<3; xyz++) {
             samplePt[xyz] += shell_base(Fin(idx, i), xyz);
@@ -252,16 +258,19 @@ int main(int argc, char *argv[]) {
         auto shell_top  = H5Easy::load<Eigen::MatrixXd>(file, "shell_top");
         auto ext_top    = H5Easy::load<Eigen::MatrixXd>(file, "ext_top");
         auto ext_base   = H5Easy::load<Eigen::MatrixXd>(file, "ext_base");
-        auto Fin        = H5Easy::load<Eigen::MatrixXi>(file, "F");
+        auto Fin_        = H5Easy::load<Eigen::MatrixXi>(file, "F");
 
         V.resize(shell_base.rows() + shell_top.rows() + ext_top.rows() + ext_base.rows(), 3);
         V << ext_base, shell_base, shell_top, ext_top;
-        F = Fin;
-        CavitySamples(shell_base, shell_top, Fin, Hin);
+        F = Fin_;
+        CavitySamples(shell_base, shell_top, Fin_, Hin);
         // region
+        /*
         std::vector<double> Rin_row(5);
         Rin_row[0]=shell_base(0, 0); Rin_row[1]=shell_base(0, 1); Rin_row[2]=shell_base(0, 2); Rin_row[3]=0; Rin_row[4]=0; 
         Rin.push_back(Rin_row);  // bypass a bug in libigl, the R info is useless
+        */
+        Rin.clear();
     }
     if (V.size() == 0 || F.size() == 0) {
         std::cout << "File read error" << std::endl;
@@ -269,21 +278,16 @@ int main(int argc, char *argv[]) {
     }
 
     // process Fin
-    /*
-    int facesPerSurface = F.rows();
-    int Nv = Vin.rows() / 4;
-    Fin.resize(facesPerSurface * 2, 3);
-    Eigen::MatrixXi bottom = F.array() + Nv;
-    Eigen::MatrixXi top = F.array() + Nv * 2;
-    Fin << bottom, top;
-    */
     int facesPerSurface = F.rows();
     int Nv = V.rows() / 4;
-    Fin = F;
-    Vin = V.block(Nv, 0, Nv, 3);
+    Fin.resize(facesPerSurface * 2, 3);
+    Eigen::MatrixXi bottom = F.array();
+    Eigen::MatrixXi top = F.array() + Nv;
+    Fin << bottom, top;
+    Vin = V.block(Nv, 0, Nv*2, 3);
 
     // add bounding box
-    // AddBbox(Vin, Fin);
+    AddBbox(Vin, Fin);
 
     // call tetgen
     Eigen::MatrixXd Vout;
@@ -294,7 +298,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int   > > Fout_vec;
     std::vector<std::vector<double> > Vin_vec;
     std::vector<std::vector<int   > > Fin_vec;
-    const std::string switches = "pYT1e-15MqO9VA";
+    const std::string switches = "pYT1e-15MqO9V";
     int returnCode = 99;
     eigen2vecd(Vin, Vin_vec);
     eigen2veci(Fin, Fin_vec);
