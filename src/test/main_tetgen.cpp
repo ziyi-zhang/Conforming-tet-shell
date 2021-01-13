@@ -3,6 +3,7 @@
 #include <igl/readPLY.h>
 #include <igl/boundary_facets.h>
 #include <igl/facet_components.h>
+#include <igl/upsample.h>
 
 #include <string>
 #include <set>
@@ -83,6 +84,24 @@ double GetAMIPSEnergy(
 }
 
 
+void UnionTriSurface(Eigen::MatrixXd &V1, Eigen::MatrixXi &F1, Eigen::MatrixXd &V2, Eigen::MatrixXi &F2) {
+
+    int oldV1rows = V1.rows();
+    V1.conservativeResize(V1.rows() + V2.rows(), 3);
+    V1.block(oldV1rows, 0, V2.rows(), 3) = V2;
+
+    int oldF1rows = F1.rows();
+    F1.conservativeResize(F1.rows() + F2.rows(), 3);
+    F1.block(oldF1rows, 0, F2.rows(), 3) = F2;
+
+    for (int i=oldF1rows; i<F1.rows(); i++) {
+        for (int j=0; j<3; j++) {
+            F1(i, j) += oldV1rows;
+        }
+    }
+}
+
+
 void AddBbox(Eigen::MatrixXd &Vin, Eigen::MatrixXi &Fin) {
 
     // TetShell: Enlarge the bbox to allow more freedom in optimization
@@ -128,36 +147,37 @@ void AddBbox(Eigen::MatrixXd &Vin, Eigen::MatrixXi &Fin) {
     }
 
     // insert 8 vertices into V & 12 faces to F
-    int oldRowsV = Vin.rows();
-    Vin.conservativeResize(Vin.rows()+8, Vin.cols());
-    Vin.row(oldRowsV  ) << pmin[0], pmin[1], pmin[2];
-    Vin.row(oldRowsV+1) << pmax[0], pmin[1], pmin[2];
-    Vin.row(oldRowsV+2) << pmax[0], pmin[1], pmax[2];
-    Vin.row(oldRowsV+3) << pmin[0], pmin[1], pmax[2];
-    Vin.row(oldRowsV+4) << pmin[0], pmax[1], pmin[2];
-    Vin.row(oldRowsV+5) << pmax[0], pmax[1], pmin[2];
-    Vin.row(oldRowsV+6) << pmax[0], pmax[1], pmax[2];
-    Vin.row(oldRowsV+7) << pmin[0], pmax[1], pmax[2];
+    Eigen::MatrixXd V_bbox(8, 3);
+    V_bbox.row(0) << pmin[0], pmin[1], pmin[2];
+    V_bbox.row(1) << pmax[0], pmin[1], pmin[2];
+    V_bbox.row(2) << pmax[0], pmin[1], pmax[2];
+    V_bbox.row(3) << pmin[0], pmin[1], pmax[2];
+    V_bbox.row(4) << pmin[0], pmax[1], pmin[2];
+    V_bbox.row(5) << pmax[0], pmax[1], pmin[2];
+    V_bbox.row(6) << pmax[0], pmax[1], pmax[2];
+    V_bbox.row(7) << pmin[0], pmax[1], pmax[2];
+    Eigen::MatrixXi F_bbox(12, 3);
+    F_bbox.row(0 ) << 3, 6, 7;
+    F_bbox.row(1 ) << 3, 6, 2;
+    F_bbox.row(2 ) << 4, 6, 7;
+    F_bbox.row(3 ) << 4, 6, 5;
+    F_bbox.row(4 ) << 6, 1, 2;
+    F_bbox.row(5 ) << 6, 1, 5;
+    F_bbox.row(6 ) << 0, 2, 1;
+    F_bbox.row(7 ) << 0, 2, 3;
+    F_bbox.row(8 ) << 0, 7, 3;
+    F_bbox.row(9 ) << 0, 7, 4;
+    F_bbox.row(10) << 0, 5, 1;
+    F_bbox.row(11) << 0, 5, 4;
 
-    int oldRowsF = Fin.rows();
-    Fin.conservativeResize(Fin.rows()+12, Fin.cols());
-    Fin.row(oldRowsF   ) << 4, 7, 8;
-    Fin.row(oldRowsF+1 ) << 4, 7, 3;
-    Fin.row(oldRowsF+2 ) << 5, 7, 8;
-    Fin.row(oldRowsF+3 ) << 5, 7, 6;
-    Fin.row(oldRowsF+4 ) << 7, 2, 3;
-    Fin.row(oldRowsF+5 ) << 7, 2, 6;
-    Fin.row(oldRowsF+6 ) << 1, 3, 2;
-    Fin.row(oldRowsF+7 ) << 1, 3, 4;
-    Fin.row(oldRowsF+8 ) << 1, 8, 4;
-    Fin.row(oldRowsF+9 ) << 1, 8, 5;
-    Fin.row(oldRowsF+10) << 1, 6, 2;
-    Fin.row(oldRowsF+11) << 1, 6, 5;
-    for (int i=oldRowsF; i<=oldRowsF+11; i++) {
-        for (int j=0; j<3; j++) {
-            Fin(i, j) += oldRowsV - 1;
-        }
-    }
+    Eigen::MatrixXd V_bbox_up;
+    Eigen::MatrixXi F_bbox_up;
+    igl::upsample(V_bbox, F_bbox, V_bbox_up, F_bbox_up, 1);
+    UnionTriSurface(Vin, Fin, V_bbox_up, F_bbox_up);
+    std::cout << "V_bbox " << V_bbox << std::endl;
+    std::cout << "F_bbox " << F_bbox << std::endl;
+    std::cout << "Vin_last " << Vin.block(Vin.rows()-8, 0, 8, 3) << std::endl;
+    std::cout << "Fin_last " << Fin.block(Fin.rows()-12, 0, 12, 3) << std::endl;
 }
 
 
@@ -194,12 +214,14 @@ void GetSamplePoint(const Eigen::MatrixXd &shell_base, const Eigen::MatrixXd &sh
     samplePt[0] = 0;
     samplePt[1] = 0;
     samplePt[2] = 0;
+    /*
     std::cout << shell_base.row(Fin(idx, 0)) << std::endl;
     std::cout << shell_base.row(Fin(idx, 1)) << std::endl;
     std::cout << shell_base.row(Fin(idx, 2)) << std::endl;
     std::cout << shell_top.row(Fin(idx, 0)) << std::endl;
     std::cout << shell_top.row(Fin(idx, 1)) << std::endl;
     std::cout << shell_top.row(Fin(idx, 2)) << std::endl;
+    */
 
     for (int i=0; i<3; i++) {
         for (int xyz=0; xyz<3; xyz++) {
@@ -224,7 +246,7 @@ void CavitySamples(const Eigen::MatrixXd &shell_base, const Eigen::MatrixXd &she
     Hin.clear();
     for (int i=0; i<N+1; i++) {
         for (int j=0; j<components.size(); j++) {
-        
+
             if (components(j) == i) {
                 GetSamplePoint(shell_base, shell_top, Fin, j, samplePt);
                 Hin.push_back(samplePt);
@@ -247,9 +269,11 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int > > PT;
     std::vector<std::vector<int > > FT; 
     unsigned long numRegions;
+    std::string filePath;
 
     if (argc > 1) {
-        std::string filePath(argv[1]);
+        std::string file_(argv[1]);
+        filePath = file_;
         std::cout << filePath << std::endl;
 
         // igl::readPLY(filePath, V, F);
@@ -298,7 +322,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int   > > Fout_vec;
     std::vector<std::vector<double> > Vin_vec;
     std::vector<std::vector<int   > > Fin_vec;
-    const std::string switches = "pYT1e-15MqO9V";
+    const std::string switches = "pYYT1e-15MqO9V";
     int returnCode = 99;
     eigen2vecd(Vin, Vin_vec);
     eigen2veci(Fin, Fin_vec);
@@ -377,8 +401,8 @@ int main(int argc, char *argv[]) {
     printf("Check done\n");
 
     // export
-    /*
-    PyMesh::MshSaver mSaver("./tetgen_result.msh", true);
+    filePath += "_tetgen.msh";
+    PyMesh::MshSaver mSaver(filePath, true);
     PyMesh::VectorF V_flat(Vout.size());
     PyMesh::VectorI T_flat(Tout.size());
     Eigen::MatrixXd VV = Vout.transpose();
@@ -386,7 +410,6 @@ int main(int argc, char *argv[]) {
     std::copy_n(VV.data(), Vout.size(), V_flat.data());
     std::copy_n(TT.data(), Tout.size(), T_flat.data());
     mSaver.save_mesh(V_flat, T_flat, 3, mSaver.TET);
-    */
 
     return 0;
 }
