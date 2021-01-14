@@ -566,7 +566,8 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
         }
     }
 
-    // Extract to VO TO LO
+    // Extract to VO TO AO LO
+    tetshell::ReorderVertices(VI, tet_vertices, tet_indices);
     tetshell::ExtractMesh(args, tet_vertices, tet_indices, tetQuality, labels, t_is_removed, VO, TO, AO, LO);
 
     double total_time = igl_timer.getElapsedTime();

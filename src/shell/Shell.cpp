@@ -734,7 +734,7 @@ void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const 
                 VO[vIdx1].is_on_surface = false;
                 VO[vIdx2].is_on_surface = false;
                 VO[vIdx3].is_on_surface = false;
-                is_surface_facet[i][j] = 1024;  // state.NOT_SURFACE;
+                is_surface_facet[i][j] = 1024;  // state.NOT_SURFACE; FIXME
             } else {
                 // pass
             }

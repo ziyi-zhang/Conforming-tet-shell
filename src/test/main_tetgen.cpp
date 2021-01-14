@@ -149,35 +149,37 @@ void AddBbox(Eigen::MatrixXd &Vin, Eigen::MatrixXi &Fin) {
     // insert 8 vertices into V & 12 faces to F
     Eigen::MatrixXd V_bbox(8, 3);
     V_bbox.row(0) << pmin[0], pmin[1], pmin[2];
-    V_bbox.row(1) << pmax[0], pmin[1], pmin[2];
-    V_bbox.row(2) << pmax[0], pmin[1], pmax[2];
-    V_bbox.row(3) << pmin[0], pmin[1], pmax[2];
-    V_bbox.row(4) << pmin[0], pmax[1], pmin[2];
-    V_bbox.row(5) << pmax[0], pmax[1], pmin[2];
+    V_bbox.row(1) << pmin[0], pmax[1], pmin[2];
+    V_bbox.row(2) << pmax[0], pmax[1], pmin[2];
+    V_bbox.row(3) << pmax[0], pmin[1], pmin[2];
+    V_bbox.row(4) << pmin[0], pmin[1], pmax[2];
+    V_bbox.row(5) << pmin[0], pmax[1], pmax[2];
     V_bbox.row(6) << pmax[0], pmax[1], pmax[2];
-    V_bbox.row(7) << pmin[0], pmax[1], pmax[2];
+    V_bbox.row(7) << pmax[0], pmin[1], pmax[2];
     Eigen::MatrixXi F_bbox(12, 3);
-    F_bbox.row(0 ) << 3, 6, 7;
-    F_bbox.row(1 ) << 3, 6, 2;
-    F_bbox.row(2 ) << 4, 6, 7;
-    F_bbox.row(3 ) << 4, 6, 5;
-    F_bbox.row(4 ) << 6, 1, 2;
-    F_bbox.row(5 ) << 6, 1, 5;
-    F_bbox.row(6 ) << 0, 2, 1;
-    F_bbox.row(7 ) << 0, 2, 3;
-    F_bbox.row(8 ) << 0, 7, 3;
-    F_bbox.row(9 ) << 0, 7, 4;
-    F_bbox.row(10) << 0, 5, 1;
-    F_bbox.row(11) << 0, 5, 4;
+    F_bbox.row(0 ) << 0, 1, 3;
+    F_bbox.row(1 ) << 3, 1, 2;
+    F_bbox.row(2 ) << 0, 4, 1;
+    F_bbox.row(3 ) << 1, 4, 5;
+    F_bbox.row(4 ) << 3, 2, 7;
+    F_bbox.row(5 ) << 7, 2, 6;
+    F_bbox.row(6 ) << 4, 0, 3;
+    F_bbox.row(7 ) << 7, 4, 3;
+    F_bbox.row(8 ) << 6, 4, 7;
+    F_bbox.row(9 ) << 6, 5, 4;
+    F_bbox.row(10) << 1, 5, 6;
+    F_bbox.row(11) << 2, 1, 6;
 
     Eigen::MatrixXd V_bbox_up;
     Eigen::MatrixXi F_bbox_up;
-    igl::upsample(V_bbox, F_bbox, V_bbox_up, F_bbox_up, 1);
+    igl::upsample(V_bbox, F_bbox, V_bbox_up, F_bbox_up, 4);
     UnionTriSurface(Vin, Fin, V_bbox_up, F_bbox_up);
+    /*
     std::cout << "V_bbox " << V_bbox << std::endl;
     std::cout << "F_bbox " << F_bbox << std::endl;
     std::cout << "Vin_last " << Vin.block(Vin.rows()-8, 0, 8, 3) << std::endl;
     std::cout << "Fin_last " << Fin.block(Fin.rows()-12, 0, 12, 3) << std::endl;
+    */
 }
 
 
@@ -398,6 +400,25 @@ int main(int argc, char *argv[]) {
     } else {
         printf("cntIndexMatch = Vin.rows() = %ld\n", Vin.rows());
     }
+    // boundary
+    Eigen::MatrixXi F_boundary;
+    Eigen::VectorXi F_index, tet_local_idx, components;
+    igl::boundary_facets(Tout, F_boundary, F_index, tet_local_idx);
+    igl::facet_components(F_boundary, components);
+    int Vin_pts = Vin.rows();
+    int cntSurfaceFaces = 0;
+    for (int i=0; i<components.size(); i++) {
+        if (F_boundary(i, 0)>=Vin_pts || F_boundary(i, 1)>=Vin_pts || F_boundary(i, 2)>=Vin_pts) {
+            continue;  // this is the bbox
+        }
+        cntSurfaceFaces++;
+    }
+    if (cntSurfaceFaces != Fin.rows()) {
+        printf("Warning: cntSurfaceFaces = %d <-> Fin.rows() = %ld\n", cntSurfaceFaces, Fin.rows());
+    } else {
+        printf("cntSurfaceFaces = Fin.rows() = %d\n", cntSurfaceFaces);
+    }
+
     printf("Check done\n");
 
     // export

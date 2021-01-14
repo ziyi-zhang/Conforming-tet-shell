@@ -16,6 +16,11 @@ using tetwild::Point_3;
 
 namespace {
 
+bool IsDegeneratedTet(const Point_3 &pt1, const Point_3 &pt2, const Point_3 &pt3, const Point_3 &pt4) {
+
+    return (pt1 == pt2) || (pt1 == pt3) || (pt1 == pt4) || (pt2 == pt3) || (pt2 == pt4) || (pt3 == pt4);
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -67,23 +72,38 @@ bool ShellCheck::BoundaryCheck() {
 bool ShellCheck::SingularityCheck() {
 
     int Nv = VI.rows() / 4;
-    bool singularityZone = true;
+    bool singularityZoneBottom = true, singularityZoneTop = true;  // separate sigularity
     for (int i=0; i<Nv; i++) {
-        if (singularityZone) {
-            if (SamePoint(i, i+Nv) && SamePoint(i, i+Nv*2) && SamePoint(i, i+Nv*3)) {
+
+        if (singularityZoneBottom) {
+            if (SamePoint(i, i+Nv)) {
                 continue;
             } else {
-                singularityZone = false;
+                singularityZoneBottom = false;
                 continue;
             }
         }
-
         // if find any collision, abort
-        if (SamePoint(i, i+Nv) || SamePoint(i, i+Nv*2) || SamePoint(i, i+Nv*3) || 
-            SamePoint(i+Nv, i+Nv*2) || SamePoint(i+Nv, i+Nv*3) || SamePoint(i+Nv*2, i+Nv*3)) {
-                logger().warn("Input shell has problematic singularites among [{}, {}, {}, {}]", i, i+Nv, i+Nv*2, i+Nv*3);
-                return false;
+        if (SamePoint(i, i+Nv)) {
+            logger().warn("Input shell has problematic singularites among [{}, {}, {}, {}] in INNER-BOTTOM", i, i+Nv);
+            return false;
+        }
+    }
+    for (int i=0; i<Nv; i++) {
+
+        if (singularityZoneTop) {
+            if (SamePoint(i+Nv*2, i+Nv*3)) {
+                continue;
+            } else {
+                singularityZoneTop = false;
+                continue;
             }
+        }
+        // if find any collision, abort
+        if (SamePoint(i+Nv*2, i+Nv*3)) {
+            logger().warn("Input shell has problematic singularites among [{}, {}, {}, {}] in TOP-OUTER", i+Nv*2, i+Nv*3);
+            return false;
+        }
     }
 
     return true;
@@ -119,8 +139,13 @@ bool PrismPositveTets(const std::vector<Point_3> &VI_cgal, const Eigen::Vector3i
     verts << tri1, tri2;
 
     for (int i = 0; i < 3; i++) {
-        if (!IsTetPositive(VI_cgal[verts(tets[i][0])], VI_cgal[verts(tets[i][1])], VI_cgal[verts(tets[i][2])], VI_cgal[verts(tets[i][3])]))
+        if (IsDegeneratedTet(VI_cgal[verts(tets[i][0])], VI_cgal[verts(tets[i][1])], VI_cgal[verts(tets[i][2])], VI_cgal[verts(tets[i][3])]))
+            continue;
+        if (!IsTetPositive(VI_cgal[verts(tets[i][0])], VI_cgal[verts(tets[i][1])], VI_cgal[verts(tets[i][2])], VI_cgal[verts(tets[i][3])])) {
+            logger().warn("The following tet failed to pass the IsTetPositive check:");
+            PrintPoints(VI_cgal[verts(tets[i][0])], VI_cgal[verts(tets[i][1])], VI_cgal[verts(tets[i][2])], VI_cgal[verts(tets[i][3])]);
             return false;
+        }
     }
     return true;
 }
@@ -147,6 +172,8 @@ bool ShellCheck::PositiveTetCheck() {
         // }
         if (!PrismPositveTets(VI_cgal, FI.row(i+Nf*2), FI.row(i+Nf*3))) {
             logger().warn("Input prism not consisted of positive tets: TOP_OUTER with row = {}", i);
+            logger().warn("TOP   triangle: {} {} {}", FI(i+Nf*2, 0), FI(i+Nf*2, 1), FI(i+Nf*2, 2));
+            logger().warn("OUTER triangle: {} {} {}", FI(i+Nf*3, 0), FI(i+Nf*3, 1), FI(i+Nf*3, 2));
             return false;
         }
     }

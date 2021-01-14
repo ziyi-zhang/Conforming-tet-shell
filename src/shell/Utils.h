@@ -33,6 +33,9 @@ int EulerNumber(const std::vector<std::array<int, 4>> &tet_indices, const std::s
 bool SameUnorderedTriangle(const Eigen::Matrix<double, 3, 3> &triA, const Eigen::Matrix<double, 3, 3> &triB, const double epsilon);
 /// TODO
 
+void ReorderVertices(const Eigen::MatrixXd &VI, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &TO);
+/// TODO
+
 void ExtractMesh(const tetwild::Args &args, const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices, const std::vector<tetwild::TetQuality> &tetQuality, const Eigen::VectorXi &labels, const std::vector<bool> &t_is_removed, Eigen::MatrixXd &V_out, Eigen::MatrixXi &T_out, Eigen::VectorXd &A_out, Eigen::VectorXi &L_out);
 /// TODO
 

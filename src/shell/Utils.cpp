@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <set>
 #include <tuple>
+#include <algorithm>
 
 
 namespace tetshell {
@@ -183,6 +184,50 @@ bool SameUnorderedTriangle(const Eigen::Matrix<double, 3, 3> &triA, const Eigen:
     }
 
     return f[0] && f[1] && f[2];
+}
+
+
+void ReorderVertices(const Eigen::MatrixXd &VI, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &TO) {
+
+    std::vector<int> idxMap(VO.size());
+    for (int i=0; i<VO.size(); i++) {
+        if (!VO[i].is_rounded) VO[i].round();
+        idxMap[i] = i;
+    }
+
+    // make VO in the same order of VI
+    int numVertsPerSurface = VI.rows() / 4;
+    for (int i=numVertsPerSurface; i<numVertsPerSurface*3; i++) {
+        // for the i-th input vertex
+        bool found = false;
+        for (int j=0; j<VO.size(); j++) {
+            if (VI(i, 0) == VO[j].posf[0] && VI(i, 1) == VO[j].posf[1] && VI(i, 2) == VO[j].posf[2]) {
+                // VO.row(i) == VO[j].posf
+
+                if (i-numVertsPerSurface != j) {
+                    std::iter_swap(VO.begin() + i-numVertsPerSurface, VO.begin() + j);
+                    std::iter_swap(idxMap.begin() + i-numVertsPerSurface, idxMap.begin() + j);
+                }
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            logger().error("ReorderVertices: input vertex {} not found - [{}, {}, {}]", i, VI(i, 0), VI(i, 1), VI(i, 2));
+            tetwild::log_and_throw("ReorderVertices: input vertex not found");
+        }
+    }
+
+    // fix TO
+    std::vector<int> invIdxMap(VO.size());
+    for (int i=0; i<idxMap.size(); i++) {
+        invIdxMap[idxMap[i]] = i;
+    }
+    for (int i=0; i<TO.size(); i++) {
+        for (int j=0; j<4; j++) {
+            TO[i][j] = invIdxMap[TO[i][j]];
+        }
+    }
 }
 
 
