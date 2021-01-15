@@ -288,12 +288,7 @@ void ExtractMesh(
         } else {
             A_out(cnt) = tetQuality[i].slim_energy;
         }
-        if (args.skip_optim) {
-            L_out(cnt) = LI(i);
-        } else {
-            // DEBUG PURPOSE // TEMPORARY
-            L_out(cnt) = 0;
-        }
+        L_out(cnt) = LI(i);
         cnt++;
     }
 

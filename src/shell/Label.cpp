@@ -89,6 +89,19 @@ void UnionTetMesh(
     T1.insert( T1.end(), T.begin(), T.end() );
 }
 
+
+int OnWhichSurface(int t1, int t2, int t3, int t4) {
+
+    int count_1 = int(t1 == 1) + int(t2 == 1) + int(t3 == 1) + int(t4 == 1);
+    int count_2 = int(t1 == 2) + int(t2 == 2) + int(t3 == 2) + int(t4 == 2);
+    if (count_1 >= 3)
+        return 1;
+    else if (count_2 >= 3)
+        return 2;
+    else
+        return 0;
+}
+
 }  // anonymous namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -447,6 +460,89 @@ void LabelTet(
     }
 */
     logger().info("Tetrahedra label done.");
+}
+
+
+void LabelInOut(
+    const std::vector<tetwild::TetVertex> &V, 
+    const std::vector<std::array<int, 4>> &T, 
+    const std::vector<bool> &t_is_removed, 
+          Eigen::VectorXi &labels) {
+
+    logger().info("Start LabelInOut");
+
+    const int N = T.size();
+    std::vector<bool> labelled(N, false);
+    int count_labelled = 0;
+    for (int i=0; i<N; i++) {
+        if (t_is_removed[i]) {
+            labelled[i] = true;
+            count_labelled++;
+        }
+    }
+
+    // rounds of BFS
+    int surfaceType;
+    while (count_labelled < N) {
+
+        // find a boundary tet
+        bool found_on_boundary_tet = false;
+        int idx;
+        for (int i=0; i<N; i++) {
+            if (labelled[i]) continue;
+            int v0 = T[i][0];
+            int v1 = T[i][1];
+            int v2 = T[i][2];
+            int v3 = T[i][3];
+            surfaceType = OnWhichSurface(V[v0].surface_type, V[v1].surface_type, V[v2].surface_type, V[v3].surface_type);
+            if (surfaceType == 0) continue;
+
+            // we have an unlabelled tet on surface
+            found_on_boundary_tet = true;
+            idx = i;
+            break;
+        }
+        if (found_on_boundary_tet == false) {
+            tetwild::log_and_throw("LabelInOut: cannot find a tet on BOTTOM or TOP");
+        }
+
+        // BFS - they should all be labelled as "surfaceType"
+        std::queue<int> Q;
+        std::unordered_set<int> uset, set_tmp;
+        Q.push(idx);
+        labels[idx] = surfaceType;
+        labelled[idx] = true;
+        count_labelled++;
+        while (!Q.empty()) {
+
+            int oldTetIdx = Q.front();
+            Q.pop();
+
+            // Consider four faces seperately
+            for (int i=0; i<4; i++) {
+                int vert1 = T[oldTetIdx][(0+i) % 4];
+                int vert2 = T[oldTetIdx][(1+i) % 4];
+                int vert3 = T[oldTetIdx][(2+i) % 4];
+
+                // Find the intersection of {vert1.conn_tets, vert2.conn_tets, vert3.conn_tets}
+                UnorderedsetIntersection(V[vert1].conn_tets, V[vert2].conn_tets, set_tmp);
+                UnorderedsetIntersection(set_tmp, V[vert3].conn_tets, uset);
+
+                for (int newTetIdx : uset) {
+
+                    if (newTetIdx == oldTetIdx) continue;
+                    if (labelled[newTetIdx]) continue;
+                    labels[newTetIdx] = surfaceType;
+                    labelled[newTetIdx] = true;
+                    count_labelled++;
+
+                    // push to Q for further search
+                    Q.push(newTetIdx);
+                }
+            }
+        }
+    }
+    logger().info("LabelInOut done");
 }
 
 }  // namespace tetshell

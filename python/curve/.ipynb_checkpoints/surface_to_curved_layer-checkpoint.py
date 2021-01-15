@@ -136,7 +136,6 @@ if __name__ == '__main__':
     import h5py
     import igl
     import meshio
-    import os
 
     assert(len(sys.argv) > 1)
     input_filename = sys.argv[1]
@@ -149,11 +148,11 @@ if __name__ == '__main__':
 
     output_filename = os.path.splitext(input_filename)[0] + 'stitch.msh'
     curve_filename = os.path.basename(input_filename)
-    curve_filename = os.path.join(curveFolder, os.path.splitext(curve_filename)[0])
-    curve_filename = curve_filename[:-1] + '5'  # remove the annoying '_'
+    curve_filename = curveFolder + os.path.splitext(curve_filename)[0]
+    curve_filename = curve_filename[:-1] + '5.h5'  # remove the annoying '_'
 
     # read params
-    with h5py.File("/home/ziyi/TetShell/code/Conforming-tet-shell/python/curve/data/tri_o3_lv3.h5",'r') as fp:
+    with h5py.File("../python/curve/data/tri_o3_lv3.h5",'r') as fp:
         bern2elevlag = fp['bern2elevlag'][()]
     # read tet mesh
     print('input mesh: {}'.format(input_filename))

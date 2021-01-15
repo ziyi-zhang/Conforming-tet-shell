@@ -65,6 +65,8 @@ public:
 
     // TetShell: not allowed to smooth
     bool is_frozen = false;
+    // TetShell: 1-on BOTTOM_SURFACE, 2-on TOP_SURFACE, 0-not on surface or on extended surface
+    int surface_type = 0;
 };
 
 

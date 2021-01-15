@@ -729,6 +729,17 @@ void FreezeVertices(const std::vector<std::array<int, 4>> &face_on_shell, const 
                 VO[vIdx1].is_on_surface = true;
                 VO[vIdx2].is_on_surface = true;
                 VO[vIdx3].is_on_surface = true;
+
+                // update surface_type
+                if (face_on_shell[i][j] == SURFACE_BOTTOM) {
+                    VO[vIdx1].surface_type = 1;
+                    VO[vIdx2].surface_type = 1;
+                    VO[vIdx3].surface_type = 1;
+                } else {
+                    VO[vIdx1].surface_type = 2;
+                    VO[vIdx2].surface_type = 2;
+                    VO[vIdx3].surface_type = 2;
+                }
             } else if (face_on_shell[i][j] == SURFACE_INNER || face_on_shell[i][j] == SURFACE_OUTER) {
                 // For other two surfaces
                 VO[vIdx1].is_on_surface = false;

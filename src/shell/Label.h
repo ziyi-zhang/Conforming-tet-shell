@@ -29,4 +29,9 @@ bool PointInShell(const tetwild::Point_3 &center, const shell_t &shell, const st
 void LabelTet(const tetwild::Args &args, const std::vector<tetwild::Point_3> &VI, const Eigen::MatrixXi &FI, const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, const std::vector<std::array<int, 4>> &face_on_shell, DualShell_t &dualShell, Eigen::VectorXi &labels);
 /// TODO 
 
+void LabelInOut(const std::vector<tetwild::TetVertex> &tet_vertices, const std::vector<std::array<int, 4>> &tet_indices, const std::vector<bool> &t_is_removed, Eigen::VectorXi &labels);
+/// Label tets bounded by BOTTOM_SURFACE as 1, tets bounded by TOP_SURFACE and bbox as 2
+/// There may be cavities
+/// [NOTE: we need this because we are not maintaining labels in the optimization stage]
+
 }  // namespace tetshell
