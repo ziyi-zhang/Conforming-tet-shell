@@ -146,6 +146,7 @@ if __name__ == '__main__':
     curveFolder = './'
     if (len(sys.argv) > 3):
         curveFolder = sys.argv[3]
+    inoutFilter = True
 
     output_filename = os.path.splitext(input_filename)[0] + 'stitch.msh'
     curve_filename = os.path.basename(input_filename)
@@ -157,7 +158,14 @@ if __name__ == '__main__':
         bern2elevlag = fp['bern2elevlag'][()]
     # read tet mesh
     print('input mesh: {}'.format(input_filename))
-    tV, tT = igl.read_msh(input_filename)
+    mesh = meshio.read(input_filename)
+    V_msh = mesh.points
+    T_msh = mesh.cells[0][1]
+    label = mesh.cell_data['label'][0]
+    if (inoutFilter):
+        T_msh = T_msh[label == 1]
+    print('inoutFilter={}   T_msh size={}'.format(inoutFilter, T_msh.shape[0]))
+
     # read curved mesh
     print('curved mesh: {}'.format(curve_filename))
     with h5py.File(curve_filename, 'r') as fp:
@@ -166,11 +174,11 @@ if __name__ == '__main__':
         mF = fp['mF'][()]
 
     m = surface_to_curved_layer(
-                     mB, mF, cp, bern2elevlag, (tV, tT))
+                     mB, mF, cp, bern2elevlag, (V_msh, T_msh))
 
     # write as msh to output_filename
     print('result written to: {}'.format(output_filename))
-    meshio.write(output_filename, m);
+    meshio.write(output_filename, m)
 
     #hP, hC = reorder_tetra(m)
     #with h5py.File('../build_clang/block_msh_autocod.h5', 'w') as fp:

@@ -116,12 +116,12 @@ bool ReadFromGEOMeshLoader(std::string filename, Eigen::MatrixXd &VI, Eigen::Mat
 
 bool ReadFromHDF5(std::string filename, Eigen::MatrixXd &VI, Eigen::MatrixXi &FI) {
 
-    H5Easy::File file(filename, H5Easy::File::ReadWrite);
+    H5Easy::File file(filename, H5Easy::File::ReadOnly);
     auto shell_base = H5Easy::load<Eigen::MatrixXd>(file, "shell_base");
     auto shell_top  = H5Easy::load<Eigen::MatrixXd>(file, "shell_top");
     auto ext_top    = H5Easy::load<Eigen::MatrixXd>(file, "ext_top");
     auto ext_base   = H5Easy::load<Eigen::MatrixXd>(file, "ext_base");
-    auto F          = H5Easy::load<Eigen::MatrixXi>(file, "F");
+    auto F          = H5Easy::load<Eigen::MatrixXi>(file, "shell_face");
 
     VI.resize(shell_base.rows() + shell_top.rows() + ext_top.rows() + ext_base.rows(), 3);
     VI << ext_base, shell_base, shell_top, ext_top;

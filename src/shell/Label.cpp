@@ -503,6 +503,7 @@ void LabelInOut(
             break;
         }
         if (found_on_boundary_tet == false) {
+            logger().warn("count_labelled = {}   N = {}", count_labelled, N);
             tetwild::log_and_throw("LabelInOut: cannot find a tet on BOTTOM or TOP");
         }
 
