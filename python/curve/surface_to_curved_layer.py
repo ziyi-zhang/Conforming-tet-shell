@@ -60,11 +60,13 @@ def surface_to_curved_layer(B, F, cp, bern2elevlag, tetgen=None):
 
     assert np.all(combined_tuple[uniq_ind] == uniq_tuples)
     num_tets = len(combined_tuple)//35
-    mesh = meshio.Mesh(combined_verts[uniq_ind],
-                       [("tetra35", uniq_inv[np.tile(np.arange(35), num_tets).reshape(num_tets, -1) + np.arange(num_tets)[:, None]*35])])
+    return combined_verts[uniq_ind], uniq_inv[np.tile(np.arange(35), num_tets).reshape(num_tets, -1) + np.arange(num_tets)[:, None]*35]
+    #mesh = meshio.Mesh(combined_verts[uniq_ind],
+    #                   [("tetra35", uniq_inv[np.tile(np.arange(35), num_tets).reshape(num_tets, -1) + np.arange(num_tets)[:, None]*35])])
+    
     # if tetgen is not None:
         # assert len(np.unique(mesh.cells[0].data[:,:4])) == len(tetgen[0]) + len(B)
-    return mesh
+    #return mesh
 
 def sol_to_curved_layer(B, T, F, tV, tT, tF, sol):
     _, Tbt = utils.tetmesh_from_shell(B, T, F)
@@ -128,7 +130,7 @@ def reorder_tetra(m):
 
     assert np.all(np.array(auto_cod)== gmsh_cod[fem_generator.invert_permutation(reorder)])
 
-    return m.points,m.cells[0].data[:,fem_generator.invert_permutation(reorder)]
+    return m.points, m.cells[0].data[:,fem_generator.invert_permutation(reorder)]
 
 
 if __name__ == '__main__':
@@ -140,13 +142,10 @@ if __name__ == '__main__':
 
     assert(len(sys.argv) > 1)
     input_filename = sys.argv[1]
-    outputFolder = './'
-    if (len(sys.argv) > 2):
-        outputFolder = sys.argv[2]
     curveFolder = './'
-    if (len(sys.argv) > 3):
-        curveFolder = sys.argv[3]
-    inoutFilter = True
+    if (len(sys.argv) > 2):
+        curveFolder = sys.argv[2]
+    interior = False
 
     output_filename_msh = os.path.splitext(input_filename)[0] + 'stitch.msh'
     output_filename_h5  = os.path.splitext(input_filename)[0] + 'stitch.h5'
@@ -163,25 +162,34 @@ if __name__ == '__main__':
     V_msh = mesh.points
     T_msh = mesh.cells[0][1]
     label = mesh.cell_data['label'][0]
-    if (inoutFilter):
-        T_msh = T_msh[label == 1]
-    print('inoutFilter={}   T_msh size={}'.format(inoutFilter, T_msh.shape[0]))
 
     # read curved mesh
     print('curved mesh: {}'.format(curve_filename))
     with h5py.File(curve_filename, 'r') as fp:
         cp = fp['complete_cp'][()]
+        mT = fp['mtop'][()]
         mB = fp['mbase'][()]
+        mV = fp['mV'][()]
         mF = fp['mF'][()]
 
-    m = surface_to_curved_layer(
-                     mB, mF, cp, bern2elevlag, (V_msh, T_msh))
+    #Vb, Tb = surface_to_curved_layer(mB, mF, cp, bern2elevlag, (V_msh, T_msh[label == 1]))
+    #Vt, Tt = surface_to_curved_layer(mT, mF, cp, bern2elevlag, (V_msh, T_msh[label == 2]))
+    #Tt += len(Vb)
+    #m = meshio.Mesh(np.vstack((Vb, Vt)), [("tetra35", np.vstack((Tb, Tt)))])  # with duplicated vertices
+    if interior:
+        V, T = surface_to_curved_layer(mB, mF, cp, bern2elevlag, (V_msh, T_msh[label == 1]))
+        print('interior={}   T_msh size={}'.format(interior, T_msh[label == 1].shape[0]))
+    else:
+        V, T = surface_to_curved_layer(mT, mF, cp, bern2elevlag, (V_msh, T_msh[label == 2]))
+        print('interior={}   T_msh size={}'.format(interior, T_msh[label == 2].shape[0]))
+    m = meshio.Mesh(V, [("tetra35", T)])
 
     # write as msh to output_filename_msh
     print('result written to: {}'.format(output_filename_msh))
     meshio.write(output_filename_msh, m)
 
     # write as h5 to output_filename_h5
+    print('result written to: {}'.format(output_filename_h5))
     hP, hC = reorder_tetra(m)
     with h5py.File(output_filename_h5, 'w') as fp:
         fp['lagr'] = hP
