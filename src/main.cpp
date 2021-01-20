@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
     tetshell::ShellCheckArgs_t ShellCheckArgs;  // default on
     tetshell::ShellCheck shellCheck(VI, FI, ShellCheckArgs);
     if (!shellCheck.SanityCheck()) {
-        tetwild::log_and_throw("Input shell is not valid: Abort.");
+        tetwild::log_and_throw("Input shell is not valid: Abort.  " + input_surface);
     }
 
     // Tetrahedralization
