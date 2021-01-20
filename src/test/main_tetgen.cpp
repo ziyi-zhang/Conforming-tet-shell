@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
         Rin.clear();
     }
     if (V.size() == 0 || F.size() == 0) {
-        std::cout << "File read error" << std::endl;
+        std::cout << "Warning: File read error" << std::endl;
         return 0;
     }
 
