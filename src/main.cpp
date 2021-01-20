@@ -214,6 +214,7 @@ int main(int argc, char *argv[]) {
     Eigen::VectorXd AO;  // tet quality
     Eigen::VectorXi LO;  // tet label
     bool successRead = false;
+    logger().info("Input file: {}", input_surface);
     if (input_surface.substr(input_surface.find_last_of(".")+1) == "h5") 
         successRead = ReadFromHDF5(input_surface, VI, FI);
     else

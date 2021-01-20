@@ -147,8 +147,9 @@ if __name__ == '__main__':
         curveFolder = sys.argv[2]
     interior = False
 
-    output_filename_msh = os.path.splitext(input_filename)[0] + 'stitch.msh'
-    output_filename_h5  = os.path.splitext(input_filename)[0] + 'stitch.h5'
+    str_ = '/home/ziyi/TetShell/data/0112_exterior/' + os.path.basename(input_filename)
+    output_filename_msh = os.path.splitext(str_)[0] + 'stitch.msh'
+    output_filename_h5  = os.path.splitext(str_)[0] + 'stitch.h5'
     curve_filename = os.path.basename(input_filename)
     curve_filename = os.path.join(curveFolder, os.path.splitext(curve_filename)[0])
     curve_filename = curve_filename[:-1] + '5'  # remove the annoying '_'
@@ -180,7 +181,19 @@ if __name__ == '__main__':
         V, T = surface_to_curved_layer(mB, mF, cp, bern2elevlag, (V_msh, T_msh[label == 1]))
         print('interior={}   T_msh size={}'.format(interior, T_msh[label == 1].shape[0]))
     else:
-        V, T = surface_to_curved_layer(mT, mF, cp, bern2elevlag, (V_msh, T_msh[label == 2]))
+        N = mV.shape[0]
+        Vb = V_msh[0:N, :]
+        Vt = V_msh[N:2*N, :]
+        V_msh[0:N, :] = Vt
+        V_msh[N:2*N, :] = Vb
+        mask_b = T_msh < N
+        mask_t = np.logical_and(T_msh>=N, T_msh<2*N)
+        T_msh[mask_b] += N
+        T_msh[mask_t] -= N
+
+        #V_msh = V_msh[mV.shape[0]:, :]
+        #T_msh -= mV.shape[0]
+        V, T = surface_to_curved_layer(mV, mF, cp, bern2elevlag, (V_msh, T_msh[label == 2]))
         print('interior={}   T_msh size={}'.format(interior, T_msh[label == 2].shape[0]))
     m = meshio.Mesh(V, [("tetra35", T)])
 
