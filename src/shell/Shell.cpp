@@ -189,7 +189,8 @@ void CleanTetMesh(
 void GetTetFromPrism(
     const std::vector<tetwild::TetVertex> &VO, 
     const std::vector<std::array<int, 4>> &TO, 
-    const std::unordered_set<int> &tetsOnTargetSurface_,  // pre-calculated tetsOnTargetSurface
+    const std::unordered_set<int> &tetsOnTargetSurface,  // pre-calculated tetsOnTargetSurface
+    const std::unordered_set<int> &vertsOnTargetEdge_candidate,  // pre-calculated vertsOnTargetEdge_candidate
     const std::vector<std::array<int, 4>> &face_on_shell,  // The old "face_on_shell", recording which input surface each face of a tet is on
     const int surfaceIdx,  // either "SURFACE_INNER" or "SURFACE_OUTER", the "bad" subdivided face
     const prism_t &prism,  // the vertex index in "prism" is w.r.t. VI, so we need "map_VI2VO"
@@ -232,6 +233,8 @@ void GetTetFromPrism(
     auto tetSplit = tetSplitA ? TETRA_SPLIT_A : TETRA_SPLIT_B;
     Point_3 &base_ptx = tetSplitA ? base_pt2 : base_pt1;  // 'x' is either 1 or 2
     Segment_3 edge_0x(base_pt0, base_ptx);
+    /*
+    // NOTE: This code is used for debug. LOW efficient
     // Collect vertices in VO that are on edge (0x)
     // sort "vertsOnTargetEdge" in order from "base_pt0" to "base_ptx"
     std::map<tetwild::CGAL_FT, int> vertsOnTargetEdge;
@@ -256,7 +259,18 @@ void GetTetFromPrism(
                 }
             }   
     }
-    tetsOnTargetSurface = tetsOnTargetSurface_;
+    */
+    // Collect vertices in VO that are on edge (0x)
+    // sort "vertsOnTargetEdge" in order from "base_pt0" to "base_ptx"
+    std::map<tetwild::CGAL_FT, int> vertsOnTargetEdge;
+    for (auto it=vertsOnTargetEdge_candidate.begin(); it!=vertsOnTargetEdge_candidate.end(); it++) {
+        const Point_3 &pt = VO[*it].pos;
+        if (edge_0x.has_on(pt)) {
+            // "pt" is on edge_0x, insert to set
+            Segment_3 edge_temp(base_pt0, pt);
+            vertsOnTargetEdge.insert(std::make_pair(edge_temp.squared_length(), *it));  // will be sorted
+        }
+    }
 
     /////////////////
     // SINGULARITY //
@@ -496,23 +510,30 @@ void GenTetMeshFromShell(
     }
     logger().info("MapIndex calculated");
 
+    // NOTE: for the explanation of this part, see the commented area in "GetTetFromPrism"
     // Calculate two data structures in advance
-    std::vector<std::map<tetwild::CGAL_FT, int> > vertsOnTargetEdge_array(N);
+    std::vector<std::unordered_set<int> > vertsOnTargetEdge_candidate_array(N);
     std::vector<std::unordered_set<int> > tetsOnTargetSurface_array(N);
-    // PrecalculateHelper();
-    for (int i=0; i<face_on_shell.size(); i++) {
-        if (t_is_removed[i])
-            continue;
-        for (int j=0; j<4; j++) {
-            if (face_on_shell[i][j] == surfaceIdx) {
-                // this tet is on at least one face of "shellName"
-                int faceIdx = faceIdx_on_shell[i][j];
-                tetsOnTargetSurface_array[faceIdx].insert(i);
+    const auto PreCalcHelper = [&]() {
+        for (int i=0; i<face_on_shell.size(); i++) {
+            if (t_is_removed[i])
+                continue;
+            for (int j=0; j<4; j++) {
+                if (face_on_shell[i][j] == surfaceIdx) {
+                    // this tet is on at least one face of "shellName"
+                    int faceIdx = faceIdx_on_shell[i][j];
+                    tetsOnTargetSurface_array[faceIdx].insert(i);
 
-                // check if the vertices are on 
+                    // later only check this candidate set for the vertices on edge0x
+                    vertsOnTargetEdge_candidate_array[faceIdx].insert(TO[i][(j+1)%4]);
+                    vertsOnTargetEdge_candidate_array[faceIdx].insert(TO[i][(j+2)%4]);
+                    vertsOnTargetEdge_candidate_array[faceIdx].insert(TO[i][(j+3)%4]);
+                }
             }
         }
-    }
+    };
+    PreCalcHelper();
+    logger().info("Pre-calculation done: tetsOnTargetSurface & vertsOnTargetEdge");
 
     // Generate tet mesh for each prism
     for (int i=0; i<N; i++) {
@@ -529,7 +550,7 @@ void GenTetMeshFromShell(
         }
 
         // get tet from prism & update is_surface_facet_temp + face_on_shell_temp
-        GetTetFromPrism(VO, TO, tetsOnTargetSurface_array[i], face_on_shell, surfaceIdx, prism, dualShell.V, map_VI2VO, t_is_removed,  // const input
+        GetTetFromPrism(VO, TO, tetsOnTargetSurface_array[i], vertsOnTargetEdge_candidate_array[i], face_on_shell, surfaceIdx, prism, dualShell.V, map_VI2VO, t_is_removed,  // const input
                         T_temp, is_surface_facet_temp, face_on_shell_temp, labels_temp_vec, singularCnt);  // output
     }
 
