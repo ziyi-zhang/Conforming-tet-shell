@@ -171,6 +171,7 @@ int main(int argc, char *argv[]) {
     app.add_flag("--brute-label", args.brute_label, "Use brute method to label tet region");
     app.add_flag("--brute-validate", args.brute_label_validation, "Use brute way to cross-validate the labels");
     app.add_flag("-m,--mesh-check", args.tet_mesh_sanity_check, "Sanity check for output tet mesh");
+    app.add_flag("--disable-inout", args.disable_inout, "Disable the in-out filter");
     app.add_flag("--shell-type-debug", args.shell_type_debug, "DEBUG PURPOSE - give three types of tets different labels");
 
     try {

@@ -92,6 +92,9 @@ struct Args {
     // DEBUG PURPOSE - give three types of tets different labels
     bool shell_type_debug = false;
 
+    // disable the in-out filter
+    bool disable_inout = false;
+
     // Target number of vertices (minimum), within 5% of tolerance
     int target_num_vertices = -1;
 

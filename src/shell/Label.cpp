@@ -141,11 +141,11 @@ bool point_in_tetrahedron(const Point_3& point, const Point_3& T0, const Point_3
     else {
         PrintPoints(T0, T1, T2, T3);
         if (side == CGAL::Oriented_side::ON_POSITIVE_SIDE)
-            printf("side == CGAL::Oriented_side::ON_POSITIVE_SIDE\n");
+            logger().warn("side == CGAL::Oriented_side::ON_POSITIVE_SIDE");
         else if (side == CGAL::Oriented_side::ON_NEGATIVE_SIDE)
-            printf("side == CGAL::Oriented_side::ON_NEGATIVE_SIDE\n");
+            logger().warn("side == CGAL::Oriented_side::ON_NEGATIVE_SIDE");
         else if (side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY)
-            printf("side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY\n");
+            logger().warn("side == CGAL::Oriented_side::ON_ORIENTED_BOUNDARY");
         logger().warn("point_in_tetrahedron: flipped tet detected.");
         return false;
         // tetwild::log_and_throw("point_in_tetrahedron: flipped tet detected.");
@@ -244,7 +244,8 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_OUTER:
                 return SHELL_TOP_OUTER;
             default:
-                std::cerr << surfaceType << std::endl;
+                std::cerr << "GetRegionType: exception in NON_SHELL_REGION. surfaceType=" << surfaceType << std::endl;
+                return -9;  // don't throw in this function. Print more debug info outside
                 tetwild::log_and_throw("GetRegionType: exception in NON_SHELL_REGION.");
                 break;
         }
@@ -255,7 +256,8 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_BOTTOM:
                 return SHELL_BOTTOM_TOP;
             default:
-                std::cerr << surfaceType << std::endl;
+                std::cerr << "GetRegionType: exception in SHELL_INNER_BOTTOM. surfaceType=" << surfaceType << std::endl;
+                return -9;
                 tetwild::log_and_throw("GetRegionType: exception in SHELL_INNER_BOTTOM.");
                 break;
         }
@@ -266,7 +268,8 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_TOP:
                 return SHELL_TOP_OUTER;
             default:
-                std::cerr << surfaceType << std::endl;
+                std::cerr << "GetRegionType: exception in SHELL_BOTTOM_TOP. surfaceType=" << surfaceType << std::endl;
+                return -9;
                 tetwild::log_and_throw("GetRegionType: exception in SHELL_BOTTOM_TOP.");
                 break;
         }
@@ -277,7 +280,8 @@ int GetRegionType(int oldRegionType, int surfaceType) {
             case SURFACE_OUTER:
                 return NON_SHELL_REGION;
             default:
-                std::cerr << surfaceType << std::endl;
+                std::cerr << "GetRegionType: exception in SHELL_TOP_OUTER. surfaceType" << surfaceType << std::endl;
+                return -9;
                 tetwild::log_and_throw("GetRegionType: exception in SHELL_TOP_OUTER.");
                 break;
         }
@@ -410,6 +414,15 @@ void LabelTet(
                         newRegionType = TetRegion(VO, TO, VI, dualShell, newTetIdx);
                     */
                     int newRegionType = GetRegionType(oldRegionType, surfaceType);
+                    if (newRegionType == -9) {
+                        // error in "GetRegionType", log and throw here for more debug info
+                        logger().critical("oldTetIdx={} newTetIdx={} oldRegionType={} surfaceType={}", oldTetIdx, newTetIdx, oldRegionType, surfaceType);
+                        logger().critical("face_on_shell[oldTetIdx][1:4] = {} {} {} {}", face_on_shell[oldTetIdx][0], face_on_shell[oldTetIdx][1], face_on_shell[oldTetIdx][2], face_on_shell[oldTetIdx][3]);
+                        logger().critical("face_on_shell[newTetIdx][1:4] = {} {} {} {}", face_on_shell[newTetIdx][0], face_on_shell[newTetIdx][1], face_on_shell[newTetIdx][2], face_on_shell[newTetIdx][3]);
+                        newRegionType = TetRegion(VO, TO, VI, dualShell, newTetIdx);
+                        logger().critical("TetRegion(oldTetIdx)={} TetRegion(newTetIdx)={}", TetRegion(VO, TO, VI, dualShell, oldTetIdx), newRegionType);
+                        tetwild::log_and_throw("GetRegionType: exception");
+                    }
                     labels[newTetIdx] = newRegionType;
                     visited[newTetIdx] = true;
 
