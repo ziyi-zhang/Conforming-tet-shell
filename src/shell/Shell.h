@@ -43,7 +43,7 @@ typedef struct DualShell_t {
 void GenDualShell(const std::vector<tetwild::Point_3> &VI, const Eigen::MatrixXi &FI, DualShell_t &dualShell);
 /// TODO
 
-void ReplaceWithPrismTet(const tetwild::Args &args, const DualShell_t &dualShell, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &TO, Eigen::VectorXi &labels, std::vector<std::array<int, 4>> &is_surface_facet, std::vector<std::array<int, 4>> &face_on_shell);
+void ReplaceWithPrismTet(const tetwild::Args &args, const DualShell_t &dualShell, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &TO, Eigen::VectorXi &labels, std::vector<std::array<int, 4>> &is_surface_facet, std::vector<std::array<int, 4>> &face_on_shell, std::vector<std::array<int, 4>> &faceIdx_on_shell);
 /// TODO
 
 void GetMeshWithPseudoTets(const DualShell_t &dualShell, const std::vector<tetwild::TetVertex> &VO, const std::vector<std::array<int, 4>> &TO, std::vector<std::array<int, 4>> &TO_with_pseudo_tets);

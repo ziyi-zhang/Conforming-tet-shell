@@ -189,6 +189,7 @@ void CleanTetMesh(
 void GetTetFromPrism(
     const std::vector<tetwild::TetVertex> &VO, 
     const std::vector<std::array<int, 4>> &TO, 
+    const std::unordered_set<int> &tetsOnTargetSurface_,  // pre-calculated tetsOnTargetSurface
     const std::vector<std::array<int, 4>> &face_on_shell,  // The old "face_on_shell", recording which input surface each face of a tet is on
     const int surfaceIdx,  // either "SURFACE_INNER" or "SURFACE_OUTER", the "bad" subdivided face
     const prism_t &prism,  // the vertex index in "prism" is w.r.t. VI, so we need "map_VI2VO"
@@ -236,7 +237,7 @@ void GetTetFromPrism(
     std::map<tetwild::CGAL_FT, int> vertsOnTargetEdge;
     // Collect the row number of TO that touches "surfaceIdx" surface
     std::unordered_set<int> tetsOnTargetSurface;  // TO index
-    // fill the two unordered_sets
+    // fill "vertsOnTargetEdge" and "tetsOnTargetSurface"
     for (int i=0; i<face_on_shell.size(); i++) {
         if (t_is_removed[i])
             continue;  // do not consider removed tet
@@ -255,6 +256,7 @@ void GetTetFromPrism(
                 }
             }   
     }
+    tetsOnTargetSurface = tetsOnTargetSurface_;
 
     /////////////////
     // SINGULARITY //
@@ -466,6 +468,7 @@ void GenTetMeshFromShell(
     const std::vector<std::array<int, 4>> &TO, 
     const DualShell_t &dualShell, 
     const std::vector<std::array<int, 4>> &face_on_shell,
+    const std::vector<std::array<int, 4>> &faceIdx_on_shell,
     const int shellName,  // either SHELL_INNER_BOTTOM or SHELL_TOP_OUTER
     // std::vector<tetwild::TetVertex> &V_temp,  // why? all vertices already exist
     std::vector<std::array<int, 4>> &T_temp, 
@@ -491,6 +494,25 @@ void GenTetMeshFromShell(
         MapIndex(VO, dualShell, dualShell.shell_top_outer, map_VI2VO);
         surfaceIdx = SURFACE_OUTER;  // the one of the two surfaces that has been subdivided 
     }
+    logger().info("MapIndex calculated");
+
+    // Calculate two data structures in advance
+    std::vector<std::map<tetwild::CGAL_FT, int> > vertsOnTargetEdge_array(N);
+    std::vector<std::unordered_set<int> > tetsOnTargetSurface_array(N);
+    // PrecalculateHelper();
+    for (int i=0; i<face_on_shell.size(); i++) {
+        if (t_is_removed[i])
+            continue;
+        for (int j=0; j<4; j++) {
+            if (face_on_shell[i][j] == surfaceIdx) {
+                // this tet is on at least one face of "shellName"
+                int faceIdx = faceIdx_on_shell[i][j];
+                tetsOnTargetSurface_array[faceIdx].insert(i);
+
+                // check if the vertices are on 
+            }
+        }
+    }
 
     // Generate tet mesh for each prism
     for (int i=0; i<N; i++) {
@@ -507,7 +529,7 @@ void GenTetMeshFromShell(
         }
 
         // get tet from prism & update is_surface_facet_temp + face_on_shell_temp
-        GetTetFromPrism(VO, TO, face_on_shell, surfaceIdx, prism, dualShell.V, map_VI2VO, t_is_removed,  // const input
+        GetTetFromPrism(VO, TO, tetsOnTargetSurface_array[i], face_on_shell, surfaceIdx, prism, dualShell.V, map_VI2VO, t_is_removed,  // const input
                         T_temp, is_surface_facet_temp, face_on_shell_temp, labels_temp_vec, singularCnt);  // output
     }
 
@@ -610,7 +632,8 @@ void ReplaceWithPrismTet(
     std::vector<std::array<int, 4>> &TO, 
     Eigen::VectorXi &labels,
     std::vector<std::array<int, 4>> &is_surface_facet, 
-    std::vector<std::array<int, 4>> &face_on_shell) {
+    std::vector<std::array<int, 4>> &face_on_shell, 
+    std::vector<std::array<int, 4>> &faceIdx_on_shell) {
 
     const int numTet = TO.size();
 
@@ -633,7 +656,7 @@ void ReplaceWithPrismTet(
     Eigen::VectorXi temp;
 
     //// FOR shell_inner_bottom
-    GenTetMeshFromShell(args, VO, TO, dualShell, face_on_shell, SHELL_INNER_BOTTOM, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
+    GenTetMeshFromShell(args, VO, TO, dualShell, face_on_shell, faceIdx_on_shell, SHELL_INNER_BOTTOM, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
     is_surface_facet.insert( is_surface_facet.end(), is_surface_facet_temp.begin(), is_surface_facet_temp.end() );
@@ -644,7 +667,7 @@ void ReplaceWithPrismTet(
     logger().debug("GenTetMeshFromShell: SHELL_INNER_BOTTOM done");
 
     /// FOR shell_top_outer
-    GenTetMeshFromShell(args, VO, TO, dualShell, face_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
+    GenTetMeshFromShell(args, VO, TO, dualShell, face_on_shell, faceIdx_on_shell, SHELL_TOP_OUTER, T_temp, labels_temp, is_surface_facet_temp, face_on_shell_temp, t_is_removed);
     // concatenate new tet with old
     TO.insert( TO.end(), T_temp.begin(), T_temp.end() );
     is_surface_facet.insert( is_surface_facet.end(), is_surface_facet_temp.begin(), is_surface_facet_temp.end() );

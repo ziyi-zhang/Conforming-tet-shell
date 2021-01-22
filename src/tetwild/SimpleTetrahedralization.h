@@ -37,7 +37,8 @@ public:
                       const std::vector<std::vector<int>>& conn_e4v,
                       std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets,
                       std::vector<std::array<int, 4>>& is_surface_fs, 
-                      std::vector<std::array<int, 4>>& face_on_shell);
+                      std::vector<std::array<int, 4>>& face_on_shell,
+                      std::vector<std::array<int, 4>>& faceIdx_on_shell);
     void labelBbox(std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets);
     void labelBoundary(std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets,
                        const std::vector<std::array<int, 4>>& is_surface_fs);

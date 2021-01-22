@@ -324,7 +324,8 @@ double tetwild_stage_one_tetra(
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
     std::vector<std::array<int, 4>> &is_surface_facet, 
-    std::vector<std::array<int, 4>>& face_on_shell) {
+    std::vector<std::array<int, 4>>& face_on_shell,
+    std::vector<std::array<int, 4>>& faceIdx_on_shell) {
 
     igl::Timer igl_timer;
     igl_timer.start();
@@ -335,9 +336,10 @@ double tetwild_stage_one_tetra(
     tet_indices.clear();
     is_surface_facet.clear();
     face_on_shell.clear();
+    faceIdx_on_shell.clear();
 
     ST.tetra(tet_vertices, tet_indices);
-    ST.labelSurface(m_f_tags, raw_e_tags, raw_conn_e4v, tet_vertices, tet_indices, is_surface_facet, face_on_shell);
+    ST.labelSurface(m_f_tags, raw_e_tags, raw_conn_e4v, tet_vertices, tet_indices, is_surface_facet, face_on_shell, faceIdx_on_shell);
     ST.labelBbox(tet_vertices, tet_indices);
     if (!state.is_mesh_closed)//if input is an open mesh
         ST.labelBoundary(tet_vertices, tet_indices, is_surface_facet);
@@ -372,7 +374,8 @@ void tetwild_stage_one(
     std::vector<TetVertex> &tet_vertices,
     std::vector<std::array<int, 4>> &tet_indices,
     std::vector<std::array<int, 4>> &is_surface_facet, 
-    std::vector<std::array<int, 4>>& face_on_shell) {
+    std::vector<std::array<int, 4>>& face_on_shell, 
+    std::vector<std::array<int, 4>>& faceIdx_on_shell) {
 
     igl::Timer igl_timer;
     double sum_time = 0;
@@ -402,7 +405,7 @@ void tetwild_stage_one(
 
     // simple tetrahedralization
     sum_time += tetwild_stage_one_tetra(args, state, MC, m_f_tags, raw_e_tags, raw_conn_e4v,
-        tet_vertices, tet_indices, is_surface_facet, face_on_shell);
+        tet_vertices, tet_indices, is_surface_facet, face_on_shell, faceIdx_on_shell);
 
     logger().info("Total time for the first stage = {}s", sum_time);
 }
@@ -422,6 +425,7 @@ void tetwild_stage_shell(
     std::vector<std::array<int, 4>> &TO,
     std::vector<std::array<int, 4>> &is_surface_facet, 
     std::vector<std::array<int, 4>> &face_on_shell,
+    std::vector<std::array<int, 4>> &faceIdx_on_shell,
     Eigen::VectorXi &labels, 
     int &eulerNumber) {
 
@@ -451,7 +455,7 @@ void tetwild_stage_shell(
     // Replace some tets with prism tets
     if (!args.skip_prism) {
         tetshell::ReplaceWithPrismTet(args, dualShell,  // input
-                                      VO, TO, labels, is_surface_facet, face_on_shell);  // output
+                                      VO, TO, labels, is_surface_facet, face_on_shell, faceIdx_on_shell);  // output
     }
 
     // Freeze vertices on bottom and top surfaces
@@ -529,16 +533,17 @@ void tetrahedralization(const Eigen::MatrixXd &VI, const Eigen::MatrixXi &FI,
     std::vector<TetVertex> tet_vertices;
     std::vector<std::array<int, 4>> tet_indices;
     std::vector<std::array<int, 4>> is_surface_facet;
-    std::vector<std::array<int, 4>> face_on_shell;  // 0 for not on shell
+    std::vector<std::array<int, 4>> face_on_shell;  // 0 for not on shell, records which surface this face is on
+    std::vector<std::array<int, 4>> faceIdx_on_shell;  // -1 for not on shell, records the face index in per-layer-F
     int eulerNumber;  // Post-shell with pseudo tets
 
     /// STAGE 1: Preprocess & Generate tet mesh
     tetwild_stage_one(VI, FI, args, state, geo_sf_mesh, geo_b_mesh,
-        tet_vertices, tet_indices, is_surface_facet, face_on_shell);
+        tet_vertices, tet_indices, is_surface_facet, face_on_shell, faceIdx_on_shell);
 
     /// STAGE 1.5: Shell
     Eigen::VectorXi labels;
-    tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, labels, eulerNumber);
+    tetwild_stage_shell(args, VI, FI, tet_vertices, tet_indices, is_surface_facet, face_on_shell, faceIdx_on_shell, labels, eulerNumber);
     if (args.tet_mesh_sanity_check) {
         tetshell::TetMeshCheckArgs_t tetMeshCheckArgs;
         tetMeshCheckArgs.vertexAttri = false;

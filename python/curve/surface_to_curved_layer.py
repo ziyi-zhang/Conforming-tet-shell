@@ -145,7 +145,7 @@ if __name__ == '__main__':
     curveFolder = './'
     if (len(sys.argv) > 2):
         curveFolder = sys.argv[2]
-    interior = False
+    interior = True
 
     str_ = '/home/ziyi/TetShell/data/0112_exterior/' + os.path.basename(input_filename)
     output_filename_msh = os.path.splitext(str_)[0] + 'stitch.msh'

@@ -385,7 +385,8 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
                                             const std::vector<std::vector<int>>& conn_e4v,
                                             std::vector<TetVertex>& tet_vertices, std::vector<std::array<int, 4>>& tets,
                                             std::vector<std::array<int, 4>>& is_surface_fs, 
-                                            std::vector<std::array<int, 4>>& face_on_shell) {
+                                            std::vector<std::array<int, 4>>& face_on_shell,
+                                            std::vector<std::array<int, 4>>& faceIdx_on_shell) {
 
     std::vector<BSPFace> &bsp_faces = MC.bsp_faces;
     std::vector<Point_3> &bsp_vertices = MC.bsp_vertices;
@@ -492,6 +493,8 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
         std::array<int, 4>({{state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE, state.NOT_SURFACE}}));
     face_on_shell = std::vector<std::array<int, 4>>(tets.size(),
         std::array<int, 4>({{state.NOT_SHELL, state.NOT_SHELL, state.NOT_SHELL, state.NOT_SHELL}}));
+    faceIdx_on_shell = std::vector<std::array<int, 4>>(tets.size(),
+        std::array<int, 4>({{-1, -1, -1, -1}}));
 
     const int numFacePerShell = m_faces.size() / 4;  // assuming the input is valid
 
@@ -538,14 +541,19 @@ void SimpleTetrahedralization::labelSurface(const std::vector<int>& m_f_tags, co
                 log_and_throw("ERROR: in is_surface_fs side == CGAL::ON_ORIENTED_BOUNDARY!!");
             }
             // face_on_shell
-            if (face_index < numFacePerShell)
+            if (face_index < numFacePerShell) {
                 face_on_shell[i][j] = state.SHELL_INNER;
-            else if (face_index < numFacePerShell * 2)
+                faceIdx_on_shell[i][j] = face_index;
+            } else if (face_index < numFacePerShell * 2) {
                 face_on_shell[i][j] = state.SHELL_BOTTOM;
-            else if (face_index < numFacePerShell * 3)
+                faceIdx_on_shell[i][j] = face_index - numFacePerShell;
+            } else if (face_index < numFacePerShell * 3) {
                 face_on_shell[i][j] = state.SHELL_TOP;
-            else
+                faceIdx_on_shell[i][j] = face_index - numFacePerShell * 2;
+            } else {
                 face_on_shell[i][j] = state.SHELL_OUTER;
+                faceIdx_on_shell[i][j] = face_index - numFacePerShell * 3;
+            }
             // is_surface_fs
             if (side == CGAL::ON_POSITIVE_SIDE)  // outside
                 is_surface_fs[i][j]++;
