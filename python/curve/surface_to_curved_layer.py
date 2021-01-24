@@ -154,7 +154,7 @@ if __name__ == '__main__':
     curve_filename = curve_filename[:-1] + '5'  # remove the annoying '_'
 
     # read params
-    with h5py.File("../python/curve/data/tri_o3_lv3.h5",'r') as fp:
+    with h5py.File("/home/ziyi/TetShell/code/Conforming-tet-shell/python/curve/data/tri_o3_lv3.h5",'r') as fp:
         bern2elevlag = fp['bern2elevlag'][()]
     # read tet mesh
     print('input mesh: {}'.format(input_filename))
@@ -171,6 +171,7 @@ if __name__ == '__main__':
         mB = fp['mbase'][()]
         mV = fp['mV'][()]
         mF = fp['mF'][()]
+        cp = cp[:len(mF)]
 
     #Vb, Tb = surface_to_curved_layer(mB, mF, cp, bern2elevlag, (V_msh, T_msh[label == 1]))
     #Vt, Tt = surface_to_curved_layer(mT, mF, cp, bern2elevlag, (V_msh, T_msh[label == 2]))
