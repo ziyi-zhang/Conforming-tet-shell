@@ -147,15 +147,14 @@ if __name__ == '__main__':
         curveFolder = sys.argv[2]
     interior = True
 
-    str_ = '/home/ziyi/TetShell/data/0112_exterior/' + os.path.basename(input_filename)
-    output_filename_msh = os.path.splitext(str_)[0] + 'stitch.msh'
-    output_filename_h5  = os.path.splitext(str_)[0] + 'stitch.h5'
+    output_filename_msh = os.path.splitext(input_filename)[0] + 'stitch.msh'
+    output_filename_h5  = os.path.splitext(input_filename)[0] + 'stitch.h5'
     curve_filename = os.path.basename(input_filename)
     curve_filename = os.path.join(curveFolder, os.path.splitext(curve_filename)[0])
     curve_filename = curve_filename[:-1] + '5'  # remove the annoying '_'
 
     # read params
-    with h5py.File("/home/ziyi/TetShell/code/Conforming-tet-shell/python/curve/data/tri_o3_lv3.h5",'r') as fp:
+    with h5py.File("../python/curve/data/tri_o3_lv3.h5",'r') as fp:
         bern2elevlag = fp['bern2elevlag'][()]
     # read tet mesh
     print('input mesh: {}'.format(input_filename))
@@ -198,12 +197,12 @@ if __name__ == '__main__':
     m = meshio.Mesh(V, [("tetra35", T)])
 
     # write as msh to output_filename_msh
-    print('result written to: {}'.format(output_filename_msh))
-    meshio.write(output_filename_msh, m)
+    # meshio.write(output_filename_msh, m)
+    # print('result written to: {}'.format(output_filename_msh))
 
     # write as h5 to output_filename_h5
-    print('result written to: {}'.format(output_filename_h5))
     hP, hC = reorder_tetra(m)
     with h5py.File(output_filename_h5, 'w') as fp:
         fp['lagr'] = hP
         fp['cells'] = hC
+    print('result written to: {}'.format(output_filename_h5))
