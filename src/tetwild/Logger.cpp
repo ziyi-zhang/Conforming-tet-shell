@@ -44,7 +44,7 @@ void Logger::init(bool use_cout, const std::string &filename, bool truncate) {
 		registry_inst.set_tp(tp);
 	}
 
-    logger_ = std::make_shared<spdlog::async_logger>("tetwild", sinks.begin(), sinks.end(), std::move(tp), spdlog::async_overflow_policy::block);
+    logger_ = std::make_shared<spdlog::async_logger>("tetshell", sinks.begin(), sinks.end(), std::move(tp), spdlog::async_overflow_policy::block);
     registry_inst.register_and_init(logger_);
 }
 

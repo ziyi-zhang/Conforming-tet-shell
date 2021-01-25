@@ -412,6 +412,8 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
 
     if (!args.is_quiet) {
         double max_e = localOperation.getMaxEnergy();
+        /*
+        // do not log this
         if (max_e > 100) {
             bool is_print = false;
             std::ofstream f;
@@ -455,6 +457,7 @@ void MeshRefinement::refine(int energy_type, const std::array<bool, 4>& ops, boo
                 f << state.eps << std::endl;
             f.close();
         }
+        */
     }
 
     if (is_post) {

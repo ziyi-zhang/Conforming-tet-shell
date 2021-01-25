@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
     Args args;
 
     CLI::App app{"RobustTetMeshing"};
-    app.add_option("input,--input", input_surface, "Input surface mesh INPUT in .off/.obj/.stl/.ply format. (string, required)")->required();
+    app.add_option("input,--input", input_surface, "Input surface mesh INPUT in .h5/.ply format. (string, required)")->required();
     app.add_option("output,--output", output_volume, "Output tetmesh OUTPUT in .msh format. (string, optional, default: input_file+postfix+'.msh')");
     app.add_option("--postfix", args.postfix, "Postfix P for output files. (string, optional, default: '_')");
     auto absolute = app.add_option("-a,--ideal-absolute-edge-length", args.initial_edge_len_abs, "Absolute edge length (not scaled by bbox). -a and -l cannot both be given as arguments.");
@@ -187,27 +187,28 @@ int main(int argc, char *argv[]) {
 
     // Initialization
     GEO::initialize();
-    if(slz_file != "") {
+    if (slz_file != "") {
         args.working_dir = input_surface.substr(0, slz_file.size() - 4);
     } else {
-        if(output_volume.empty())
+        if (output_volume.empty())
             args.working_dir = input_surface.substr(0, input_surface.size() - 4);
         else
             args.working_dir = output_volume;
     }
 
-    if(args.csv_file.empty()) {
+    if (args.csv_file.empty()) {
         args.csv_file = args.working_dir + args.postfix + ".csv";
     }
 
-    if(output_volume.empty()) {
+    if (output_volume.empty()) {
         output_volume = args.working_dir + args.postfix + ".msh";
     }
     output_surface = args.working_dir + args.postfix+"_sf.obj";
 
-    if(args.is_quiet) {
+    if (args.is_quiet) {
         args.write_csv_file = false;
     }
+    args.write_csv_file = false;  // do not need this
 
     // Read V, F from file
     Eigen::MatrixXd VI, VO;
