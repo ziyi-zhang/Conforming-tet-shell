@@ -187,12 +187,21 @@ bool SameUnorderedTriangle(const Eigen::Matrix<double, 3, 3> &triA, const Eigen:
 }
 
 
+int FindInvMap(const std::vector<int> &idxMap, int k) {
+
+    for (int i=0; i<idxMap.size(); i++)
+        if (idxMap[i] == k) return i;
+    tetwild::log_and_throw("FindInvMap not found");
+    return -1;
+}
+
+
 void ReorderVertices(const Eigen::MatrixXd &VI, std::vector<tetwild::TetVertex> &VO, std::vector<std::array<int, 4>> &TO) {
 
     std::vector<int> idxMap(VO.size());
     for (int i=0; i<VO.size(); i++) {
         if (!VO[i].is_rounded) VO[i].round();
-        idxMap[i] = i;
+        idxMap[i] = i;  // where does the original i-th vertex go to
     }
 
     // make VO in the same order of VI
@@ -202,11 +211,23 @@ void ReorderVertices(const Eigen::MatrixXd &VI, std::vector<tetwild::TetVertex> 
         bool found = false;
         for (int j=0; j<VO.size(); j++) {
             if (VI(i, 0) == VO[j].posf[0] && VI(i, 1) == VO[j].posf[1] && VI(i, 2) == VO[j].posf[2]) {
-                // VO.row(i) == VO[j].posf
+                // VI.row(i) == VO[j].posf
 
-                if (i-numVertsPerSurface != j) {
+                if (i-numVertsPerSurface > j) {
+                    // singularity
+                    tetwild::TetVertex repeatedV = VO[j];
+                    VO.push_back(repeatedV);
+                    idxMap.push_back(idxMap.size());
+                    std::iter_swap(VO.begin() + i-numVertsPerSurface, VO.begin() + VO.size()-1);
+                    int p = FindInvMap(idxMap, i-numVertsPerSurface);
+                    int q = FindInvMap(idxMap, VO.size()-1);
+                    std::iter_swap(idxMap.begin() + p, idxMap.begin() + q);
+                }
+                if (i-numVertsPerSurface < j) {
                     std::iter_swap(VO.begin() + i-numVertsPerSurface, VO.begin() + j);
-                    std::iter_swap(idxMap.begin() + i-numVertsPerSurface, idxMap.begin() + j);
+                    int p = FindInvMap(idxMap, i-numVertsPerSurface);
+                    int q = FindInvMap(idxMap, j);
+                    std::iter_swap(idxMap.begin() + p, idxMap.begin() + q);
                 }
                 found = true;
                 break;
@@ -219,13 +240,13 @@ void ReorderVertices(const Eigen::MatrixXd &VI, std::vector<tetwild::TetVertex> 
     }
 
     // fix TO
-    std::vector<int> invIdxMap(VO.size());
-    for (int i=0; i<idxMap.size(); i++) {
-        invIdxMap[idxMap[i]] = i;
-    }
+    //std::vector<int> invIdxMap(VO.size());
+    //for (int i=0; i<idxMap.size(); i++) {
+    //    invIdxMap[idxMap[i]] = i;
+    //}
     for (int i=0; i<TO.size(); i++) {
         for (int j=0; j<4; j++) {
-            TO[i][j] = invIdxMap[TO[i][j]];
+            TO[i][j] = idxMap[TO[i][j]];
         }
     }
 }
