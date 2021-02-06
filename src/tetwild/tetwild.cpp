@@ -355,14 +355,8 @@ double tetwild_stage_one_tetra(
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-
-
-
 ///
 /// Generate tet mesh from input
-///
-/// TODO
 ///
 void tetwild_stage_one(
     const Eigen::MatrixXd &VI,
@@ -411,11 +405,8 @@ void tetwild_stage_one(
 }
 
 // -----------------------------------------------------------------------------
-
 ///
 /// Shell related operations
-///
-/// TODO
 ///
 void tetwild_stage_shell(
     const Args &args,
@@ -473,11 +464,8 @@ void tetwild_stage_shell(
 }
 
 // -----------------------------------------------------------------------------
-
 ///
 /// Mesh refinement
-///
-/// TODO
 ///
 void tetwild_stage_two(const Args &args, State &state,
     GEO::Mesh &geo_sf_mesh,
