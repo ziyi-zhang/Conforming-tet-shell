@@ -146,6 +146,8 @@ int main(int argc, char *argv[]) {
     std::string slz_file;
     Args args;
 
+    // NOTE: Some TetWild features may not work any more
+    //       The repo is adapted for conforming tetrahedral meshing
     CLI::App app{"RobustTetMeshing"};
     app.add_option("input,--input", input_surface, "Input surface mesh INPUT in .h5/.ply format. (string, required)")->required();
     app.add_option("output,--output", output_volume, "Output tetmesh OUTPUT in .msh format. (string, optional, default: input_file+postfix+'.msh')");
@@ -166,6 +168,7 @@ int main(int argc, char *argv[]) {
     app.add_flag("--no-voxel", args.not_use_voxel_stuffing, "Use voxel stuffing before BSP subdivision.");
     app.add_flag("--is-laplacian", args.smooth_open_boundary, "Do Laplacian smoothing for the surface of output on the holes of input (optional)");
     app.add_flag("-q,--is-quiet", args.is_quiet, "Mute console output. (optional)");
+    // TetShell options
     app.add_flag("-s,--skip-prism", args.skip_prism, "Skip prism removal and insertion");
     app.add_flag("--skip-optim", args.skip_optim, "Skip mesh refinement");
     app.add_flag("--brute-label", args.brute_label, "Use brute method to label tet region");
@@ -230,7 +233,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Tetrahedralization
-    if(slz_file != "") {
+    if (slz_file != "") {
         gtet_new_slz(VI, FI, slz_file,
             {{true, false, true, true}}, VO, TO, AO, args);
     } else {

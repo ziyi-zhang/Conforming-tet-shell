@@ -8,3 +8,11 @@ settings.json
 .vscode*
 extern/.cache/*
 *.pyc
+
+# extern
+extern/cli11
+extern/fmt
+extern/geogram
+extern/HighFive
+extern/libigl
+extern/spdlog

@@ -25,7 +25,7 @@ endfunction()
 function(tetwild_download_geogram)
     tetwild_download_project(geogram
         GIT_REPOSITORY https://github.com/alicevision/geogram.git
-        GIT_TAG        v1.6.7
+        GIT_TAG        v1.6.8
     )
 endfunction()
 
