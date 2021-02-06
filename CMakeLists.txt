@@ -7,32 +7,24 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ################################################################################
 # Options
 ################################################################################
+# tetshell
+option(TETSHELL_LIBONLY "Use TetShell as a library, without executables" OFF)
 # tetwild
 option(TETWILD_WITH_HUNTER "Use Hunter to download and configure Boost" OFF)
 option(TETWILD_WITH_ISPC   "Use ISPC"                                   OFF)
 option(TETWILD_WITH_ASAN   "Use ASAN" 									OFF)
 # libigl library
 option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
-option(LIBIGL_WITH_ANTTWEAKBAR      "Use AntTweakBar"    OFF)
 option(LIBIGL_WITH_CGAL             "Use CGAL"           ON)
-option(LIBIGL_WITH_COMISO           "Use CoMiso"         OFF)
-option(LIBIGL_WITH_CORK             "Use Cork"           OFF)
-option(LIBIGL_WITH_LIM              "Use LIM"            OFF)
-option(LIBIGL_WITH_MATLAB           "Use Matlab"         OFF)
-option(LIBIGL_WITH_MOSEK            "Use MOSEK"          OFF)
-option(LIBIGL_WITH_PNG              "Use PNG"            OFF)
-option(LIBIGL_WITH_PYTHON           "Use Python"         OFF)
+if (NOT TETSHELL_LIBONLY)
 option(LIBIGL_WITH_TETGEN           "Use Tetgen"         ON)
-option(LIBIGL_WITH_TRIANGLE         "Use Triangle"       OFF)
-option(LIBIGL_WITH_XML              "Use XML"            OFF)
+endif()
 # gui
 option(LIBIGL_WITH_EMBREE           "Use Embree"         OFF)
 option(LIBIGL_WITH_NANOGUI          "Use Nanogui menu"   OFF)
 option(LIBIGL_WITH_OPENGL           "Use OpenGL"         OFF)
 option(LIBIGL_WITH_OPENGL_GLFW      "Use GLFW"           OFF)
 option(LIBIGL_WITH_VIEWER           "Use OpenGL viewer"  OFF)
-#geogram
-option(GEOGRAM_WITH_TRIANGLE        "Use Triangle"       OFF)
 
 if(TETWILD_WITH_HUNTER)
 	# Needs to be set before the main project... argh =/
@@ -152,6 +144,7 @@ target_link_libraries(libTetWild
 		igl::core
 		pymesh::pymesh
 		spdlog::spdlog
+		fmt::fmt
 		highfive
 	PRIVATE
 		igl::cgal
@@ -174,6 +167,7 @@ if (TETWILD_WITH_ASAN)
 endif()
 
 # Building executable test
+if (NOT TETSHELL_LIBONLY)
 add_executable(TetShellTest EXCLUDE_FROM_ALL src/test/main_test.cpp)
 target_link_libraries(TetShellTest
 		libTetWild
@@ -185,14 +179,16 @@ target_include_directories(TetShellTest PRIVATE src)
 igl_copy_cgal_dll(TetShellTest)
 
 # Building executable tetgen
-add_executable(TetGen EXCLUDE_FROM_ALL src/test/main_tetgen.cpp)
-target_link_libraries(TetGen
-		libTetWild
-		igl::core
-		igl::tetgen
-		warnings::all
-)
-target_include_directories(TetGen PRIVATE src)
+if (TETSHELL_TEST_TETGEN)
+	add_executable(TetGen EXCLUDE_FROM_ALL src/test/main_tetgen.cpp)
+	target_link_libraries(TetGen
+			libTetWild
+			igl::core
+			igl::tetgen
+			warnings::all
+	)
+	target_include_directories(TetGen PRIVATE src)
+endif()
 
 # Building main executable
 add_executable(TetShell src/main.cpp)
@@ -207,6 +203,7 @@ igl_copy_cgal_dll(TetShell)
 
 # Install
 install(TARGETS TetShell RUNTIME DESTINATION bin)
+endif()
 
 ################################################################################
 # Folders for Visual Studio/XCode IDEs
