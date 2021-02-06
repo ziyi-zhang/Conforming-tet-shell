@@ -39,7 +39,7 @@ endif()
 # Project name
 ################################################################################
 
-project(TetWild)
+project(ConformingTetShell)
 
 ################################################################################
 # Settings
@@ -75,7 +75,7 @@ include(TetWildDependencies)
 # TetWild
 ################################################################################
 # Build static library for executable
-add_library(libTetWild 
+add_library(libTetShell 
 		include/tetwild/Args.h
 		include/tetwild/Exception.h
 		include/tetwild/Logger.h
@@ -133,12 +133,12 @@ add_library(libTetWild
 		src/shell/OptimalEnergy.cpp
 		src/shell/OptimalEnergy.h
 )
-target_include_directories(libTetWild
+target_include_directories(libTetShell
 	PUBLIC
 		src
 		include
 )
-target_link_libraries(libTetWild
+target_link_libraries(libTetShell
 	PUBLIC
 		geogram
 		igl::core
@@ -150,27 +150,27 @@ target_link_libraries(libTetWild
 		igl::cgal
 		warnings::all
 )
-set_target_properties(libTetWild PROPERTIES OUTPUT_NAME "tetwild")
+set_target_properties(libTetShell PROPERTIES OUTPUT_NAME "tetwild")
 
 # ispc
 if (TETWILD_WITH_ISPC)
 	message(STATUS "Compiling energy with ISPC")
 	add_subdirectory(src/ispc)
-	ispc_add_energy(libTetWild)
+	ispc_add_energy(libTetShell)
 endif()
 
 # ASAN
 if (TETWILD_WITH_ASAN)
 	message(STATUS "Compiling with ASAN")
-	target_compile_options(libTetWild PUBLIC "-fsanitize=address")
-	target_link_options(libTetWild PUBLIC "-fsanitize=address")
+	target_compile_options(libTetShell PUBLIC "-fsanitize=address")
+	target_link_options(libTetShell PUBLIC "-fsanitize=address")
 endif()
 
 # Building executable test
 if (NOT TETSHELL_LIBONLY)
 add_executable(TetShellTest EXCLUDE_FROM_ALL src/test/main_test.cpp)
 target_link_libraries(TetShellTest
-		libTetWild
+		libTetShell
 		CLI11::CLI11
 		igl::cgal
 		warnings::all
@@ -182,7 +182,7 @@ igl_copy_cgal_dll(TetShellTest)
 if (TETSHELL_TEST_TETGEN)
 	add_executable(TetGen EXCLUDE_FROM_ALL src/test/main_tetgen.cpp)
 	target_link_libraries(TetGen
-			libTetWild
+			libTetShell
 			igl::core
 			igl::tetgen
 			warnings::all
@@ -193,7 +193,7 @@ endif()
 # Building main executable
 add_executable(TetShell src/main.cpp)
 target_link_libraries(TetShell
-		libTetWild
+		libTetShell
 		CLI11::CLI11
 		igl::cgal
 		warnings::all
