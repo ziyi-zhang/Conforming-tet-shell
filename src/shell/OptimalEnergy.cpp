@@ -548,7 +548,6 @@ bool EstimateOptimalEnergy(const tetwild::Point_3 &pt1, const tetwild::Point_3 &
 
 void OptimizeTetWithRing(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const int targetTetIdx, const int vertIdx) {
 
-    logger().set_level(spdlog::level::level_enum::trace);
     // delete unused V & create rational copy
     std::vector<Point_3f> pts;
     std::vector<Point_3>  pts_rational;

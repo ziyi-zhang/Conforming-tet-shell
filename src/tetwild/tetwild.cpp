@@ -329,7 +329,7 @@ double tetwild_stage_one_tetra(
 
     igl::Timer igl_timer;
     igl_timer.start();
-    logger().info("Tetrehedralizing ...");
+    logger().info("Tetrahedralizing ...");
 
     SimpleTetrahedralization ST(state, MC);
     tet_vertices.clear();
@@ -480,7 +480,7 @@ void tetwild_stage_two(const Args &args, State &state,
     igl_timer.start();
 
     spdlog::level::level_enum verbose_level = logger().level();
-    logger().set_level(static_cast<spdlog::level::level_enum>(spdlog::level::debug));
+    logger().set_level(verbose_level);
     // init
     logger().info("Refinement initializing...");
     MeshRefinement MR(geo_sf_mesh, geo_b_mesh, args, state);
